@@ -20,7 +20,7 @@ export default function Home() {
     const clockInterval = setInterval(updateClock, 1000);
     updateClock();
 
-    // 🌐 Проверка подключения Raspberry Pi
+    // Проверка подключения Raspberry Pi
     function checkConnection(piId: string, url: string) {
       fetch(url)
         .then(response => {
@@ -130,7 +130,6 @@ export default function Home() {
       </div>
 
       <ZonaStatus />
-      
       <SensorMonitor />
     </main>
   );
