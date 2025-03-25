@@ -8,7 +8,7 @@ export default function Home() {
   const [time, setTime] = useState("");
 
   useEffect(() => {
-    // ⏰ Обновление часов
+    // Обновление часов
     function updateClock() {
       const now = new Date();
       const hours = now.getHours().toString().padStart(2, "0");
@@ -130,6 +130,7 @@ export default function Home() {
       </div>
 
       <ZonaStatus />
+      
       <SensorMonitor />
     </main>
   );
