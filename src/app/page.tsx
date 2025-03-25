@@ -128,7 +128,6 @@ export default function Home() {
           </div>
         </div>
       </div>
-
       <ZonaStatus />
       <SensorMonitor />
     </main>
