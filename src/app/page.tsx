@@ -98,7 +98,7 @@ export default function Home() {
     const sensorInterval = setInterval(updateSensorData, 5000);
     updateSensorData();
 
-    // Очистка
+    //   Очистка
     return () => {
       clearInterval(clockInterval);
       clearInterval(piInterval);
