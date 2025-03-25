@@ -59,7 +59,7 @@ export default function Home() {
         sensor7: (38 + Math.random() * 10).toFixed(0) + " %",
       };
 
-      for (let key in sensorValues) {
+      for (const key in sensorValues) {
         const el = document.getElementById(key);
         if (el) {
           el.textContent = sensorValues[key];
