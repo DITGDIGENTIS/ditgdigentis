@@ -42,9 +42,15 @@ h2 {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background-color: #dc3545;
+  background-color: #dc3545 !important; /* красный */
   position: relative;
   box-shadow: 0 0 10px rgba(220, 53, 69, 0.8);
+  transition: background-color 0.3s ease;
+}
+
+.indicator.connected {
+  background-color: #28a745 !important; /* зелёный */
+  box-shadow: 0 0 10px rgba(40, 167, 69, 0.8);
 }
 
 .indicator::after {
@@ -58,11 +64,6 @@ h2 {
   animation: pulse 1.5s infinite;
   background-color: inherit;
   opacity: 0.6;
-}
-
-.online {
-  background-color: #28a745;
-  box-shadow: 0 0 10px rgba(40, 167, 69, 0.8);
 }
 
 @keyframes pulse {
