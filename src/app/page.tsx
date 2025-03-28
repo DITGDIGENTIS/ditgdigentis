@@ -6,48 +6,39 @@ import { SensorMonitor } from '../components/SensorMonitor';
 
 export default function Home() {
   const [time, setTime] = useState("");
+  const [isOnline, setIsOnline] = useState(false); // 👈 статус платы
 
   useEffect(() => {
     // ⏰ Обновление часов
-    function updateClock() {
+    const updateClock = () => {
       const now = new Date();
       const hours = now.getHours().toString().padStart(2, "0");
       const minutes = now.getMinutes().toString().padStart(2, "0");
       const seconds = now.getSeconds().toString().padStart(2, "0");
       setTime(`${hours}:${minutes}:${seconds}`);
-    }
+    };
 
-    const clockInterval = setInterval(updateClock, 1000);
     updateClock();
+    const clockInterval = setInterval(updateClock, 1000);
 
-    // 🔌 Проверка подключения удалённой платы через Vercel API
-    function checkRemotePiStatus() {
+    // 🔌 Проверка статуса удалённой платы
+    const checkRemotePiStatus = () => {
       fetch("https://ditgdigentis.vercel.app/api/status")
-        .then((res) => res.json())
-        .then((data) => {
+        .then(res => res.json())
+        .then(data => {
           const now = Date.now();
           const lastUpdate = data.timestamp || 0;
-          const online = now - lastUpdate < 2 * 60 * 1000; // онлайн, если обновлено <2 мин назад
-          const el = document.getElementById("indicator");
-          if (el) {
-            if (online) {
-              el.classList.add("connected");
-            } else {
-              el.classList.remove("connected");
-            }
-          }
+          const online = now - lastUpdate < 2 * 60 * 1000;
+          setIsOnline(online);
         })
-        .catch(() => {
-          const el = document.getElementById("indicator");
-          if (el) el.classList.remove("connected");
-        });
-    }
+        .catch(() => setIsOnline(false));
+    };
 
-    const remotePiInterval = setInterval(checkRemotePiStatus, 10000);
     checkRemotePiStatus();
+    const remotePiInterval = setInterval(checkRemotePiStatus, 10000);
 
-    // 📊 Обновление данных сенсоров (твоё)
-    function updateSensorData() {
+    // 📊 Сенсоры
+    const updateSensorData = () => {
       const sensorValues: Record<string, string> = {
         sensor1: (20 + Math.random() * 5).toFixed(1) + " °C",
         sensor2: (21 + Math.random() * 5).toFixed(1) + " °C",
@@ -65,7 +56,6 @@ export default function Home() {
         }
       }
 
-      // Средняя температура
       let sumTemp = 0;
       let countTemp = 0;
       for (let i = 1; i <= 4; i++) {
@@ -79,7 +69,6 @@ export default function Home() {
       const avgTempEl = document.getElementById("averageTemperature");
       if (avgTempEl) avgTempEl.textContent = avgTemp + " °C";
 
-      // Средняя влажность
       let sumHum = 0;
       let countHum = 0;
       for (let i = 5; i <= 7; i++) {
@@ -92,10 +81,10 @@ export default function Home() {
       const avgHum = countHum > 0 ? (sumHum / countHum).toFixed(0) : "--";
       const avgHumEl = document.getElementById("averageHumidity");
       if (avgHumEl) avgHumEl.textContent = avgHum + " %";
-    }
+    };
 
-    const sensorInterval = setInterval(updateSensorData, 5000);
     updateSensorData();
+    const sensorInterval = setInterval(updateSensorData, 5000);
 
     return () => {
       clearInterval(clockInterval);
@@ -109,7 +98,7 @@ export default function Home() {
       <div className="status-container">
         <div className="indicator-wrapper">
           <span className="indicator-label">DITG DIGENTIS-1</span>
-          <span id="indicator" className="indicator"></span>
+          <span className={`indicator ${isOnline ? 'connected' : ''}`}></span>
         </div>
       </div>
 
