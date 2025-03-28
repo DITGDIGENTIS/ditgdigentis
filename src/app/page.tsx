@@ -23,19 +23,20 @@ export default function Home() {
 
     // 🔌 Проверка статуса удалённой платы
     const checkRemotePiStatus = () => {
-      fetch("https://ditgdigentis.vercel.app/api/status")
+      fetch("https://ditgdigentis.vercel.app/api/status", { cache: "no-store" })
         .then(res => res.json())
         .then(data => {
           const now = Date.now();
           const lastUpdate = data.timestamp || 0;
-          const online = now - lastUpdate < 10 * 1000;
+          const online = now - lastUpdate < 15 * 1000; // даём запас в 15 секунд
           setIsOnline(online);
         })
         .catch(() => setIsOnline(false));
     };
-
-    checkRemotePiStatus();
-    const remotePiInterval = setInterval(checkRemotePiStatus, 10000);
+    
+    checkRemotePiStatus(); // Первый запуск сразу
+    const remotePiInterval = setInterval(checkRemotePiStatus, 5000); // Проверяем чаще
+    
 
     // 📊 Сенсоры
     const updateSensorData = () => {
