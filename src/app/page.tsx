@@ -28,7 +28,7 @@ export default function Home() {
         .then(data => {
           const now = Date.now();
           const lastUpdate = data.timestamp || 0;
-          const online = now - lastUpdate < 4 * 60 * 1000;
+          const online = now - lastUpdate < 10 * 1000;
           setIsOnline(online);
         })
         .catch(() => setIsOnline(false));
