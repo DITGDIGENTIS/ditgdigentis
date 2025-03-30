@@ -36,7 +36,7 @@ export default function Home() {
     
     checkRemotePiStatus(); // Первый запуск сразу
     const remotePiInterval = setInterval(checkRemotePiStatus, 5000); // Проверяем чаще
-    
+
 
     // 📊 Сенсоры
     const updateSensorData = () => {
