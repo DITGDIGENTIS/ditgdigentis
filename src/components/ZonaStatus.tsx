@@ -2,23 +2,28 @@
 
 import { useEffect, useState } from 'react';
 
-type ZonaStatusMap = {
-  [id: string]: {
-    ip: string;
-    timestamp: number;
-  };
-};
-
 export function ZonaStatus() {
-  const [zonaStatus, setZonaStatus] = useState<ZonaStatusMap>({});
+  const [zonaStatus, setZonaStatus] = useState({
+    zona1: false,
+    zona2: false,
+    zona3: false,
+  });
 
   const fetchStatus = () => {
     fetch('https://ditgdigentis.vercel.app/api/status', { cache: 'no-store' })
       .then((res) => res.json())
-      .then((data: ZonaStatusMap) => {
-        setZonaStatus(data);
+      .then((data) => {
+        const now = Date.now();
+        const newStatus = {
+          zona1: now - (data?.zona1?.timestamp || 0) < 15000,
+          zona2: now - (data?.zona2?.timestamp || 0) < 15000,
+          zona3: now - (data?.zona3?.timestamp || 0) < 15000,
+        };
+        setZonaStatus(newStatus);
       })
-      .catch(() => setZonaStatus({}));
+      .catch(() => {
+        setZonaStatus({ zona1: false, zona2: false, zona3: false });
+      });
   };
 
   useEffect(() => {
@@ -27,20 +32,19 @@ export function ZonaStatus() {
     return () => clearInterval(interval);
   }, []);
 
-  const now = Date.now();
-
   return (
     <div className="container mt-2">
       <div className="status-container-zona">
-        {Object.entries(zonaStatus).map(([id, zona]) => {
-          const online = now - zona.timestamp < 15000;
+        {[1, 2, 3].map((i) => {
+          const id = `zona${i}`;
+          const online = zonaStatus[id as keyof typeof zonaStatus];
           return (
             <div key={id} className="zona-sensor">
-              <div className="zona-label text-warning">{id}</div>
+              <div className="zona-label text-warning">Zona:{i}</div>
               <span
-                id={id}
+                id={`pi${i}`}
                 className={`indicator rounded-circle ${online ? 'connected' : ''}`}
-                title={`${zona.ip} | ${online ? 'ONLINE' : 'OFFLINE'}`}
+                title={`Raspberry Pi ${i}`}
               ></span>
             </div>
           );
