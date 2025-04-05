@@ -9,7 +9,6 @@ export function ZonaStatus() {
     zona3: false,
   });
 
-  // ✅ використовуємо useRef для стабільного збереження без перерендерів
   const previousStatusRef = useRef(zonaStatus);
 
   const fetchStatus = () => {
@@ -17,7 +16,7 @@ export function ZonaStatus() {
       .then((res) => res.json())
       .then((data) => {
         const now = Date.now();
-        const timeout = 90000; // 90 сек
+        const timeout = 90000; // 90 секунд
 
         const newStatus = {
           zona1: now - (data?.zona1?.timestamp ?? 0) < timeout,
@@ -27,7 +26,7 @@ export function ZonaStatus() {
 
         const prev = previousStatusRef.current;
 
-        // 🔁 оновлюємо тільки якщо є реальні зміни
+        // 💡 Мінімізація флікання — оновлюємо стан лише при зміні
         if (
           newStatus.zona1 !== prev.zona1 ||
           newStatus.zona2 !== prev.zona2 ||
@@ -38,12 +37,12 @@ export function ZonaStatus() {
         }
       })
       .catch(() => {
-        // не змінюємо статус при помилці (анти-миготіння)
+        // 🛡️ Нічого не оновлюємо при помилці — кнопка лишається стабільною
       });
   };
 
   useEffect(() => {
-    fetchStatus(); // перший виклик одразу
+    fetchStatus(); // первинне оновлення
     const interval = setInterval(fetchStatus, 5000); // оновлення кожні 5 секунд
     return () => clearInterval(interval);
   }, []);
