@@ -1,9 +1,9 @@
 /* eslint-disable @next/next/no-img-element */
-'use client';
+"use client";
 
 import { useEffect, useState } from "react";
-import { ZonaStatus } from '../components/ZonaStatus';
-import { SensorMonitor } from '../components/SensorMonitor';
+import { ZonaStatus } from "../components/ZonaStatus";
+import { SensorMonitor } from "../components/SensorMonitor";
 
 export default function Home() {
   const [time, setTime] = useState("");
@@ -23,8 +23,8 @@ export default function Home() {
 
     const checkRemotePiStatus = () => {
       fetch("https://ditgdigentis.vercel.app/api/status", { cache: "no-store" })
-        .then(res => res.json())
-        .then(data => {
+        .then((res) => res.json())
+        .then((data) => {
           const now = Date.now();
           const lastUpdate = data.timestamp || 0;
           const online = now - lastUpdate < 15 * 1000;
@@ -94,20 +94,20 @@ export default function Home() {
       <div className="status-container">
         <div className="indicator-wrapper d-flex align-items-center justify-content-center gap-3 my-3">
           <img
-            src="/public/DITG.PNG"
+            src="/DITG.PNG"
             alt="DITG Logo"
-            width={38}
-            height={38}
+            width={130}
+            height={130}
             className="ditg-logo"
           />
           <span className="indicator-label fw-bold fs-5 text-light">
-            DIGENTIS-1
+            D : 1
           </span>
           <span
-            className={`status-indicator ${isOnline ? 'online' : 'offline'}`}
-            title={isOnline ? 'Online' : 'Offline'}
+            className={`status-indicator ${isOnline ? "online" : "offline"}`}
+            title={isOnline ? "Online" : "Offline"}
           >
-            {isOnline ? '● ONLINE' : '○ OFFLINE'}
+            {isOnline ? "● ONLINE" : "○ OFFLINE"}
           </span>
         </div>
       </div>
@@ -131,9 +131,9 @@ export default function Home() {
 
       <style jsx>{`
         .ditg-logo {
-          border-radius: 6px;
+          border-radius: 0;
           object-fit: contain;
-          box-shadow: 0 0 6px rgba(0, 255, 255, 0.25);
+          // box-shadow: 0 0 6px rgba(0, 255, 255, 0.25);
         }
 
         .status-indicator {
