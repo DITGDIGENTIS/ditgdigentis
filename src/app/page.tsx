@@ -91,17 +91,17 @@ export default function Home() {
 
   return (
     <main>
-      <div className="status-container">
-        <div className="indicator-wrapper d-flex align-items-center justify-content-center gap-3 my-3">
+      <div>
+        <div className=" d-flex align-items-center justify-content-center gap-3 ">
           <img
             src="/ditg-logo.png"
             alt="DITG Logo"
-            width={130}
-            height={130}
+            width={160}
+            height={160}
             className="ditg-logo"
           />
           <span className="indicator-label fw-bold fs-5 text-light">
-            D : 1
+            
           </span>
           <span
             className={`status-indicator ${isOnline ? "online" : "offline"}`}
