@@ -112,7 +112,7 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="container mt-4">
+      <div className="container">
         <div className="row justify-content-center">
           <div className="col-auto text-center">
             <span
