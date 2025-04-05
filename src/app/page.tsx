@@ -6,10 +6,9 @@ import { SensorMonitor } from '../components/SensorMonitor';
 
 export default function Home() {
   const [time, setTime] = useState("");
-  const [isOnline, setIsOnline] = useState(false); // 👈 статус платы
+  const [isOnline, setIsOnline] = useState(false);
 
   useEffect(() => {
-    // ⏰ Обновление часов
     const updateClock = () => {
       const now = new Date();
       const hours = now.getHours().toString().padStart(2, "0");
@@ -21,24 +20,21 @@ export default function Home() {
     updateClock();
     const clockInterval = setInterval(updateClock, 1000);
 
-    // 🔌 Проверка статуса удалённой платы
     const checkRemotePiStatus = () => {
       fetch("https://ditgdigentis.vercel.app/api/status", { cache: "no-store" })
         .then(res => res.json())
         .then(data => {
           const now = Date.now();
           const lastUpdate = data.timestamp || 0;
-          const online = now - lastUpdate < 15 * 1000; // даём запас в 15 секунд
+          const online = now - lastUpdate < 15 * 1000;
           setIsOnline(online);
         })
         .catch(() => setIsOnline(false));
     };
-    
-    checkRemotePiStatus(); // Первый запуск сразу
-    const remotePiInterval = setInterval(checkRemotePiStatus, 5000); // Проверяем чаще
 
+    checkRemotePiStatus();
+    const remotePiInterval = setInterval(checkRemotePiStatus, 5000);
 
-    // 📊 Сенсоры
     const updateSensorData = () => {
       const sensorValues: Record<string, string> = {
         sensor1: (20 + Math.random() * 5).toFixed(1) + " °C",
@@ -52,9 +48,7 @@ export default function Home() {
 
       for (const key in sensorValues) {
         const el = document.getElementById(key);
-        if (el) {
-          el.textContent = sensorValues[key];
-        }
+        if (el) el.textContent = sensorValues[key];
       }
 
       let sumTemp = 0;
@@ -97,9 +91,14 @@ export default function Home() {
   return (
     <main>
       <div className="status-container">
-        <div className="indicator-wrapper">
-          <span className="indicator-label">DITG DIGENTIS-1</span>
-          <span className={`indicator ${isOnline ? 'connected' : ''}`}></span>
+        <div className="indicator-wrapper d-flex align-items-center justify-content-center gap-3 my-3">
+          <span className="indicator-label fw-bold fs-5 text-light">DITG DIGENTIS-1</span>
+          <span
+            className={`status-indicator ${isOnline ? 'online' : 'offline'}`}
+            title={isOnline ? 'Online' : 'Offline'}
+          >
+            {isOnline ? '● ONLINE' : '○ OFFLINE'}
+          </span>
         </div>
       </div>
 
@@ -119,6 +118,52 @@ export default function Home() {
 
       <ZonaStatus />
       <SensorMonitor />
+
+      <style jsx>{`
+        .status-indicator {
+          padding: 6px 14px;
+          border-radius: 20px;
+          font-weight: 600;
+          font-size: 14px;
+          color: white;
+          transition: all 0.3s ease;
+          box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .online {
+          background-color: #28a745;
+          animation: pulseGreen 2s infinite;
+        }
+
+        .offline {
+          background-color: #dc3545;
+          animation: pulseRed 2s infinite;
+        }
+
+        @keyframes pulseGreen {
+          0% {
+            box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+          }
+          70% {
+            box-shadow: 0 0 0 10px rgba(40, 167, 69, 0);
+          }
+          100% {
+            box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+          }
+        }
+
+        @keyframes pulseRed {
+          0% {
+            box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+          }
+          70% {
+            box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+          }
+          100% {
+            box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+          }
+        }
+      `}</style>
     </main>
   );
 }

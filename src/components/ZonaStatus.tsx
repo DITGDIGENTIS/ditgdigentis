@@ -50,8 +50,8 @@ export function ZonaStatus() {
           const id = `zona${i}`;
           const online = zonaStatus[id as keyof typeof zonaStatus];
           return (
-            <div key={id} className="zona-sensor d-flex align-items-center mb-3">
-              <div className="zona-label fw-bold me-3 fs-5 text-light">Zona {i}</div>
+            <div key={id} className="zona-sensor d-flex align-items-center justify-content-center mb-3">
+              <div className="zona-label fw-bold fs-5 text-light">Zona {i}</div>
 
               <div
                 className={`status-indicator ${online ? 'online' : 'offline'}`}
