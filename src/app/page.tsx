@@ -96,8 +96,8 @@ export default function Home() {
           <img
             src="/ditg-logo.png"
             alt="DITG Logo"
-            width={200}
-            height={200}
+            width={160}
+            height={160}
             className="ditg-logo"
           />
           <span className="indicator-label fw-bold fs-5 text-light">
