@@ -14,17 +14,26 @@ export function ZonaStatus() {
       .then((res) => res.json())
       .then((data) => {
         const now = Date.now();
-        const newStatus = {
-          zona1: now - (data?.zona1?.timestamp || 0) < 15000,
-          zona2: now - (data?.zona2?.timestamp || 0) < 15000,
-          zona3: now - (data?.zona3?.timestamp || 0) < 15000,
+        const offlineThreshold = 90000; // 90 секунд
+  
+        const getStatus = (zona: string) => {
+          const ts = data?.[zona]?.timestamp ?? 0;
+          return now - ts < offlineThreshold;
         };
+  
+        const newStatus = {
+          zona1: getStatus('zona1'),
+          zona2: getStatus('zona2'),
+          zona3: getStatus('zona3'),
+        };
+  
         setZonaStatus(newStatus);
       })
       .catch(() => {
         setZonaStatus({ zona1: false, zona2: false, zona3: false });
       });
   };
+  
 
   useEffect(() => {
     fetchStatus();
