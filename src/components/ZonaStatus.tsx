@@ -16,7 +16,7 @@ export function ZonaStatus() {
       .then((res) => res.json())
       .then((data) => {
         const now = Date.now();
-        const timeout = 90000; // 90 секунд
+        const timeout = 90000;
 
         const newStatus = {
           zona1: now - (data?.zona1?.timestamp ?? 0) < timeout,
@@ -25,8 +25,6 @@ export function ZonaStatus() {
         };
 
         const prev = previousStatusRef.current;
-
-        // 💡 Мінімізація флікання — оновлюємо стан лише при зміні
         if (
           newStatus.zona1 !== prev.zona1 ||
           newStatus.zona2 !== prev.zona2 ||
@@ -36,36 +34,81 @@ export function ZonaStatus() {
           previousStatusRef.current = newStatus;
         }
       })
-      .catch(() => {
-        // 🛡️ Нічого не оновлюємо при помилці — кнопка лишається стабільною
-      });
+      .catch(() => {});
   };
 
   useEffect(() => {
-    fetchStatus(); // первинне оновлення
-    const interval = setInterval(fetchStatus, 5000); // оновлення кожні 5 секунд
+    fetchStatus();
+    const interval = setInterval(fetchStatus, 5000);
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <div className="container mt-2">
+    <div className="container mt-4">
       <div className="status-container-zona">
         {[1, 2, 3].map((i) => {
           const id = `zona${i}`;
           const online = zonaStatus[id as keyof typeof zonaStatus];
           return (
-            <div key={id} className="zona-sensor d-flex align-items-center mb-2">
-              <div className="zona-label text-warning me-2">Zona {i}</div>
-              <span
-                id={`pi${i}`}
-                className={`indicator rounded-circle ${online ? 'connected' : 'disconnected'}`}
-                title={`Raspberry Pi ${i}`}
-              ></span>
-              <span className="ms-2 small text-muted">{online ? 'Онлайн' : 'Офлайн'}</span>
+            <div key={id} className="zona-sensor d-flex align-items-center mb-3">
+              <div className="zona-label fw-bold me-3 fs-5 text-light">Zona {i}</div>
+
+              <div
+                className={`status-indicator ${online ? 'online' : 'offline'}`}
+                title={online ? 'Online' : 'Offline'}
+              >
+                {online ? '● ONLINE' : '○ OFFLINE'}
+              </div>
             </div>
           );
         })}
       </div>
+
+      <style jsx>{`
+        .status-indicator {
+          padding: 6px 14px;
+          border-radius: 20px;
+          font-weight: 600;
+          font-size: 14px;
+          color: white;
+          transition: all 0.3s ease;
+          box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .online {
+          background-color: #28a745;
+          animation: pulseGreen 2s infinite;
+        }
+
+        .offline {
+          background-color: #dc3545;
+          animation: pulseRed 2s infinite;
+        }
+
+        @keyframes pulseGreen {
+          0% {
+            box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+          }
+          70% {
+            box-shadow: 0 0 0 10px rgba(40, 167, 69, 0);
+          }
+          100% {
+            box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+          }
+        }
+
+        @keyframes pulseRed {
+          0% {
+            box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+          }
+          70% {
+            box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+          }
+          100% {
+            box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+          }
+        }
+      `}</style>
     </div>
   );
 }
