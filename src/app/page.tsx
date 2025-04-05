@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { useEffect, useState } from "react";
@@ -92,7 +93,16 @@ export default function Home() {
     <main>
       <div className="status-container">
         <div className="indicator-wrapper d-flex align-items-center justify-content-center gap-3 my-3">
-          <span className="indicator-label fw-bold fs-5 text-light">DITG DIGENTIS-1</span>
+          <img
+            src="/DITG.PNG"
+            alt="DITG Logo"
+            width={38}
+            height={38}
+            className="ditg-logo"
+          />
+          <span className="indicator-label fw-bold fs-5 text-light">
+            DIGENTIS-1
+          </span>
           <span
             className={`status-indicator ${isOnline ? 'online' : 'offline'}`}
             title={isOnline ? 'Online' : 'Offline'}
@@ -120,6 +130,12 @@ export default function Home() {
       <SensorMonitor />
 
       <style jsx>{`
+        .ditg-logo {
+          border-radius: 6px;
+          object-fit: contain;
+          box-shadow: 0 0 6px rgba(0, 255, 255, 0.25);
+        }
+
         .status-indicator {
           padding: 6px 14px;
           border-radius: 20px;
