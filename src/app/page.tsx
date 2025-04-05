@@ -94,7 +94,7 @@ export default function Home() {
       <div className="status-container">
         <div className="indicator-wrapper d-flex align-items-center justify-content-center gap-3 my-3">
           <img
-            src="/DITG.PNG"
+            src="/public/DITG.PNG"
             alt="DITG Logo"
             width={38}
             height={38}
