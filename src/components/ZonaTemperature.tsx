@@ -1,8 +1,8 @@
 "use client";
-import { useState } from "react";
+import React, { useState, CSSProperties } from "react";
 
 export default function ZonaTemperature() {
-  const [temperature, setTemperature] = useState(21);
+  const [temperature, setTemperature] = useState<number>(21);
 
   const increaseTemperature = () => {
     setTemperature((prevTemp) => prevTemp + 1);
@@ -12,7 +12,8 @@ export default function ZonaTemperature() {
     setTemperature((prevTemp) => prevTemp - 1);
   };
 
-  const containerStyle = {
+  // Явно указываем тип для стилей, чтобы избежать ошибок
+  const containerStyle: CSSProperties = {
     display: "inline-block",
     padding: "20px",
     borderRadius: "10px",
@@ -21,20 +22,24 @@ export default function ZonaTemperature() {
     fontFamily: "Arial, sans-serif",
     maxWidth: "200px",
     background: "#f9f9f9",
-    margin: "20px auto"
+    // Вместо margin: "20px auto" — разбиваем на отдельные свойства
+    marginTop: "20px",
+    marginBottom: "20px",
+    marginLeft: "auto",
+    marginRight: "auto",
   };
 
-  const temperatureBlockStyle = {
+  const temperatureBlockStyle: CSSProperties = {
     marginBottom: "15px",
     fontSize: "1.5em",
-    fontWeight: "bold"
+    fontWeight: "bold",
   };
 
-  const buttonStyle = {
+  const buttonStyle: CSSProperties = {
     margin: "0 10px",
     fontSize: "1em",
     padding: "5px 15px",
-    cursor: "pointer"
+    cursor: "pointer",
   };
 
   return (

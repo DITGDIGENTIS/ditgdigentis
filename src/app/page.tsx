@@ -1,11 +1,15 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
-import { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import ZonaTemperature from "../components/ZonaTemperature";
 
+// Интерфейс для данных, которые приходят с API
+interface StatusResponse {
+  timestamp?: number;
+}
+
 export default function Home() {
-  const [time, setTime] = useState("");
-  const [isOnline, setIsOnline] = useState(false);
+  const [time, setTime] = useState<string>("");
+  const [isOnline, setIsOnline] = useState<boolean>(false);
 
   useEffect(() => {
     // Обновляем часы каждую секунду
@@ -19,14 +23,15 @@ export default function Home() {
     updateClock();
     const clockInterval = setInterval(updateClock, 1000);
 
-    // Проверяем статус удалённого устройства раз в 5 секунд
+    // Проверяем статус удалённого устройства раз в 5 сек
     const checkRemotePiStatus = () => {
       fetch("https://ditgdigentis.vercel.app/api/status", { cache: "no-store" })
         .then((res) => res.json())
-        .then((data) => {
+        .then((data: StatusResponse) => {
           const now = Date.now();
           const lastUpdate = data.timestamp || 0;
-          const online = now - lastUpdate < 15 * 1000;
+          // Считаем, что устройство онлайн, если отрыв менее 15 сек
+          const online = now - lastUpdate < 15_000;
           setIsOnline(online);
         })
         .catch(() => setIsOnline(false));
@@ -34,7 +39,7 @@ export default function Home() {
     checkRemotePiStatus();
     const remotePiInterval = setInterval(checkRemotePiStatus, 5000);
 
-    // Очистка интервалов при размонтировании компонента
+    // Очистка интервалов при размонтировании
     return () => {
       clearInterval(clockInterval);
       clearInterval(remotePiInterval);
@@ -43,41 +48,34 @@ export default function Home() {
 
   return (
     <main>
-      <div>
-        {/* Пример шапки */}
-        <div className=" d-flex align-items-center justify-content-center gap-3 ">
-          <img
-            src="/ditg-logo.png"
-            alt="DITG Logo"
-            width={160}
-            height={160}
-            className="ditg-logo"
-          />
-          <span
-            className={`status-indicator ${isOnline ? "online" : "offline"}`}
-            title={isOnline ? "Online" : "Offline"}
-          >
-            {isOnline ? "● ONLINE" : "○ OFFLINE"}
-          </span>
-        </div>
+      {/* Пример "шапки" с логотипом и статусом */}
+      <div className="d-flex align-items-center justify-content-center gap-3">
+        <img
+          src="/ditg-logo.png"
+          alt="DITG Logo"
+          width={160}
+          height={160}
+          className="ditg-logo"
+        />
+        <span
+          className={`status-indicator ${isOnline ? "online" : "offline"}`}
+          title={isOnline ? "Online" : "Offline"}
+        >
+          {isOnline ? "● ONLINE" : "○ OFFLINE"}
+        </span>
       </div>
 
       {/* Отображаем текущее время */}
       <div className="container">
         <div className="row justify-content-center">
           <div className="col-auto text-center">
-            <span
-              id="clock"
-              className="fw-semibold"
-              style={{ fontSize: "2.6rem" }}
-            >
+            <span id="clock" className="fw-semibold" style={{ fontSize: "2.6rem" }}>
               {time}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Компонент ZonaTemperature из отдельного файла */}
       <ZonaTemperature />
 
       <style jsx>{`
