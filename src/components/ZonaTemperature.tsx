@@ -12,7 +12,7 @@ export default function ZonaTemperature() {
     setTemperature((prevTemp) => prevTemp - 1);
   };
 
-  // Явно указываем тип для стилей, чтобы избежать ошибок
+  // Пример простых стилей (TypeScript-friendly)
   const containerStyle: CSSProperties = {
     display: "inline-block",
     padding: "20px",
@@ -22,7 +22,6 @@ export default function ZonaTemperature() {
     fontFamily: "Arial, sans-serif",
     maxWidth: "200px",
     background: "#f9f9f9",
-    // Вместо margin: "20px auto" — разбиваем на отдельные свойства
     marginTop: "20px",
     marginBottom: "20px",
     marginLeft: "auto",
