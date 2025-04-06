@@ -9,6 +9,9 @@ h2 {
   font-size: 2rem !important;
   font-weight: 600 !important;
 }
+.ditg-logo {
+  padding: 20px; /* 👈 вот тут задаём отступы */
+} 
 .status-container {
   max-width: 600px;
   margin: auto;
