@@ -14,24 +14,22 @@ export default function ZonaTemperature() {
 
   // Пример простых стилей (TypeScript-friendly)
   const containerStyle: CSSProperties = {
-    display: "inline-block",
-    padding: "20px",
+    display: "block",
+    padding: "10px",
     borderRadius: "10px",
-    border: "2px solid #ccc",
+    // border: "2px solid #FFF",
     textAlign: "center",
     fontFamily: "Arial, sans-serif",
     maxWidth: "200px",
-    background: "#f9f9f9",
-    marginTop: "20px",
-    marginBottom: "20px",
-    marginLeft: "auto",
-    marginRight: "auto",
+    // background: "#2B2B2B",
+    margin: "auto",
   };
 
   const temperatureBlockStyle: CSSProperties = {
+    color: "#FFF",
     marginBottom: "15px",
-    fontSize: "1.5em",
-    fontWeight: "bold",
+    fontSize: "2.6rem",
+    fontWeight: "600",
   };
 
   const buttonStyle: CSSProperties = {

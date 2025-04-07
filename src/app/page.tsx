@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { ZonaStatus } from "../components/ZonaStatus";
 import { SensorMonitor } from "../components/SensorMonitor";
-import ZonaTemperature from "../components/ZonaTemperature"; // ← ДОБАВЛЕННАЯ СТРОЧКА
+import ZonaTemperature from "../components/ZonaTemperature"; 
 
 export default function Home() {
   const [time, setTime] = useState("");
@@ -124,12 +124,10 @@ export default function Home() {
           </div>
         </div>
       </div>
-
+      
       <ZonaStatus />
-      <SensorMonitor />
-
-      {/* ВСТАВЛЕННЫЙ БЛОК: теперь отображаем нашу "зону температуры" */}
       <ZonaTemperature />
+      <SensorMonitor />
 
       <style jsx>{`
         .ditg-logo {
