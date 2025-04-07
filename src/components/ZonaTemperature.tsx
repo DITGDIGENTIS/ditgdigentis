@@ -28,15 +28,23 @@ export default function ZonaTemperature() {
   const temperatureBlockStyle: CSSProperties = {
     color: "#FFF",
     marginBottom: "15px",
-    fontSize: "2.6rem",
+    fontSize: "2.5rem",
     fontWeight: "600",
   };
 
+  // Новый, более «красивый» стиль для кнопок
   const buttonStyle: CSSProperties = {
     margin: "0 10px",
-    fontSize: "1em",
-    padding: "5px 15px",
+    width: "50px",
+    fontSize: "1.6em",
+    padding: "5px 16px",
     cursor: "pointer",
+    backgroundColor: "#2B2B2B",
+    color: "#fff",
+    border: "1px solid #999",
+    borderRadius: "8px",
+    boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+    transition: "background-color 0.3s ease, box-shadow 0.3s ease",
   };
 
   return (
