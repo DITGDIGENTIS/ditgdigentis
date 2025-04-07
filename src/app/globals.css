@@ -124,22 +124,63 @@ h2 {
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
 }
 
+
+
+/* ==========================
+СТИЛИ ДЛЯ ВЕРХНЕГО БЛОКА СРЕДНИХ ПОКАЗАТЕЛЕЙ
+========================== */
+.top-average-humidity-block,
+.top-average-temp-block {
+  background-color: #2B2B2B;
+  border: 1px solid #4cc9f0;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+  transition: transform 0.3s ease;
+}
+
+.top-average-humidity-block:hover,
+.top-average-temp-block:hover {
+  transform: scale(1.02);
+}
+
+.top-average-humidity-label,
+.top-average-temp-label {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #4cc9f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-shadow: 0 0 5px rgba(0, 0, 0, 0.4);
+}
+
+.top-average-humidity-data,
+.top-average-temp-data {
+  font-size: 2.8rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin-left: 8px;
+}
+
+
 /*=============================
       ОТДЕЛЬНЫЕ СТИЛИ ДЛЯ БЛОКА 
       "СРЕДНЯЯ ТЕМПЕРАТУРА"
     =============================*/
     .average-temp-block {
-      background-color: #2B2B2B;
-      border: 1px solid #FFD700;
+      background-color: #191919;
+      /* border: 1px solid #FFD700; */
       border-radius: 8px;
       /* padding: 15px; */
       margin-bottom: 15px;
       text-align: center;
-      box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+      /* box-shadow: 0 0 15px rgba(255, 215, 0, 0.3); */
     }
 
     .average-temp-label {
-      font-size: 1.8rem;
+      font-size: 1.4rem;
       font-weight: bold;
       color: #FFD700;
       /* margin-bottom: 10px; */
@@ -147,7 +188,7 @@ h2 {
     }
 
     .average-temp-data {
-      font-size: 2.5rem;
+      font-size: 1.6rem;
       font-weight: bold;
       color: #fff;
     }
@@ -157,17 +198,17 @@ h2 {
       "СРЕДНЯЯ ВЛАЖНОСТЬ"
     =============================*/
     .average-humidity-block {
-      background-color: #2B2B2B;
-      border: 1px solid #FFD700;
+      background-color: #191919;
+      /* border: 1px solid #FFD700; */
       border-radius: 8px;
       /* padding: 15px; */
       margin-bottom: 15px;
       text-align: center;
-      box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+      /* box-shadow: 0 0 15px rgba(255, 215, 0, 0.3); */
     }
 
     .average-humidity-label {
-      font-size: 1.8rem;
+      font-size: 1.4rem;
       font-weight: bold;
       color: #FFD700;
       /* margin-bottom: 10px; */
@@ -175,7 +216,7 @@ h2 {
     }
 
     .average-humidity-data {
-      font-size: 2.5rem;
+      font-size: 1.6rem;
       font-weight: bold;
       color: #fff;
     }
@@ -209,7 +250,7 @@ h2 {
     }
 
     .data-sensor-data {
-      font-size: 2.2rem;
+      font-size: 2rem;
       font-weight: bold;
       color: #fff;
     }
