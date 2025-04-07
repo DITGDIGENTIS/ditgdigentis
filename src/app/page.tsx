@@ -28,14 +28,14 @@ export default function Home() {
         .then((data) => {
           const now = Date.now();
           const lastUpdate = data["server"]?.timestamp || 0;
-          const online = now - lastUpdate < 15000;
+          const online = now - lastUpdate < 20000;
           setIsOnline(online);
         })
         .catch(() => setIsOnline(false));
     };
 
     checkRemotePiStatus();
-    const remotePiInterval = setInterval(checkRemotePiStatus, 5000);
+    const remotePiInterval = setInterval(checkRemotePiStatus, 1000);
 
     const updateSensorData = () => {
       const sensorValues: Record<string, string> = {
