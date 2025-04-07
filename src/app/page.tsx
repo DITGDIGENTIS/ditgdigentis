@@ -27,8 +27,8 @@ export default function Home() {
         .then((res) => res.json())
         .then((data) => {
           const now = Date.now();
-          const lastUpdate = data.timestamp || 0;
-          const online = now - lastUpdate < 15 * 1000;
+          const lastUpdate = data["server"]?.timestamp || 0;
+          const online = now - lastUpdate < 15000;
           setIsOnline(online);
         })
         .catch(() => setIsOnline(false));
