@@ -5,13 +5,13 @@ export function SensorMonitor() {
     <div className="container sensor-container">
       {/* Блок для средних значений (температура и влажность) */}
       <div className="row">
-        <div className="col-12 col-md-6">
+        <div className="col-6 col-md-6">
           <div className="average-humidity-block">
             <div className="average-humidity-label">Средняя влажность</div>
             <div id="averageHumidity" className="average-humidity-data">-- %</div>
           </div>
         </div>
-        <div className="col-12 col-md-6">
+        <div className="col-6 col-md-6">
           <div className="average-temp-block">
             <div className="average-temp-label">Средняя температура</div>
             <div id="averageTemperature" className="average-temp-data">-- °C</div>

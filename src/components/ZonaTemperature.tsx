@@ -43,7 +43,7 @@ export default function ZonaTemperature() {
     color: "#fff",
     border: "1px solid #999",
     borderRadius: "8px",
-    boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+    boxShadow: "0 0 5px rgba(255, 215, 0, 0.3)",
     transition: "background-color 0.3s ease, box-shadow 0.3s ease",
   };
 
