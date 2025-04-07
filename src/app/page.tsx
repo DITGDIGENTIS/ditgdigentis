@@ -101,7 +101,7 @@ export default function Home() {
             height={160}
             className="ditg-logo"
           />
-          <span className="indicator-label fw-bold fs-5 text-light"></span>
+          <span className="indicator-label fw-bold fs-5 text-light">ID:0001</span>
           <span
             className={`status-indicator ${isOnline ? "online" : "offline"}`}
             title={isOnline ? "Online" : "Offline"}
