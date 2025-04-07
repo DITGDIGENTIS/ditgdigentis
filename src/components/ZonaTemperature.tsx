@@ -20,14 +20,14 @@ export default function ZonaTemperature() {
     padding: "10px",
     borderRadius: "10px",
     fontFamily: "Arial, sans-serif",
-    maxWidth: "260px",
+    maxWidth: "310px",
     margin: "auto",
   };
 
   // Температура слева
   const temperatureBlockStyle: CSSProperties = {
     color: "#FFF",
-    fontSize: "2.5rem",
+    fontSize: "3rem",
     fontWeight: "600",
     margin: 0, // убираем лишний отступ
   };
@@ -36,7 +36,7 @@ export default function ZonaTemperature() {
   const buttonsContainerStyle: CSSProperties = {
     display: "flex",
     alignItems: "center",
-    gap: "10px",
+    gap: "20px",
   };
 
   // Стили для самих кнопок
