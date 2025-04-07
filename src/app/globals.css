@@ -139,7 +139,7 @@ h2 {
     }
 
     .average-temp-label {
-      font-size: 2rem;
+      font-size: 1.8rem;
       font-weight: bold;
       color: #FFD700;
       /* margin-bottom: 10px; */
@@ -167,7 +167,7 @@ h2 {
     }
 
     .average-humidity-label {
-      font-size: 2rem;
+      font-size: 1.8rem;
       font-weight: bold;
       color: #FFD700;
       /* margin-bottom: 10px; */
