@@ -12,29 +12,35 @@ export default function ZonaTemperature() {
     setTemperature((prevTemp) => prevTemp - 1);
   };
 
-  // Пример простых стилей (TypeScript-friendly)
+  // Контейнер с flex-версткой
   const containerStyle: CSSProperties = {
-    display: "block",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
     padding: "10px",
     borderRadius: "10px",
-    // border: "2px solid #FFF",
-    textAlign: "center",
     fontFamily: "Arial, sans-serif",
-    maxWidth: "200px",
-    // background: "#2B2B2B",
+    maxWidth: "260px",
     margin: "auto",
   };
 
+  // Температура слева
   const temperatureBlockStyle: CSSProperties = {
     color: "#FFF",
-    marginBottom: "15px",
     fontSize: "2.5rem",
     fontWeight: "600",
+    margin: 0, // убираем лишний отступ
   };
 
-  // Новый, более «красивый» стиль для кнопок
+  // Блок для кнопок (справа)
+  const buttonsContainerStyle: CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+  };
+
+  // Стили для самих кнопок
   const buttonStyle: CSSProperties = {
-    margin: "0 10px",
     width: "50px",
     fontSize: "1.6em",
     padding: "5px 16px",
@@ -45,12 +51,13 @@ export default function ZonaTemperature() {
     borderRadius: "8px",
     boxShadow: "0 0 5px rgba(255, 215, 0, 0.3)",
     transition: "background-color 0.3s ease, box-shadow 0.3s ease",
+    textAlign: "center",
   };
 
   return (
     <div style={containerStyle}>
       <div style={temperatureBlockStyle}>{temperature} °C</div>
-      <div>
+      <div style={buttonsContainerStyle}>
         <button style={buttonStyle} onClick={decreaseTemperature}>
           -
         </button>
