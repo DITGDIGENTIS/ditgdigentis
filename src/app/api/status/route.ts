@@ -10,40 +10,30 @@ type DeviceStatus = {
 };
 
 type StatusMap = {
-  ip: string;
-  timestamp: number;
-  [key: string]: string | number | DeviceStatus;
+  [key: string]: DeviceStatus;
 };
 
 export async function POST(req: Request) {
   const form = await req.formData();
-  const id = form.get("id")?.toString(); // zona1, zona2 или undefined
+  const id = form.get("id")?.toString();
   const ip = form.get("ip")?.toString() ?? "none";
   const timestamp = Date.now();
 
-  let data: StatusMap;
+  let data: StatusMap = {};
   try {
     const raw = await readFile(filePath, "utf8");
     data = JSON.parse(raw);
   } catch {
-    // если файла ещё нет
-    data = {
-      ip,
-      timestamp,
-    };
+    // файл ещё не существует — начинаем с пустого объекта
+    data = {};
   }
 
-  // 1. сохраняем старый формат (в корне)
-  data.ip = ip;
-  data.timestamp = timestamp;
-
-  // 2. сохраняем в зону, если указана
   if (id) {
     data[id] = { ip, timestamp };
   }
 
   await writeFile(filePath, JSON.stringify(data), "utf8");
-  return NextResponse.json({ status: "ok", savedAs: id ?? "legacy" });
+  return NextResponse.json({ status: "ok", savedAs: id ?? "unknown" });
 }
 
 export async function GET() {
