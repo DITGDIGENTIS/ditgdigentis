@@ -6,6 +6,7 @@ import { ZonaStatus } from "../components/ZonaStatus";
 import { SensorMonitor } from "../components/SensorMonitor";
 import ZonaTemperature from "../components/ZonaTemperature"; 
 
+
 export default function Home() {
   const [time, setTime] = useState("");
   const [isOnline, setIsOnline] = useState(false);
