@@ -27,7 +27,7 @@ export default function ZonaTemperature() {
   // Температура слева
   const temperatureBlockStyle: CSSProperties = {
     color: "#FFF",
-    fontSize: "3.4rem",
+    fontSize: "3rem",
     fontWeight: "600",
     margin: 0, // убираем лишний отступ
   };

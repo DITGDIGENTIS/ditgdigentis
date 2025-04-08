@@ -130,6 +130,9 @@ h2 {
 /* ==========================
 СТИЛИ ДЛЯ ВЕРХНЕГО БЛОКА СРЕДНИХ ПОКАЗАТЕЛЕЙ
 ========================== */
+.wrapper-sens-top {
+  border-bottom: 1px solid #fff;
+}
 .top-average-humidity-block,
 .top-average-temp-block {
   background-color: #2B2B2B;
@@ -167,13 +170,18 @@ h2 {
   margin-left: 8px;
 }
 
-
+.description-temp-block {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #fff;
+  padding-top: 5px;
+}
     .average-temp-block {
       background-color: #2B2B2B;
       /* border: 1px solid #FFD700; */
       border-radius: 8px;
-      /* padding: 15px; */
       margin-bottom: 15px;
+      padding: 10px;
       text-align: center;
       box-shadow: 0 0 15px #0000004d;
     }
@@ -182,7 +190,7 @@ h2 {
       font-size: 1.4rem;
       font-weight: bold;
       color: #FFD700;
-      padding: 10px;
+      /* padding: 10px; */
       /* margin-bottom: 10px; */
       text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
     }
@@ -198,7 +206,7 @@ h2 {
       background-color: #2B2B2B;
       /* border: 1px solid #FFD700; */
       border-radius: 8px;
-      /* padding: 15px; */
+      padding: 10px;
       margin-bottom: 15px;
       text-align: center;
       box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
@@ -208,7 +216,7 @@ h2 {
       font-size: 1.4rem;
       font-weight: bold;
       color: #FFD700;
-      padding: 10px;
+      /* padding: 10px; */
       /* margin-bottom: 10px; */
       text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
     }
@@ -252,3 +260,42 @@ h2 {
       font-weight: bold;
       color: #fff;
     }
+
+
+    .status-button {
+      margin-left: auto;
+      padding: 0px 10px;
+      font-size: 0.9rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 20px;
+      background-color: transparent;
+      color: #ccc;
+      cursor: default;
+    }
+    
+    .status-button.online {
+      color: #28a745;
+      animation: pulseStatus 1.5s infinite;
+    }
+    
+    .status-button.offline {
+      color: #dc3545;
+      animation: none;
+    }
+    
+    @keyframes pulseStatus {
+      0% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.4;
+        transform: scale(1.05);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+    
