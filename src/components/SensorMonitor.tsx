@@ -7,6 +7,7 @@ export function SensorMonitor() {
   return (
     <div className="container sensor-container">
       <div className="row">
+      <h2 className="text-center mb-1">Середні показники:</h2>
         <div className="col-6 col-md-6">
           <div className="top-average-humidity-block">
             <div className="top-average-humidity-label">
@@ -29,10 +30,10 @@ export function SensorMonitor() {
         </div>
       </div>
 
-      <h2 className="text-center mt-4 mb-4">Мониторинг сенсоров:</h2>
+      <h2 className="text-center mt-4 mb-1">Мониторинг сенсоров:</h2>
 
       <div className="row">
-        <div className="col-3 col-md-3">
+        <div className="col-6 col-md-3">
         <div className="average-temp-block">
             <div className="average-temp-label"> 
               1:S1 <FontAwesomeIcon icon={faThermometerHalf} /> {""}
@@ -42,7 +43,7 @@ export function SensorMonitor() {
             </div>
           </div>
         </div>
-        <div className="col-3 col-md-3">
+        <div className="col-6 col-md-3">
           <div className="average-temp-block">
             <div className="average-temp-label">
               1:S2 <FontAwesomeIcon icon={faThermometerHalf} /> {" "}
@@ -52,7 +53,7 @@ export function SensorMonitor() {
             </div>
           </div>
         </div>
-        <div className="col-3 col-md-3">
+        <div className="col-6 col-md-3">
         <div className="average-temp-block">
             <div className="average-temp-label">
               2:S1 <FontAwesomeIcon icon={faThermometerHalf} /> {" "}
@@ -62,7 +63,7 @@ export function SensorMonitor() {
             </div>
           </div>
         </div>  
-        <div className="col-3 col-md-3">
+        <div className="col-6 col-md-3">
         <div className="average-temp-block">
             <div className="average-temp-label">
               3:S1 <FontAwesomeIcon icon={faThermometerHalf} /> {" "}
@@ -75,20 +76,20 @@ export function SensorMonitor() {
       </div>
 
       <div className="row">
-      <div className="col-4 col-md-4">
+      <div className="col-6 col-md-4">
         <div className="average-humidity-block">
             <div className="average-humidity-label">
-              <FontAwesomeIcon icon={faTint} />{" "}
+             1:S1 <FontAwesomeIcon icon={faTint} />{" "}
               <span id="sensor5" className="average-humidity-data">
                 -- %
               </span>
             </div>
           </div>
         </div>
-        <div className="col-4 col-md-4">
+        <div className="col-6 col-md-4">
           <div className="average-humidity-block">
             <div className="average-humidity-label">
-              <FontAwesomeIcon icon={faTint} />{" "}
+             2:S3 <FontAwesomeIcon icon={faTint} />{" "}
               <span id="sensor6" className="average-humidity-data">
                 -- %
               </span>
@@ -96,10 +97,21 @@ export function SensorMonitor() {
           </div>
         </div>
 
-        <div className="col-4 col-md-4">
-        <div className="average-humidity-block">
+        <div className="col-6 col-md-4">
+          <div className="average-humidity-block">
             <div className="average-humidity-label">
-              <FontAwesomeIcon icon={faTint} />{" "}
+              3:S3 <FontAwesomeIcon icon={faTint} />{" "}
+              <span id="sensor7" className="average-humidity-data">
+                -- %
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="col-6 col-md-4">
+          <div className="average-humidity-block">
+            <div className="average-humidity-label">
+              3:S4 <FontAwesomeIcon icon={faTint} />{" "}
               <span id="sensor7" className="average-humidity-data">
                 -- %
               </span>
