@@ -1,13 +1,44 @@
-"use client";
+"use client"
 
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTint, faThermometerHalf } from "@fortawesome/free-solid-svg-icons";
+import { useEffect, useState } from "react"
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
+import { faTint, faThermometerHalf } from "@fortawesome/free-solid-svg-icons"
 
 export function SensorMonitor() {
+  const [zona1Temp, setZona1Temp] = useState<string>("--")
+  const [zona1Online, setZona1Online] = useState<boolean>(false)
+
+  useEffect(() => {
+    const fetchStatus = () => {
+      fetch("https://ditgdigentis.vercel.app/api/status")
+        .then((res) => res.json())
+        .then((data) => {
+          const zona = data.zona1
+          if (zona) {
+            const now = Date.now()
+            const diff = now - zona.timestamp
+            setZona1Online(diff < 30000)
+            setZona1Temp(zona.temp ?? "--")
+          } else {
+            setZona1Online(false)
+            setZona1Temp("--")
+          }
+        })
+        .catch(() => {
+          setZona1Online(false)
+          setZona1Temp("--")
+        })
+    }
+
+    fetchStatus()
+    const interval = setInterval(fetchStatus, 1000)
+    return () => clearInterval(interval)
+  }, [])
+
   return (
     <div className="container sensor-container p-4">
       <div className="row wrapper-sens-top">
-      <h2 className="text-center mb-1">Середні показники:</h2>
+        <h2 className="text-center mb-1">Середні показники:</h2>
         <div className="col-6 col-md-6 pb-2">
           <div className="top-average-humidity-block">
             <div className="top-average-humidity-label">
@@ -30,7 +61,7 @@ export function SensorMonitor() {
         </div>
       </div>
 
-      <h2 className="text-center mt-4 mb-1">Мониторинг сенсоров:</h2>
+      <h2 className="text-center mt-4 mb-1">Моніторинг сенсорів:</h2>
 
       <div className="row">
         <div className="col-6 col-md-3">
@@ -38,139 +69,33 @@ export function SensorMonitor() {
             <div className="description-temp-block">
               Zona:1 | Sensor:1
               <button
-                className={`status-button online`}
-                title="Sensor Online"
+                className={`status-button ${zona1Online ? "online" : "offline"}`}
+                title={`Sensor ${zona1Online ? "Online" : "Offline"}`}
               >
-                ● ONLINE
+                ● {zona1Online ? "ONLINE" : "OFFLINE"}
               </button>
             </div>
-            <div className="average-temp-label"> 
+            <div className="average-temp-label">
               <FontAwesomeIcon icon={faThermometerHalf} />{" "}
-              <span id="sensor1" className="average-temp-data">-- °C</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-6 col-md-3">
-          <div className="average-temp-block">
-          <div className="description-temp-block">
-              Zona:1 | Sensor:1
-              <button
-                className={`status-button online`}
-                title="Sensor Online"
-              >
-                ● ONLINE
-              </button>
-            </div>
-            <div className="average-temp-label">
-              <FontAwesomeIcon icon={faThermometerHalf} /> {" "}
-              <span id="sensor2" className="average-temp-data">
-                -- °C
-              </span>
-            </div>
-          </div>
-        </div>
-        <div className="col-6 col-md-3">
-        <div className="average-temp-block">
-            <div className="description-temp-block">
-              Zona:1 | Sensor:1
-              <button
-                className={`status-button online`}
-                title="Sensor Online"
-              >
-                ● ONLINE
-              </button>
-            </div>
-            <div className="average-temp-label">
-              <FontAwesomeIcon icon={faThermometerHalf} /> {" "}
-              <span id="sensor3" className="average-temp-data">
-                -- °C
-              </span>
-            </div>
-          </div>
-        </div>  
-        <div className="col-6 col-md-3">
-        <div className="average-temp-block">
-            <div className="description-temp-block">
-              Zona:1 | Sensor:1
-              <button
-                className={`status-button online`}
-                title="Sensor Online"
-              >
-                ● ONLINE
-              </button>
-            </div>
-            <div className="average-temp-label">
-              <FontAwesomeIcon icon={faThermometerHalf} /> {" "}
-              <span id="sensor4" className="average-temp-data">
-                -- °C
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="row">
-      <div className="col-6 col-md-4">
-        <div className="average-humidity-block">
-            <div className="description-temp-block">
-              Zona:1 | Sensor:1
-              <button
-                className={`status-button online`}
-                title="Sensor Online"
-              >
-                ● ONLINE
-              </button>
-            </div>
-            <div className="average-humidity-label">
-              <FontAwesomeIcon icon={faTint} />{" "}
-              <span id="sensor5" className="average-humidity-data">
-                -- %
-              </span>
-            </div>
-          </div>
-        </div>
-        <div className="col-6 col-md-4">
-          <div className="average-humidity-block">
-            <div className="description-temp-block">
-              Zona:1 | Sensor:1
-              <button
-                className={`status-button online`}
-                title="Sensor Online"
-              >
-                ● ONLINE
-              </button>
-            </div>
-            <div className="average-humidity-label">
-              <FontAwesomeIcon icon={faTint} />{" "}
-              <span id="sensor6" className="average-humidity-data">
-                -- %
+              <span id="sensor1" className="average-temp-data">
+                {zona1Temp} °C
               </span>
             </div>
           </div>
         </div>
 
-        <div className="col-6 col-md-4">
-          <div className="average-humidity-block">
-            <div className="description-temp-block">
-              Zona:1 | Sensor:1
-              <button
-                className={`status-button online`}
-                title="Sensor Online"
-              >
-                ● ONLINE
-              </button>
-            </div>
-            <div className="average-humidity-label">
-              <FontAwesomeIcon icon={faTint} />{" "}
-              <span id="sensor7" className="average-humidity-data">
-                -- %
-              </span>
-            </div>
-          </div>
-        </div>
+        {/*
+        <div className="col-6 col-md-3">...</div>
+        <div className="col-6 col-md-3">...</div>
+        <div className="col-6 col-md-3">...</div>
+        */}
 
+        {/*
+        <div className="col-6 col-md-4">...</div>
+        <div className="col-6 col-md-4">...</div>
+        <div className="col-6 col-md-4">...</div>
+        */}
       </div>
     </div>
-  );
+  )
 }
