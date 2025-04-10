@@ -1,3 +1,5 @@
+// app/api/status/route.ts
+
 import { NextResponse } from "next/server";
 import { writeFile, readFile } from "fs/promises";
 import path from "path";
@@ -7,7 +9,7 @@ const filePath = path.resolve("/tmp/status.json");
 type DeviceStatus = {
   ip: string;
   timestamp: number;
-  temp?: string; // 🆕 додаємо temp як необов’язкове поле
+  temp?: string;
 };
 
 type StatusMap = {
@@ -18,7 +20,7 @@ export async function POST(req: Request) {
   const form = await req.formData();
   const id = form.get("id")?.toString();
   const ip = form.get("ip")?.toString() ?? "none";
-  const temp = form.get("temp")?.toString(); // 🆕 зчитуємо температуру
+  const temp = form.get("temp")?.toString();
   const timestamp = Date.now();
 
   let data: StatusMap = {};
@@ -30,10 +32,11 @@ export async function POST(req: Request) {
   }
 
   if (id) {
-    data[id] = { ip, timestamp };
-    if (temp !== undefined) {
-      data[id].temp = temp; // 🆕 зберігаємо температуру тільки якщо вона є
-    }
+    data[id] = {
+      ip,
+      timestamp,
+      ...(temp !== undefined ? { temp } : {}), // запис temp, якщо є
+    };
   }
 
   await writeFile(filePath, JSON.stringify(data), "utf8");

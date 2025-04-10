@@ -9,39 +9,41 @@ export function SensorMonitor() {
   const [zona1Online, setZona1Online] = useState<boolean>(false)
 
   useEffect(() => {
-    const fetchStatus = () => {
-      fetch("https://ditgdigentis.vercel.app/api/status")
-        .then((res) => res.json())
-        .then((data) => {
-          const zona = data.zona1
-          if (zona) {
-            const now = Date.now()
-            const diff = now - zona.timestamp
-            const temp = zona.temp
+    const fetchStatus = async () => {
+      try {
+        const res = await fetch("https://ditgdigentis.vercel.app/api/status", {
+          cache: "no-store"
+        });
+        const data = await res.json();
+        const zona = data.zona1;
 
-            const isTempValid =
-              temp !== undefined &&
-              temp !== "none" &&
-              !isNaN(parseFloat(temp))
+        if (zona) {
+          const now = Date.now();
+          const diff = now - zona.timestamp;
+          const temp = zona.temp;
 
-            if (isTempValid) {
-              setZona1Temp(temp)
-            }
+          const isTempValid =
+            typeof temp === "string" &&
+            temp !== "none" &&
+            !isNaN(parseFloat(temp));
 
-            setZona1Online(diff < 30000)
-          } else {
-            setZona1Online(false)
+          if (isTempValid) {
+            setZona1Temp(temp.toString());
           }
-        })
-        .catch(() => {
-          setZona1Online(false)
-        })
-    }
 
-    fetchStatus()
-    const interval = setInterval(fetchStatus, 1000)
-    return () => clearInterval(interval)
-  }, [])
+          setZona1Online(diff < 30000);
+        } else {
+          setZona1Online(false);
+        }
+      } catch {
+        setZona1Online(false);
+      }
+    };
+
+    fetchStatus();
+    const interval = setInterval(fetchStatus, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="container sensor-container p-4">
@@ -62,7 +64,7 @@ export function SensorMonitor() {
             <div className="top-average-temp-label">
               <FontAwesomeIcon icon={faThermometerHalf} />{" "}
               <span id="averageTemperature" className="top-average-temp-data">
-                -- °C
+                {zona1Temp} °C
               </span>
             </div>
           </div>
