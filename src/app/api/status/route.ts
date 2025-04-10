@@ -1,5 +1,3 @@
-// app/api/status/route.ts
-
 import { NextResponse } from "next/server";
 import { writeFile, readFile } from "fs/promises";
 import path from "path";
@@ -35,8 +33,10 @@ export async function POST(req: Request) {
   data[id] = {
     ip,
     timestamp,
-    ...(temp ? { temp } : {}) // 💡 зберігаємо тільки дійсне значення
+    ...(temp ? { temp } : {}) // сохраняем только если temp есть
   };
+
+  console.log("Data saved to file:", data); // Добавим лог для дебага
 
   await writeFile(filePath, JSON.stringify(data), "utf8");
 
@@ -44,7 +44,7 @@ export async function POST(req: Request) {
     status: "ok",
     savedAs: id,
     ip,
-    temp, // 🔎 додаємо у відповідь — корисно для дебагу
+    temp, // добавляем в ответ для дебага
   });
 }
 
@@ -52,6 +52,7 @@ export async function GET() {
   try {
     const raw = await readFile(filePath, "utf8");
     const json = JSON.parse(raw);
+    console.log("Returned data:", json); // Логируем возвращаемые данные
     return NextResponse.json(json);
   } catch {
     return NextResponse.json({});
