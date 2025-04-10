@@ -15,8 +15,6 @@ export function SensorMonitor() {
           cache: "no-store",
         });
         const data = await res.json();
-        console.log("Server response:", data); // Логируем ответ с сервера
-
         const zona = data.zona1;
 
         if (zona) {
@@ -31,25 +29,20 @@ export function SensorMonitor() {
             temp !== "none" &&
             !isNaN(parseFloat(temp));
 
-          if (isTempValid) {
-            setZona1Temp(temp); // Устанавливаем температуру, если она валидная
-          } else {
-            setZona1Temp("--"); // Если температура невалидна, показываем "--"
-          }
+          setZona1Temp(isTempValid ? temp : "--");
         } else {
           setZona1Online(false);
-          setZona1Temp("--"); // Если данных нет, показываем "--"
+          setZona1Temp("--");
         }
-      } catch (error) {
-        console.error("Error fetching status:", error);
+      } catch {
         setZona1Online(false);
         setZona1Temp("--");
       }
     };
 
     fetchStatus();
-    const interval = setInterval(fetchStatus, 1000);
-    return () => clearInterval(interval); // Очищаем интервал при размонтировании компонента
+    const interval = setInterval(fetchStatus, 1000);  // обновление каждую секунду
+    return () => clearInterval(interval);
   }, []);
 
   return (
