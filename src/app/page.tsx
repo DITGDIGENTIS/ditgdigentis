@@ -6,7 +6,6 @@ import { ZonaStatus } from "../components/ZonaStatus";
 import { SensorMonitor } from "../components/SensorMonitor";
 import ZonaTemperature from "../components/ZonaTemperature"; 
 
-
 export default function Home() {
   const [time, setTime] = useState("");
   const [isOnline, setIsOnline] = useState(false);
@@ -38,63 +37,16 @@ export default function Home() {
     checkRemotePiStatus();
     const remotePiInterval = setInterval(checkRemotePiStatus, 1000);
 
-    const updateSensorData = () => {
-      const sensorValues: Record<string, string> = {
-        sensor1: (20 + Math.random() * 5).toFixed(1) + " °C",
-        sensor2: (21 + Math.random() * 5).toFixed(1) + " °C",
-        sensor3: (19 + Math.random() * 5).toFixed(1) + " °C",
-        sensor4: (22 + Math.random() * 5).toFixed(1) + " °C",
-        sensor5: (40 + Math.random() * 10).toFixed(0) + " %",
-        sensor6: (42 + Math.random() * 10).toFixed(0) + " %",
-        sensor7: (38 + Math.random() * 10).toFixed(0) + " %",
-      };
-
-      for (const key in sensorValues) {
-        const el = document.getElementById(key);
-        if (el) el.textContent = sensorValues[key];
-      }
-
-      let sumTemp = 0;
-      let countTemp = 0;
-      for (let i = 1; i <= 4; i++) {
-        const value = parseFloat(sensorValues["sensor" + i]);
-        if (!isNaN(value)) {
-          sumTemp += value;
-          countTemp++;
-        }
-      }
-      const avgTemp = countTemp > 0 ? (sumTemp / countTemp).toFixed(1) : "--";
-      const avgTempEl = document.getElementById("averageTemperature");
-      if (avgTempEl) avgTempEl.textContent = avgTemp + " °C";
-
-      let sumHum = 0;
-      let countHum = 0;
-      for (let i = 5; i <= 7; i++) {
-        const value = parseFloat(sensorValues["sensor" + i]);
-        if (!isNaN(value)) {
-          sumHum += value;
-          countHum++;
-        }
-      }
-      const avgHum = countHum > 0 ? (sumHum / countHum).toFixed(0) : "--";
-      const avgHumEl = document.getElementById("averageHumidity");
-      if (avgHumEl) avgHumEl.textContent = avgHum + " %";
-    };
-
-    updateSensorData();
-    const sensorInterval = setInterval(updateSensorData, 5000);
-
     return () => {
       clearInterval(clockInterval);
       clearInterval(remotePiInterval);
-      clearInterval(sensorInterval);
     };
   }, []);
 
   return (
     <main>
       <div>
-        <div className=" d-flex align-items-center justify-content-center gap-3 ">
+        <div className="d-flex align-items-center justify-content-center gap-3">
           <img
             src="/ditg-logo.png"
             alt="DITG Logo"
