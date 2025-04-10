@@ -7,6 +7,7 @@ const filePath = path.resolve("/tmp/status.json");
 type DeviceStatus = {
   ip: string;
   timestamp: number;
+  temp?: string; // 🆕 додаємо temp як необов’язкове поле
 };
 
 type StatusMap = {
@@ -17,6 +18,7 @@ export async function POST(req: Request) {
   const form = await req.formData();
   const id = form.get("id")?.toString();
   const ip = form.get("ip")?.toString() ?? "none";
+  const temp = form.get("temp")?.toString(); // 🆕 зчитуємо температуру
   const timestamp = Date.now();
 
   let data: StatusMap = {};
@@ -24,12 +26,14 @@ export async function POST(req: Request) {
     const raw = await readFile(filePath, "utf8");
     data = JSON.parse(raw);
   } catch {
-    // файл ещё не существует — начинаем с пустого объекта
     data = {};
   }
 
   if (id) {
     data[id] = { ip, timestamp };
+    if (temp !== undefined) {
+      data[id].temp = temp; // 🆕 зберігаємо температуру тільки якщо вона є
+    }
   }
 
   await writeFile(filePath, JSON.stringify(data), "utf8");
