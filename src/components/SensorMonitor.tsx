@@ -72,7 +72,6 @@ export function SensorMonitor() {
       <h2 className="text-center mt-4 mb-1">Моніторинг сенсорів:</h2>
 
       <div className="row">
-        {/* SENSOR 1 — активний */}
         <div className="col-6 col-md-3">
           <div className="average-temp-block">
             <div className="description-temp-block">
@@ -92,48 +91,6 @@ export function SensorMonitor() {
             </div>
           </div>
         </div>
-
-        {/* SENSOR 2–4 — резерв */}
-        {[2, 3, 4].map((id) => (
-          <div className="col-6 col-md-3" key={id}>
-            <div className="average-temp-block">
-              <div className="description-temp-block">
-                Zona:1 | Sensor:{id}
-                <button className="status-button offline" title="Sensor Offline">
-                  ● OFFLINE
-                </button>
-              </div>
-              <div className="average-temp-label">
-                <FontAwesomeIcon icon={faThermometerHalf} />{" "}
-                <span id={`sensor${id}`} className="average-temp-data">
-                  -- °C
-                </span>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="row">
-        {/* SENSOR 5–7 — вологість */}
-        {[5, 6, 7].map((id) => (
-          <div className="col-6 col-md-4" key={id}>
-            <div className="average-humidity-block">
-              <div className="description-temp-block">
-                Zona:1 | Sensor:{id}
-                <button className="status-button offline" title="Sensor Offline">
-                  ● OFFLINE
-                </button>
-              </div>
-              <div className="average-humidity-label">
-                <FontAwesomeIcon icon={faTint} />{" "}
-                <span id={`sensor${id}`} className="average-humidity-data">
-                  -- %
-                </span>
-              </div>
-            </div>
-          </div>
-        ))}
       </div>
     </div>
   )
