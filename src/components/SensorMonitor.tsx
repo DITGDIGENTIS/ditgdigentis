@@ -1,18 +1,18 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { faTint, faThermometerHalf } from "@fortawesome/free-solid-svg-icons"
+import { useEffect, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faTint, faThermometerHalf } from "@fortawesome/free-solid-svg-icons";
 
 export function SensorMonitor() {
-  const [zona1Temp, setZona1Temp] = useState<string>("--")
-  const [zona1Online, setZona1Online] = useState<boolean>(false)
+  const [zona1Temp, setZona1Temp] = useState<string>("--");
+  const [zona1Online, setZona1Online] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchStatus = async () => {
       try {
         const res = await fetch("https://ditgdigentis.vercel.app/api/status", {
-          cache: "no-store"
+          cache: "no-store",
         });
         const data = await res.json();
         const zona = data.zona1;
@@ -20,23 +20,23 @@ export function SensorMonitor() {
         if (zona) {
           const now = Date.now();
           const diff = now - zona.timestamp;
-          const temp = zona.temp;
+          const isOnline = diff < 30000;
+          setZona1Online(isOnline);
 
+          const temp = zona.temp;
           const isTempValid =
             typeof temp === "string" &&
             temp !== "none" &&
             !isNaN(parseFloat(temp));
 
-          if (isTempValid) {
-            setZona1Temp(temp.toString());
-          }
-
-          setZona1Online(diff < 30000);
+          setZona1Temp(isTempValid ? temp : "--");
         } else {
           setZona1Online(false);
+          setZona1Temp("--");
         }
       } catch {
         setZona1Online(false);
+        setZona1Temp("--");
       }
     };
 
@@ -95,5 +95,5 @@ export function SensorMonitor() {
         </div>
       </div>
     </div>
-  )
+  );
 }
