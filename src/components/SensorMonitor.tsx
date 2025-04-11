@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTint, faThermometerHalf } from "@fortawesome/free-solid-svg-icons";
+import { faThermometerHalf } from "@fortawesome/free-solid-svg-icons";
 
 export function SensorMonitor() {
   const [zona1Temp, setZona1Temp] = useState<string>("--");
@@ -24,6 +24,8 @@ export function SensorMonitor() {
           setZona1Online(isOnline);
 
           const temp = zona.temp;
+          console.log("Fetched Temperature:", temp);  // Логируем температуру
+
           const isTempValid =
             typeof temp === "string" &&
             temp !== "none" &&
@@ -34,7 +36,8 @@ export function SensorMonitor() {
           setZona1Online(false);
           setZona1Temp("--");
         }
-      } catch {
+      } catch (error) {
+        console.error("Error fetching status:", error);  // Логируем ошибку
         setZona1Online(false);
         setZona1Temp("--");
       }
@@ -52,16 +55,6 @@ export function SensorMonitor() {
         <div className="col-6 col-md-6 pb-2">
           <div className="top-average-humidity-block">
             <div className="top-average-humidity-label">
-              <FontAwesomeIcon icon={faTint} />{" "}
-              <span id="averageHumidity" className="top-average-humidity-data">
-                -- %
-              </span>
-            </div>
-          </div>
-        </div>
-        <div className="col-6 col-md-6 pb-2">
-          <div className="top-average-temp-block">
-            <div className="top-average-temp-label">
               <FontAwesomeIcon icon={faThermometerHalf} />{" "}
               <span id="averageTemperature" className="top-average-temp-data">
                 {zona1Temp} °C
