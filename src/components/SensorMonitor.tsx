@@ -8,7 +8,6 @@ export function SensorMonitor() {
   const [zona1Temp, setZona1Temp] = useState<string>("--");
   const [zona1Online, setZona1Online] = useState<boolean>(false);
   const [lastTemp, setLastTemp] = useState<string | null>(null); // Храним последнее значение температуры
-  const [lastUpdated, setLastUpdated] = useState<number>(0); // Храним время последнего обновления
 
   useEffect(() => {
     const fetchStatus = async () => {
@@ -35,7 +34,6 @@ export function SensorMonitor() {
             if (Math.abs(tempNum - parseFloat(lastTemp || "0")) >= 0.1) {
               setZona1Temp(temp);
               setLastTemp(temp); // Обновляем последнее значение температуры
-              setLastUpdated(now); // Обновляем время последнего обновления
             }
           }
         } else {
