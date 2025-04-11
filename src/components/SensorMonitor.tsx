@@ -15,6 +15,8 @@ export function SensorMonitor() {
           cache: "no-store",
         });
         const data = await res.json();
+        console.log("Fetched data:", data); // Логируем полученные данные
+
         const zona = data.zona1;
 
         if (zona) {
@@ -90,4 +92,3 @@ export function SensorMonitor() {
     </div>
   );
 }
-       
