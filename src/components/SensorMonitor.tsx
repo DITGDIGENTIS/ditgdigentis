@@ -1,49 +1,49 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { faTint, faThermometerHalf } from "@fortawesome/free-solid-svg-icons"
+import { useEffect, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faTint, faThermometerHalf } from "@fortawesome/free-solid-svg-icons";
 
 export function SensorMonitor() {
-  const [zona1Temp, setZona1Temp] = useState<string>("--")
-  const [zona1Online, setZona1Online] = useState<boolean>(false)
+  const [zona1Temp, setZona1Temp] = useState<string>("--");
+  const [zona1Online, setZona1Online] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchStatus = async () => {
       try {
         const res = await fetch("https://ditgdigentis.vercel.app/api/status", {
           cache: "no-store",
-        })
-        const data = await res.json()
-        const zona = data.zona1
+        });
+        const data = await res.json();
+        const zona = data.zona1;
 
         if (zona) {
-          const now = Date.now()
-          const diff = now - zona.timestamp
-          const isOnline = diff < 30000
-          setZona1Online(isOnline)
+          const now = Date.now();
+          const diff = now - zona.timestamp;
+          const isOnline = diff < 30000;
+          setZona1Online(isOnline);
 
-          const temp = zona.temp
+          const temp = zona.temp;
           const isTempValid =
             typeof temp === "string" &&
             temp !== "none" &&
-            !isNaN(parseFloat(temp))
+            !isNaN(parseFloat(temp));
 
-          setZona1Temp(isTempValid ? temp : "--")
+          setZona1Temp(isTempValid ? temp : "--");
         } else {
-          setZona1Online(false)
-          setZona1Temp("--")
+          setZona1Online(false);
+          setZona1Temp("--");
         }
       } catch {
-        setZona1Online(false)
-        setZona1Temp("--")
+        setZona1Online(false);
+        setZona1Temp("--");
       }
-    }
+    };
 
-    fetchStatus()
-    const interval = setInterval(fetchStatus, 1000) // обновление каждую секунду
-    return () => clearInterval(interval)
-  }, [])
+    fetchStatus();
+    const interval = setInterval(fetchStatus, 1000); // обновление каждую секунду
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="container sensor-container p-4">
@@ -95,5 +95,5 @@ export function SensorMonitor() {
         </div>
       </div>
     </div>
-  )
+  );
 }
