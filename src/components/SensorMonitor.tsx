@@ -7,6 +7,8 @@ import { faThermometerHalf } from "@fortawesome/free-solid-svg-icons";
 export function SensorMonitor() {
   const [zona1Temp, setZona1Temp] = useState<string>("--");
   const [zona1Online, setZona1Online] = useState<boolean>(false);
+  const [lastTemp, setLastTemp] = useState<string | null>(null); // Для хранения последнего значения температуры
+  const TEMP_CHANGE_THRESHOLD = 0.1; // Порог изменения температуры в градусах Цельсия
 
   useEffect(() => {
     const fetchStatus = async () => {
@@ -26,12 +28,19 @@ export function SensorMonitor() {
           const temp = zona.temp;
           console.log("Fetched Temperature:", temp);  // Логируем температуру
 
-          const isTempValid =
-            typeof temp === "string" &&
-            temp !== "none" &&
-            !isNaN(parseFloat(temp));
+          if (temp && lastTemp) {
+            // Проверяем, если изменение температуры больше порога
+            const tempDiff = Math.abs(parseFloat(temp) - parseFloat(lastTemp));
 
-          setZona1Temp(isTempValid ? temp : "--");
+            if (tempDiff >= TEMP_CHANGE_THRESHOLD) {
+              setZona1Temp(temp);
+              setLastTemp(temp); // Обновляем последнее значение температуры
+            }
+          } else {
+            // Если это первое значение, просто сохраняем его
+            setZona1Temp(temp);
+            setLastTemp(temp);
+          }
         } else {
           setZona1Online(false);
           setZona1Temp("--");
@@ -44,9 +53,9 @@ export function SensorMonitor() {
     };
 
     fetchStatus();
-    const interval = setInterval(fetchStatus, 1000); // Обновляем данные каждую секунду
+    const interval = setInterval(fetchStatus, 5000); // Обновляем данные каждые 5 секунд
     return () => clearInterval(interval);
-  }, []);
+  }, [lastTemp]); // Зависимость от lastTemp, чтобы следить за изменениями температуры
 
   return (
     <div className="container sensor-container p-4">
@@ -90,4 +99,3 @@ export function SensorMonitor() {
     </div>
   );
 }
-      
