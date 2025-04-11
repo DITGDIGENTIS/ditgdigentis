@@ -12,11 +12,9 @@ export function SensorMonitor() {
     const fetchStatus = async () => {
       try {
         const res = await fetch("https://ditgdigentis.vercel.app/api/status", {
-          cache: "no-store",
+          cache: "no-store", // Отключаем кеширование
         });
         const data = await res.json();
-        console.log("Fetched data:", data); // Логируем полученные данные
-
         const zona = data.zona1;
 
         if (zona) {
@@ -46,7 +44,7 @@ export function SensorMonitor() {
     };
 
     fetchStatus();
-    const interval = setInterval(fetchStatus, 1000); // обновление каждую секунду
+    const interval = setInterval(fetchStatus, 1000); // Обновляем данные каждую секунду
     return () => clearInterval(interval);
   }, []);
 
@@ -55,8 +53,8 @@ export function SensorMonitor() {
       <div className="row wrapper-sens-top">
         <h2 className="text-center mb-1">Середні показники:</h2>
         <div className="col-6 col-md-6 pb-2">
-          <div className="top-average-humidity-block">
-            <div className="top-average-humidity-label">
+          <div className="top-average-temp-block">
+            <div className="top-average-temp-label">
               <FontAwesomeIcon icon={faThermometerHalf} />{" "}
               <span id="averageTemperature" className="top-average-temp-data">
                 {zona1Temp} °C

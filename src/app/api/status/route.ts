@@ -1,3 +1,4 @@
+// app/api/status/route.ts
 import { NextResponse } from "next/server";
 import { writeFile, readFile } from "fs/promises";
 import path from "path";
@@ -37,8 +38,6 @@ export async function POST(req: Request) {
     ...(temp ? { temp } : {}), // Если температура есть, сохраняем её
   };
 
-  console.log("Data saved to file:", data); // Логируем сохранённые данные
-
   await writeFile(filePath, JSON.stringify(data), "utf8"); // Записываем в файл
 
   return NextResponse.json({
@@ -53,7 +52,6 @@ export async function GET() {
   try {
     const raw = await readFile(filePath, "utf8");  // Чтение данных из файла
     const json = JSON.parse(raw);  // Парсинг данных
-    console.log("Returned data:", json); // Логируем возвращаемые данные
     return NextResponse.json(json);
   } catch {
     return NextResponse.json({});
