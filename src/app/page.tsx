@@ -1,4 +1,4 @@
-"use client";  // This marks the file as a client component
+"use client"; // This marks the file as a client component
 
 import { useEffect, useState } from "react";
 import { ZonaStatus } from "../components/ZonaStatus";
@@ -17,6 +17,9 @@ export default function Home() {
     relay3: false,
   });
 
+  const [temperature, setTemperature] = useState<string>("--");
+
+  // Fetch data from the server (status of the relays)
   useEffect(() => {
     const updateClock = () => {
       const now = new Date();
@@ -38,14 +41,16 @@ export default function Home() {
           const online = now - lastUpdate < 20000;
           setIsOnline(online);
 
-          // Get relay status from the response
+          // Get relay status and temperature from the response
           const zona = data.zona1;
           if (zona) {
             setRelayStatus({
-              relay1: zona.relay1 === 1, // True if relay1 is ON
-              relay2: zona.relay2 === 1, // True if relay2 is ON
-              relay3: zona.relay3 === 1, // True if relay3 is ON
+              relay1: zona.relay1 === 1,
+              relay2: zona.relay2 === 1,
+              relay3: zona.relay3 === 1,
             });
+
+            setTemperature(zona.temp || "--");
           }
         })
         .catch(() => setIsOnline(false));
@@ -95,14 +100,17 @@ export default function Home() {
         </div>
       </div>
 
+      {/* ZonaStatus and other components */}
       <ZonaStatus />
       <ZonaTemperature />
       <SensorMonitor />
 
+      {/* Add RelayStatus component */}
       <RelayStatus
         relay1={relayStatus.relay1}
         relay2={relayStatus.relay2}
         relay3={relayStatus.relay3}
+        temperature={temperature}  // Pass temperature as a prop
       />
 
       <style jsx>{`
