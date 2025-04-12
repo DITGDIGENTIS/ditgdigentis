@@ -1,3 +1,5 @@
+"use client";  // This marks the file as a client component
+
 import { useEffect, useState } from "react";
 import { ZonaStatus } from "../components/ZonaStatus";
 import { SensorMonitor } from "../components/SensorMonitor";
@@ -8,6 +10,7 @@ export default function Home() {
   const [time, setTime] = useState("");
   const [isOnline, setIsOnline] = useState(false);
 
+  // Relay status state
   const [relayStatus, setRelayStatus] = useState({
     relay1: false,
     relay2: false,
@@ -30,7 +33,6 @@ export default function Home() {
       fetch("https://ditgdigentis.vercel.app/api/status", { cache: "no-store" })
         .then((res) => res.json())
         .then((data) => {
-          console.log("Received data from server:", data);  // Log server response
           const now = Date.now();
           const lastUpdate = data["server"]?.timestamp || 0;
           const online = now - lastUpdate < 20000;
