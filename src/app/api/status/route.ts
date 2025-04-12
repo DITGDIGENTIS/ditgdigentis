@@ -21,11 +21,17 @@ type StatusMap = {
 // Функция обработки POST запроса
 export async function POST(req: Request) {
   try {
-    const form = await req.json();  // Используем json() вместо formData()
-
+    const form = await req.formData();
+    
     // Извлекаем id, ip и температуру
-    const { id, ip, relay1, relay2, relay3, temp } = form;
-
+    const id = form.get("id")?.toString() || "unknown"; // ID устройства, например zona1
+    const ip = form.get("ip")?.toString() || "none";  // IP устройства
+    const relay1 = form.get("relay1")?.toString(); // Статус реле 1
+    const relay2 = form.get("relay2")?.toString(); // Статус реле 2
+    const relay3 = form.get("relay3")?.toString(); // Статус реле 3
+    const temp = form.get("temp")?.toString(); // Температура датчика (если есть)
+    const timestamp = Date.now(); // Время отправки данных
+    
     // Логируем получение данных для дебага
     console.log("Received data:", { id, ip, relay1, relay2, relay3, temp });
 
@@ -35,29 +41,24 @@ export async function POST(req: Request) {
     try {
       const raw = await readFile(filePath, "utf8");
       data = JSON.parse(raw);
-    } catch (err) {
-      console.error("Error reading or parsing file:", err);
-      data = {};  // Если файл пустой или не существует, начинаем с пустого объекта
+    } catch {
+      data = {}; // Если файл пустой или не существует, начинаем с пустого объекта
     }
 
     // Добавляем или обновляем данные для указанного устройства
     data[id] = {
       ip,
-      timestamp: Date.now(),
-      relay1,
-      relay2,
-      relay3,
-      temp,
+      timestamp,
+      ...(relay1 ? { relay1: parseInt(relay1) } : {}),
+      ...(relay2 ? { relay2: parseInt(relay2) } : {}),
+      ...(relay3 ? { relay3: parseInt(relay3) } : {}),
+      ...(temp ? { temp } : {}), // Сохраняем температуру, если она есть
     };
 
     // Записываем обновленные данные в файл
-    try {
-      await writeFile(filePath, JSON.stringify(data), "utf8");
-    } catch (err) {
-      console.error("Error writing to file:", err);
-      return NextResponse.json({ status: "error", message: "File write error" }, { status: 500 });
-    }
+    await writeFile(filePath, JSON.stringify(data), "utf8");
 
+    // Возвращаем успешный ответ с информацией о сохранённых данных
     return NextResponse.json({
       status: "ok",
       savedAs: id,
@@ -65,10 +66,10 @@ export async function POST(req: Request) {
       relay1,
       relay2,
       relay3,
-      temp,
+      temp, // Включаем температуру в ответ для дебага
     });
   } catch (error) {
-    console.error("Error in POST request:", error);  // Логируем ошибку
+    console.error("Error in POST request:", error); // Логируем ошибку
     return NextResponse.json({ status: "error", message: "Internal server error" }, { status: 500 });
   }
 }
@@ -83,9 +84,10 @@ export async function GET() {
     // Логируем возвращаемые данные для дебага
     console.log("Returned data:", json);
 
+    // Возвращаем данные в формате JSON
     return NextResponse.json(json);
   } catch (error) {
-    console.error("Error in GET request:", error);  // Логируем ошибку
-    return NextResponse.json({}, { status: 500 });  // Возвращаем пустой объект в случае ошибки
+    console.error("Error in GET request:", error); // Логируем ошибку
+    return NextResponse.json({}, { status: 500 }); // Возвращаем пустой объект в случае ошибки
   }
 }

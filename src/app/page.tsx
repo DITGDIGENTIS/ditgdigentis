@@ -1,21 +1,14 @@
-"use client";  // This marks the file as a client component
+/* eslint-disable @next/next/no-img-element */
+"use client";
 
 import { useEffect, useState } from "react";
 import { ZonaStatus } from "../components/ZonaStatus";
 import { SensorMonitor } from "../components/SensorMonitor";
-import ZonaTemperature from "../components/ZonaTemperature";
-import RelayStatus from "../components/RelayStatus"; // Importing RelayStatus component
+import ZonaTemperature from "../components/ZonaTemperature"; // ← ДОБАВЛЕННАЯ СТРОЧКА
 
 export default function Home() {
   const [time, setTime] = useState("");
   const [isOnline, setIsOnline] = useState(false);
-
-  // Relay status state
-  const [relayStatus, setRelayStatus] = useState({
-    relay1: false,
-    relay2: false,
-    relay3: false,
-  });
 
   useEffect(() => {
     const updateClock = () => {
@@ -34,36 +27,73 @@ export default function Home() {
         .then((res) => res.json())
         .then((data) => {
           const now = Date.now();
-          const lastUpdate = data["server"]?.timestamp || 0;
-          const online = now - lastUpdate < 20000;
+          const lastUpdate = data.timestamp || 0;
+          const online = now - lastUpdate < 15 * 1000;
           setIsOnline(online);
-
-          // Get relay status from the response
-          const zona = data.zona1;
-          if (zona) {
-            setRelayStatus({
-              relay1: zona.relay1 === 1,
-              relay2: zona.relay2 === 1,
-              relay3: zona.relay3 === 1,
-            });
-          }
         })
         .catch(() => setIsOnline(false));
     };
 
     checkRemotePiStatus();
-    const remotePiInterval = setInterval(checkRemotePiStatus, 10000);
+    const remotePiInterval = setInterval(checkRemotePiStatus, 5000);
+
+    const updateSensorData = () => {
+      const sensorValues: Record<string, string> = {
+        sensor1: (20 + Math.random() * 5).toFixed(1) + " °C",
+        sensor2: (21 + Math.random() * 5).toFixed(1) + " °C",
+        sensor3: (19 + Math.random() * 5).toFixed(1) + " °C",
+        sensor4: (22 + Math.random() * 5).toFixed(1) + " °C",
+        sensor5: (40 + Math.random() * 10).toFixed(0) + " %",
+        sensor6: (42 + Math.random() * 10).toFixed(0) + " %",
+        sensor7: (38 + Math.random() * 10).toFixed(0) + " %",
+      };
+
+      for (const key in sensorValues) {
+        const el = document.getElementById(key);
+        if (el) el.textContent = sensorValues[key];
+      }
+
+      let sumTemp = 0;
+      let countTemp = 0;
+      for (let i = 1; i <= 4; i++) {
+        const value = parseFloat(sensorValues["sensor" + i]);
+        if (!isNaN(value)) {
+          sumTemp += value;
+          countTemp++;
+        }
+      }
+      const avgTemp = countTemp > 0 ? (sumTemp / countTemp).toFixed(1) : "--";
+      const avgTempEl = document.getElementById("averageTemperature");
+      if (avgTempEl) avgTempEl.textContent = avgTemp + " °C";
+
+      let sumHum = 0;
+      let countHum = 0;
+      for (let i = 5; i <= 7; i++) {
+        const value = parseFloat(sensorValues["sensor" + i]);
+        if (!isNaN(value)) {
+          sumHum += value;
+          countHum++;
+        }
+      }
+      const avgHum = countHum > 0 ? (sumHum / countHum).toFixed(0) : "--";
+      const avgHumEl = document.getElementById("averageHumidity");
+      if (avgHumEl) avgHumEl.textContent = avgHum + " %";
+    };
+
+    updateSensorData();
+    const sensorInterval = setInterval(updateSensorData, 5000);
 
     return () => {
       clearInterval(clockInterval);
       clearInterval(remotePiInterval);
+      clearInterval(sensorInterval);
     };
   }, []);
 
   return (
     <main>
       <div>
-        <div className="d-flex align-items-center justify-content-center gap-3">
+        <div className=" d-flex align-items-center justify-content-center gap-3 ">
           <img
             src="/ditg-logo.png"
             alt="DITG Logo"
@@ -71,7 +101,7 @@ export default function Home() {
             height={160}
             className="ditg-logo"
           />
-          <span className="indicator-label fw-bold fs-5 text-light">ID:0001</span>
+          <span className="indicator-label fw-bold fs-5 text-light"></span>
           <span
             className={`status-indicator ${isOnline ? "online" : "offline"}`}
             title={isOnline ? "Online" : "Offline"}
@@ -94,17 +124,10 @@ export default function Home() {
           </div>
         </div>
       </div>
-      
-      <ZonaStatus />
-      <ZonaTemperature />
-      <SensorMonitor />
 
-      {/* Add RelayStatus component */}
-      <RelayStatus
-        relay1={relayStatus.relay1}
-        relay2={relayStatus.relay2}
-        relay3={relayStatus.relay3}
-      />
+      <ZonaStatus />
+      <SensorMonitor />
+      <ZonaTemperature />
 
       <style jsx>{`
         .ditg-logo {
