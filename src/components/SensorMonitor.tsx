@@ -8,13 +8,6 @@ export function SensorMonitor() {
   const [zona1Temp, setZona1Temp] = useState<string>("--");
   const [zona1Online, setZona1Online] = useState<boolean>(false);
   const [lastTemp, setLastTemp] = useState<string | null>(null); // Храним последнее значение температуры
-  
-  // Стейт для реле
-  const [relayStatus, setRelayStatus] = useState<{ [key: string]: boolean }>({
-    relay1: false,
-    relay2: false,
-    relay3: false,
-  });
 
   useEffect(() => {
     const fetchStatus = async () => {
@@ -32,7 +25,7 @@ export function SensorMonitor() {
           setZona1Online(isOnline);
 
           const temp = zona.temp;
-          console.log("Fetched Temperature:", temp); // Логируем температуру
+          console.log("Fetched Temperature:", temp);  // Логируем температуру
 
           if (temp !== lastTemp && temp !== "none") {
             const tempNum = parseFloat(temp);
@@ -43,19 +36,12 @@ export function SensorMonitor() {
               setLastTemp(temp); // Обновляем последнее значение температуры
             }
           }
-
-          // Обновляем статус реле (предполагаем, что реле передаются как relay1, relay2, relay3)
-          setRelayStatus({
-            relay1: zona.relay1 === 1,
-            relay2: zona.relay2 === 1,
-            relay3: zona.relay3 === 1,
-          });
         } else {
           setZona1Online(false);
           setZona1Temp("--");
         }
       } catch (error) {
-        console.error("Error fetching status:", error); // Логируем ошибку
+        console.error("Error fetching status:", error);  // Логируем ошибку
         setZona1Online(false);
         setZona1Temp("--");
       }
@@ -104,25 +90,7 @@ export function SensorMonitor() {
             </div>
           </div>
         </div>
-
-        {/* Вывод статуса реле */}
-        {["relay1", "relay2", "relay3"].map((relay, index) => (
-          <div key={relay} className="col-6 col-md-3">
-            <div className="average-temp-block">
-              <div className="description-temp-block">
-                Zona:1 | {`Relay ${index + 1}`}
-                <button
-                  className={`status-button ${relayStatus[relay] ? "online" : "offline"}`}
-                  title={`${relay} ${relayStatus[relay] ? "ON" : "OFF"}`}
-                >
-                  ● {relayStatus[relay] ? "ON" : "OFF"}
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
       </div>
     </div>
   );
 }
-

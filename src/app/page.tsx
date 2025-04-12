@@ -9,21 +9,6 @@ import ZonaTemperature from "../components/ZonaTemperature";
 export default function Home() {
   const [time, setTime] = useState("");
   const [isOnline, setIsOnline] = useState(false);
-  
-  // Стейт для времени и сенсоров
-  const [sensorData, setSensorData] = useState<{ [key: string]: string }>({
-    sensor1: "-- °C",
-    sensor2: "-- °C",
-    sensor3: "-- °C",
-    sensor4: "-- °C",
-    sensor5: "-- %",
-    sensor6: "-- %",
-    sensor7: "-- %",
-  });
-
-  // Стейт для средней температуры и влажности
-  const [avgTemp, setAvgTemp] = useState<string>("--");
-  const [avgHum, setAvgHum] = useState<string>("--");
 
   useEffect(() => {
     const updateClock = () => {
@@ -42,17 +27,16 @@ export default function Home() {
         .then((res) => res.json())
         .then((data) => {
           const now = Date.now();
-          const lastUpdate = data["server"]?.timestamp || 0;
-          const online = now - lastUpdate < 20000;
+          const lastUpdate = data.timestamp || 0;
+          const online = now - lastUpdate < 15 * 1000;
           setIsOnline(online);
         })
         .catch(() => setIsOnline(false));
     };
 
     checkRemotePiStatus();
-    const remotePiInterval = setInterval(checkRemotePiStatus, 1000);
+    const remotePiInterval = setInterval(checkRemotePiStatus, 5000);
 
-    // Обновление данных сенсоров и вычисление средней температуры и влажности
     const updateSensorData = () => {
       const sensorValues: Record<string, string> = {
         sensor1: (20 + Math.random() * 5).toFixed(1) + " °C",
@@ -64,9 +48,11 @@ export default function Home() {
         sensor7: (38 + Math.random() * 10).toFixed(0) + " %",
       };
 
-      setSensorData(sensorValues);
+      for (const key in sensorValues) {
+        const el = document.getElementById(key);
+        if (el) el.textContent = sensorValues[key];
+      }
 
-      // Рассчитываем среднюю температуру
       let sumTemp = 0;
       let countTemp = 0;
       for (let i = 1; i <= 4; i++) {
@@ -76,10 +62,10 @@ export default function Home() {
           countTemp++;
         }
       }
-      const avgTempCalculated = countTemp > 0 ? (sumTemp / countTemp).toFixed(1) : "--";
-      setAvgTemp(avgTempCalculated);
+      const avgTemp = countTemp > 0 ? (sumTemp / countTemp).toFixed(1) : "--";
+      const avgTempEl = document.getElementById("averageTemperature");
+      if (avgTempEl) avgTempEl.textContent = avgTemp + " °C";
 
-      // Рассчитываем среднюю влажность
       let sumHum = 0;
       let countHum = 0;
       for (let i = 5; i <= 7; i++) {
@@ -89,8 +75,9 @@ export default function Home() {
           countHum++;
         }
       }
-      const avgHumCalculated = countHum > 0 ? (sumHum / countHum).toFixed(0) : "--";
-      setAvgHum(avgHumCalculated);
+      const avgHum = countHum > 0 ? (sumHum / countHum).toFixed(0) : "--";
+      const avgHumEl = document.getElementById("averageHumidity");
+      if (avgHumEl) avgHumEl.textContent = avgHum + " %";
     };
 
     updateSensorData();
@@ -106,7 +93,7 @@ export default function Home() {
   return (
     <main>
       <div>
-        <div className="d-flex align-items-center justify-content-center gap-3">
+        <div className=" d-flex align-items-center justify-content-center gap-3 ">
           <img
             src="/ditg-logo.png"
             alt="DITG Logo"
@@ -114,7 +101,7 @@ export default function Home() {
             height={160}
             className="ditg-logo"
           />
-          <span className="indicator-label fw-bold fs-5 text-light">ID:000</span>
+          <span className="indicator-label fw-bold fs-5 text-light"></span>
           <span
             className={`status-indicator ${isOnline ? "online" : "offline"}`}
             title={isOnline ? "Online" : "Offline"}
@@ -137,22 +124,7 @@ export default function Home() {
           </div>
         </div>
       </div>
-
-      <div className="sensor-data-container text-center mt-4">
-        <h3>Sensor Data</h3>
-        <p>Avg Temperature: {avgTemp} °C</p>
-        <p>Avg Humidity: {avgHum} %</p>
-        <div className="sensor-details">
-          <h5>Sensor 1: {sensorData.sensor1}</h5>
-          <h5>Sensor 2: {sensorData.sensor2}</h5>
-          <h5>Sensor 3: {sensorData.sensor3}</h5>
-          <h5>Sensor 4: {sensorData.sensor4}</h5>
-          <h5>Sensor 5: {sensorData.sensor5}</h5>
-          <h5>Sensor 6: {sensorData.sensor6}</h5>
-          <h5>Sensor 7: {sensorData.sensor7}</h5>
-        </div>
-      </div>
-
+      
       <ZonaStatus />
       <ZonaTemperature />
       <SensorMonitor />
