@@ -1,14 +1,21 @@
 /* eslint-disable @next/next/no-img-element */
-"use client";
-
+// pages/index.tsx
 import { useEffect, useState } from "react";
 import { ZonaStatus } from "../components/ZonaStatus";
 import { SensorMonitor } from "../components/SensorMonitor";
-import ZonaTemperature from "../components/ZonaTemperature"; 
+import ZonaTemperature from "../components/ZonaTemperature";
+import RelayStatus from "../components/RelayStatus";  // Импортируем компонент RelayStatus
 
 export default function Home() {
   const [time, setTime] = useState("");
   const [isOnline, setIsOnline] = useState(false);
+
+  // Стейт для статуса реле
+  const [relayStatus, setRelayStatus] = useState({
+    relay1: false,
+    relay2: false,
+    relay3: false,
+  });
 
   useEffect(() => {
     const updateClock = () => {
@@ -30,14 +37,22 @@ export default function Home() {
           const lastUpdate = data["server"]?.timestamp || 0;
           const online = now - lastUpdate < 20000;
           setIsOnline(online);
+
+          // Получаем статус реле из ответа
+          const zona = data.zona1;
+          if (zona) {
+            setRelayStatus({
+              relay1: zona.relay1 === 1,
+              relay2: zona.relay2 === 1,
+              relay3: zona.relay3 === 1,
+            });
+          }
         })
-        .catch(() => {
-          setIsOnline(false); // В случае ошибки, считаем сервер оффлайн
-        });
+        .catch(() => setIsOnline(false));
     };
 
     checkRemotePiStatus();
-    const remotePiInterval = setInterval(checkRemotePiStatus, 10000); // Обновляем статус сервера каждые 10 секунд
+    const remotePiInterval = setInterval(checkRemotePiStatus, 10000);
 
     return () => {
       clearInterval(clockInterval);
@@ -83,6 +98,13 @@ export default function Home() {
       <ZonaStatus />
       <ZonaTemperature />
       <SensorMonitor />
+
+      {/* Добавляем компонент для отображения статуса реле */}
+      <RelayStatus
+        relay1={relayStatus.relay1}
+        relay2={relayStatus.relay2}
+        relay3={relayStatus.relay3}
+      />
 
       <style jsx>{`
         .ditg-logo {
