@@ -9,6 +9,9 @@ type DeviceStatus = {
   ip: string;
   timestamp: number;
   temp?: string; // Температура датчика (опционально)
+  relay1?: number; // Статус реле 1
+  relay2?: number; // Статус реле 2
+  relay3?: number; // Статус реле 3
 };
 
 type StatusMap = {
@@ -23,12 +26,14 @@ export async function POST(req: Request) {
     // Извлекаем id, ip и температуру
     const id = form.get("id")?.toString() || "unknown"; // ID устройства, например zona1
     const ip = form.get("ip")?.toString() || "none";  // IP устройства
-    const tempRaw = form.get("temp")?.toString(); // Температура в строковом формате
-    const temp = tempRaw && tempRaw !== "undefined" ? tempRaw : undefined;  // Если температура есть, сохраняем её
+    const relay1 = form.get("relay1")?.toString(); // Статус реле 1
+    const relay2 = form.get("relay2")?.toString(); // Статус реле 2
+    const relay3 = form.get("relay3")?.toString(); // Статус реле 3
+    const temp = form.get("temp")?.toString(); // Температура датчика (если есть)
     const timestamp = Date.now(); // Время отправки данных
     
     // Логируем получение данных для дебага
-    console.log("Received data:", { id, ip, temp });
+    console.log("Received data:", { id, ip, relay1, relay2, relay3, temp });
 
     let data: StatusMap = {};
     
@@ -44,6 +49,9 @@ export async function POST(req: Request) {
     data[id] = {
       ip,
       timestamp,
+      ...(relay1 ? { relay1: parseInt(relay1) } : {}),
+      ...(relay2 ? { relay2: parseInt(relay2) } : {}),
+      ...(relay3 ? { relay3: parseInt(relay3) } : {}),
       ...(temp ? { temp } : {}), // Сохраняем температуру, если она есть
     };
 
@@ -55,6 +63,9 @@ export async function POST(req: Request) {
       status: "ok",
       savedAs: id,
       ip,
+      relay1,
+      relay2,
+      relay3,
       temp, // Включаем температуру в ответ для дебага
     });
   } catch (error) {
