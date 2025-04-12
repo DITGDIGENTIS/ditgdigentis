@@ -31,11 +31,13 @@ export default function Home() {
           const online = now - lastUpdate < 20000;
           setIsOnline(online);
         })
-        .catch(() => setIsOnline(false));
+        .catch(() => {
+          setIsOnline(false); // В случае ошибки, считаем сервер оффлайн
+        });
     };
 
     checkRemotePiStatus();
-    const remotePiInterval = setInterval(checkRemotePiStatus, 1000);
+    const remotePiInterval = setInterval(checkRemotePiStatus, 10000); // Обновляем статус сервера каждые 10 секунд
 
     return () => {
       clearInterval(clockInterval);

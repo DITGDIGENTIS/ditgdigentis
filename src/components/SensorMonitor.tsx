@@ -9,7 +9,7 @@ export function SensorMonitor() {
   const [zona1Online, setZona1Online] = useState<boolean>(false);
   const [lastTemp, setLastTemp] = useState<string | null>(null); // Храним последнее значение температуры
 
-  // Стейт для реле
+  // Стейт для реле, где каждый ключ - это relay1, relay2, relay3
   const [relayStatus, setRelayStatus] = useState<{ [key: string]: boolean }>({
     relay1: false,
     relay2: false,
@@ -32,8 +32,9 @@ export function SensorMonitor() {
           setZona1Online(isOnline);
 
           const temp = zona.temp;
-          console.log("Fetched Temperature:", temp);  // Логируем температуру
+          console.log("Fetched Temperature:", temp); // Логируем температуру
 
+          // Обновляем температуру только если она изменилась
           if (temp !== lastTemp && temp !== "none") {
             const tempNum = parseFloat(temp);
 
@@ -44,7 +45,7 @@ export function SensorMonitor() {
             }
           }
 
-          // Обновляем статус реле (предполагаем, что реле передаются как relay1, relay2, relay3)
+          // Обновляем статус реле
           setRelayStatus({
             relay1: zona.relay1 === 1,
             relay2: zona.relay2 === 1,
@@ -55,7 +56,7 @@ export function SensorMonitor() {
           setZona1Temp("--");
         }
       } catch (error) {
-        console.error("Error fetching status:", error);  // Логируем ошибку
+        console.error("Error fetching status:", error); // Логируем ошибку
         setZona1Online(false);
         setZona1Temp("--");
       }
@@ -107,10 +108,10 @@ export function SensorMonitor() {
 
         {/* Вывод статуса реле */}
         {["relay1", "relay2", "relay3"].map((relay, index) => (
-          <div key={index} className="col-6 col-md-3">
+          <div key={relay} className="col-6 col-md-3">
             <div className="average-temp-block">
               <div className="description-temp-block">
-                Zona:1 | {`Relay:${index + 1}`}
+                Zona:1 | {`Relay ${index + 1}`}
                 <button
                   className={`status-button ${relayStatus[relay] ? "online" : "offline"}`}
                   title={`${relay} ${relayStatus[relay] ? "ON" : "OFF"}`}

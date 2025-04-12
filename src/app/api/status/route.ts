@@ -22,7 +22,7 @@ type StatusMap = {
 export async function POST(req: Request) {
   try {
     const form = await req.formData();
-    
+
     // Извлекаем id, ip и статусы реле
     const id = form.get("id")?.toString() || "unknown"; // ID устройства, например zona1
     const ip = form.get("ip")?.toString() || "none";  // IP устройства
@@ -31,41 +31,54 @@ export async function POST(req: Request) {
     const relay3 = form.get("relay3")?.toString(); // Статус реле 3
     const temp = form.get("temp")?.toString(); // Температура датчика (если есть)
     const timestamp = Date.now(); // Время отправки данных
-    
+
     // Логируем получение данных для дебага
     console.log("Received data:", { id, ip, relay1, relay2, relay3, temp });
 
-    let data: StatusMap = {};
-    
+    // Проверяем на корректность статуса реле
+    const relayStatus = {
+      relay1: relay1 ? parseInt(relay1) : undefined,
+      relay2: relay2 ? parseInt(relay2) : undefined,
+      relay3: relay3 ? parseInt(relay3) : undefined,
+    };
+
     // Попробуем прочитать и распарсить данные из файла
+    let data: StatusMap = {};
     try {
       const raw = await readFile(filePath, "utf8");
       data = JSON.parse(raw);
-    } catch {
-      data = {}; // Если файл пустой или не существует, начинаем с пустого объекта
+    } catch (error) {
+      // Если файл пустой или не существует, начинаем с пустого объекта
+      console.error("Error reading file:", error);
+      data = {};
     }
 
     // Добавляем или обновляем данные для указанного устройства
     data[id] = {
       ip,
       timestamp,
-      ...(relay1 ? { relay1: parseInt(relay1) } : {}),
-      ...(relay2 ? { relay2: parseInt(relay2) } : {}),
-      ...(relay3 ? { relay3: parseInt(relay3) } : {}),
-      ...(temp ? { temp } : {}), // Сохраняем температуру, если она есть
+      ...(temp ? { temp } : {}),
+      ...(relayStatus.relay1 !== undefined ? { relay1: relayStatus.relay1 } : {}),
+      ...(relayStatus.relay2 !== undefined ? { relay2: relayStatus.relay2 } : {}),
+      ...(relayStatus.relay3 !== undefined ? { relay3: relayStatus.relay3 } : {}),
     };
 
     // Записываем обновленные данные в файл
-    await writeFile(filePath, JSON.stringify(data), "utf8");
+    try {
+      await writeFile(filePath, JSON.stringify(data), "utf8");
+      console.log("Data saved successfully");
+    } catch (error) {
+      console.error("Error writing file:", error);
+    }
 
     // Возвращаем успешный ответ с информацией о сохранённых данных
     return NextResponse.json({
       status: "ok",
       savedAs: id,
       ip,
-      relay1,
-      relay2,
-      relay3,
+      relay1: relayStatus.relay1,
+      relay2: relayStatus.relay2,
+      relay3: relayStatus.relay3,
       temp, // Включаем температуру в ответ для дебага
     });
   } catch (error) {
