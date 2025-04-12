@@ -21,24 +21,22 @@ type StatusMap = {
 // Функция обработки POST запроса
 export async function POST(req: Request) {
   try {
-    // Получаем данные из тела запроса в формате JSON
-    const form = await req.json();
-
-    // Логируем полученные данные для отладки
-    console.log("Received data:", form);
-
-    // Извлекаем id, ip, реле и температуру
-    const { id, ip, relay1, relay2, relay3, temp } = form;
-
-    // Проверяем, что обязательные поля переданы
-    if (!id || !ip || relay1 === undefined || relay2 === undefined || relay3 === undefined) {
-      return NextResponse.json({ status: "error", message: "Missing required fields" }, { status: 400 });
-    }
-
+    const form = await req.formData();
+    
+    // Извлекаем id, ip и температуру
+    const id = form.get("id")?.toString() || "unknown"; // ID устройства, например zona1
+    const ip = form.get("ip")?.toString() || "none";  // IP устройства
+    const relay1 = form.get("relay1")?.toString(); // Статус реле 1
+    const relay2 = form.get("relay2")?.toString(); // Статус реле 2
+    const relay3 = form.get("relay3")?.toString(); // Статус реле 3
+    const temp = form.get("temp")?.toString(); // Температура датчика (если есть)
     const timestamp = Date.now(); // Время отправки данных
+    
+    // Логируем получение данных для дебага
+    console.log("Received data:", { id, ip, relay1, relay2, relay3, temp });
 
     let data: StatusMap = {};
-
+    
     // Попробуем прочитать и распарсить данные из файла
     try {
       const raw = await readFile(filePath, "utf8");
@@ -51,10 +49,10 @@ export async function POST(req: Request) {
     data[id] = {
       ip,
       timestamp,
-      ...(relay1 !== undefined ? { relay1: parseInt(relay1) } : {}),
-      ...(relay2 !== undefined ? { relay2: parseInt(relay2) } : {}),
-      ...(relay3 !== undefined ? { relay3: parseInt(relay3) } : {}),
-      ...(temp !== undefined ? { temp } : {}), // Сохраняем температуру, если она есть
+      ...(relay1 ? { relay1: parseInt(relay1) } : {}),
+      ...(relay2 ? { relay2: parseInt(relay2) } : {}),
+      ...(relay3 ? { relay3: parseInt(relay3) } : {}),
+      ...(temp ? { temp } : {}), // Сохраняем температуру, если она есть
     };
 
     // Записываем обновленные данные в файл
@@ -68,7 +66,7 @@ export async function POST(req: Request) {
       relay1,
       relay2,
       relay3,
-      temp,
+      temp, // Включаем температуру в ответ для дебага
     });
   } catch (error) {
     console.error("Error in POST request:", error); // Логируем ошибку
@@ -93,3 +91,4 @@ export async function GET() {
     return NextResponse.json({}, { status: 500 }); // Возвращаем пустой объект в случае ошибки
   }
 }
+    
