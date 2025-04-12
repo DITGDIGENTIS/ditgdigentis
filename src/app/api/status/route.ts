@@ -8,7 +8,7 @@ const filePath = path.resolve("/tmp/status.json");
 type DeviceStatus = {
   ip: string;
   timestamp: number;
-  temp?: string; // Температура датчика
+  temp?: string; // Температура датчика (опционально)
   relay1?: number; // Статус реле 1
   relay2?: number; // Статус реле 2
   relay3?: number; // Статус реле 3
@@ -21,15 +21,15 @@ type StatusMap = {
 // Функция обработки POST запроса
 export async function POST(req: Request) {
   try {
-    const form = await req.json(); // Используем req.json() для получения данных в формате JSON
+    const form = await req.formData();
     
-    // Извлекаем id, ip, температуру и статусы реле
-    const id = form.id || "unknown"; // ID устройства, например zona1
-    const ip = form.ip || "none";  // IP устройства
-    const relay1 = form.relay1; // Статус реле 1
-    const relay2 = form.relay2; // Статус реле 2
-    const relay3 = form.relay3; // Статус реле 3
-    const temp = form.temp; // Температура датчика (если есть)
+    // Извлекаем id, ip и температуру
+    const id = form.get("id")?.toString() || "unknown"; // ID устройства, например zona1
+    const ip = form.get("ip")?.toString() || "none";  // IP устройства
+    const relay1 = form.get("relay1")?.toString(); // Статус реле 1
+    const relay2 = form.get("relay2")?.toString(); // Статус реле 2
+    const relay3 = form.get("relay3")?.toString(); // Статус реле 3
+    const temp = form.get("temp")?.toString(); // Температура датчика (если есть)
     const timestamp = Date.now(); // Время отправки данных
     
     // Логируем получение данных для дебага
@@ -49,10 +49,10 @@ export async function POST(req: Request) {
     data[id] = {
       ip,
       timestamp,
-      ...(relay1 !== undefined ? { relay1 } : {}),
-      ...(relay2 !== undefined ? { relay2 } : {}),
-      ...(relay3 !== undefined ? { relay3 } : {}),
-      ...(temp !== undefined ? { temp } : {}), // Сохраняем температуру, если она есть
+      ...(relay1 ? { relay1: parseInt(relay1) } : {}),
+      ...(relay2 ? { relay2: parseInt(relay2) } : {}),
+      ...(relay3 ? { relay3: parseInt(relay3) } : {}),
+      ...(temp ? { temp } : {}), // Сохраняем температуру, если она есть
     };
 
     // Записываем обновленные данные в файл
@@ -91,4 +91,4 @@ export async function GET() {
     return NextResponse.json({}, { status: 500 }); // Возвращаем пустой объект в случае ошибки
   }
 }
-     
+    
