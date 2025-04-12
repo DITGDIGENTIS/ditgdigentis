@@ -8,8 +8,8 @@ export function SensorMonitor() {
   const [zona1Temp, setZona1Temp] = useState<string>("--");
   const [zona1Online, setZona1Online] = useState<boolean>(false);
   const [lastTemp, setLastTemp] = useState<string | null>(null); // Храним последнее значение температуры
-
-  // Стейт для реле, где каждый ключ - это relay1, relay2, relay3
+  
+  // Стейт для реле
   const [relayStatus, setRelayStatus] = useState<{ [key: string]: boolean }>({
     relay1: false,
     relay2: false,
@@ -34,7 +34,6 @@ export function SensorMonitor() {
           const temp = zona.temp;
           console.log("Fetched Temperature:", temp); // Логируем температуру
 
-          // Обновляем температуру только если она изменилась
           if (temp !== lastTemp && temp !== "none") {
             const tempNum = parseFloat(temp);
 
@@ -45,7 +44,7 @@ export function SensorMonitor() {
             }
           }
 
-          // Обновляем статус реле
+          // Обновляем статус реле (предполагаем, что реле передаются как relay1, relay2, relay3)
           setRelayStatus({
             relay1: zona.relay1 === 1,
             relay2: zona.relay2 === 1,
@@ -126,3 +125,4 @@ export function SensorMonitor() {
     </div>
   );
 }
+
