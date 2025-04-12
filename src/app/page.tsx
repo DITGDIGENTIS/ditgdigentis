@@ -1,16 +1,16 @@
-/* eslint-disable @next/next/no-img-element */
-// pages/index.tsx
+"use client";  // This marks the file as a client component
+
 import { useEffect, useState } from "react";
 import { ZonaStatus } from "../components/ZonaStatus";
 import { SensorMonitor } from "../components/SensorMonitor";
 import ZonaTemperature from "../components/ZonaTemperature";
-import RelayStatus from "../components/RelayStatus";  // Импортируем компонент RelayStatus
+import RelayStatus from "../components/RelayStatus"; // Importing RelayStatus component
 
 export default function Home() {
   const [time, setTime] = useState("");
   const [isOnline, setIsOnline] = useState(false);
 
-  // Стейт для статуса реле
+  // Relay status state
   const [relayStatus, setRelayStatus] = useState({
     relay1: false,
     relay2: false,
@@ -38,7 +38,7 @@ export default function Home() {
           const online = now - lastUpdate < 20000;
           setIsOnline(online);
 
-          // Получаем статус реле из ответа
+          // Get relay status from the response
           const zona = data.zona1;
           if (zona) {
             setRelayStatus({
@@ -99,7 +99,7 @@ export default function Home() {
       <ZonaTemperature />
       <SensorMonitor />
 
-      {/* Добавляем компонент для отображения статуса реле */}
+      {/* Add RelayStatus component */}
       <RelayStatus
         relay1={relayStatus.relay1}
         relay2={relayStatus.relay2}
