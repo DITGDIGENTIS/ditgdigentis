@@ -91,3 +91,4 @@ export async function GET() {
     return NextResponse.json({}, { status: 500 }); // Возвращаем пустой объект в случае ошибки
   }
 }
+     
