@@ -9,22 +9,11 @@ export default function ZonaRelay() {
     relay3: false,
   });
 
-  const buttonStyle: CSSProperties = {
-    padding: "10px 20px",
-    fontSize: "1rem",
-    cursor: "pointer",
-    color: "#fff",
-    border: "none",
-    borderRadius: "50px",
-    textAlign: "center",
-    transition: "transform 0.3s ease, box-shadow 0.3s ease",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "80px",
-    height: "25px",
-    margin: "auto",
-  };
+  const [blinking, setBlinking] = useState({
+    relay1: false,
+    relay2: false,
+    relay3: false,
+  });
 
   const toggleRelay = async (relay: "relay1" | "relay2" | "relay3", action: number) => {
     try {
@@ -33,10 +22,16 @@ export default function ZonaRelay() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: "zona1", relay, action }),
       });
+
       const data = await res.json();
-      console.log("Command Response:", data);
-      // Локально обновим статус, чтобы сразу показать на UI
-      setRelayStatus((prev) => ({ ...prev, [relay]: action === 1 }));
+      if (data.success) {
+        setRelayStatus((prev) => ({ ...prev, [relay]: action === 1 }));
+        setBlinking((prev) => ({ ...prev, [relay]: true }));
+
+        setTimeout(() => {
+          setBlinking((prev) => ({ ...prev, [relay]: false }));
+        }, 2000);
+      }
     } catch (error) {
       console.error("Ошибка отправки команды:", error);
     }
@@ -71,7 +66,15 @@ export default function ZonaRelay() {
         {["relay1", "relay2", "relay3"].map((relay) => (
           <div key={relay} className="col-6 col-md-4">
             <div className="relay-status-block-relay">
-              <div className="relay-description-relay">Zona:1 | {relay.toUpperCase()}</div>
+              <div className="relay-description-relay">
+                Zona:1 | {relay.toUpperCase()}
+                <span
+                  className={`relay-indicator ${
+                    relayStatus[relay as keyof typeof relayStatus] ? "on" : "off"
+                  } ${blinking[relay as keyof typeof blinking] ? "blinking" : ""}`}
+                />
+              </div>
+
               <button
                 style={{
                   ...buttonStyle,
@@ -80,26 +83,20 @@ export default function ZonaRelay() {
                     ? "0 0 8px rgba(40, 167, 69, 0.5)"
                     : "0 0 8px rgba(220, 53, 69, 0.5)",
                 }}
-                className={`relay-status-button-relay ${
-                  relayStatus[relay as keyof typeof relayStatus] ? "relay-online-relay" : "relay-offline-relay"
-                }`}
+                className={`relay-status-button-relay`}
                 title={`${relay.toUpperCase()} ${relayStatus[relay as keyof typeof relayStatus] ? "ON" : "OFF"}`}
               >
                 {relayStatus[relay as keyof typeof relayStatus] ? "ON" : "OFF"}
               </button>
+
               <button
-                style={{
-                  ...buttonStyle,
-                  marginTop: "10px",
-                  backgroundColor: "#007bff",
-                }}
+                style={{ ...buttonStyle, marginTop: "10px", backgroundColor: "#007bff" }}
                 onClick={() =>
                   toggleRelay(
                     relay as "relay1" | "relay2" | "relay3",
                     relayStatus[relay as keyof typeof relayStatus] ? 0 : 1
                   )
                 }
-                title={`Переключить ${relay.toUpperCase()}`}
               >
                 {relayStatus[relay as keyof typeof relayStatus] ? "Выключить" : "Включить"}
               </button>
@@ -115,6 +112,7 @@ export default function ZonaRelay() {
           margin-bottom: 20px;
           color: #fff;
         }
+
         .relay-status-block-relay {
           margin-bottom: 20px;
           padding: 15px;
@@ -122,13 +120,41 @@ export default function ZonaRelay() {
           border-radius: 8px;
           box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
         }
+
         .relay-description-relay {
           color: #fff;
           margin-bottom: 10px;
           font-size: 1rem;
           font-weight: 600;
           text-align: center;
+          position: relative;
         }
+
+        .relay-indicator {
+          display: inline-block;
+          width: 12px;
+          height: 12px;
+          margin-left: 10px;
+          border-radius: 50%;
+        }
+
+        .relay-indicator.on {
+          background-color: #28a745;
+        }
+
+        .relay-indicator.off {
+          background-color: #dc3545;
+        }
+
+        .blinking {
+          animation: blink 0.6s ease-in-out 0s 3;
+        }
+
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
+        }
+
         .relay-status-button-relay {
           width: 100%;
           height: 20px;
@@ -140,14 +166,7 @@ export default function ZonaRelay() {
           text-align: center;
           transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
-        .relay-status-button-relay.relay-online-relay {
-          background-color: #28a745;
-          box-shadow: 0 0 8px rgba(40, 167, 69, 0.5);
-        }
-        .relay-status-button-relay.relay-offline-relay {
-          background-color: #dc3545;
-          box-shadow: 0 0 8px rgba(220, 53, 69, 0.5);
-        }
+
         @media (max-width: 576px) {
           .relay-status-button-relay {
             font-size: 1rem;
@@ -158,3 +177,20 @@ export default function ZonaRelay() {
     </div>
   );
 }
+
+const buttonStyle: CSSProperties = {
+  padding: "10px 20px",
+  fontSize: "1rem",
+  cursor: "pointer",
+  color: "#fff",
+  border: "none",
+  borderRadius: "50px",
+  textAlign: "center",
+  transition: "transform 0.3s ease, box-shadow 0.3s ease",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "80px",
+  height: "25px",
+  margin: "auto",
+};
