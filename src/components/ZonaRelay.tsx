@@ -1,6 +1,6 @@
-"use client";  // This marks the file as a client component
+"use client";
 
-import { useEffect, useState, CSSProperties } from "react";
+import React, { useEffect, useState, CSSProperties } from "react";
 
 export default function ZonaRelay() {
   const [relayStatus, setRelayStatus] = useState({
@@ -9,7 +9,6 @@ export default function ZonaRelay() {
     relay3: false,
   });
 
-  // Стили для самих кнопок
   const buttonStyle: CSSProperties = {
     padding: "10px 20px",
     fontSize: "1rem",
@@ -25,6 +24,20 @@ export default function ZonaRelay() {
     width: "80px",
     height: "25px",
     margin: "auto",
+  };
+
+  const toggleRelay = async (relay: "relay1" | "relay2" | "relay3", action: number) => {
+    try {
+      const res = await fetch("https://ditgdigentis.vercel.app/api/relay", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: "zona1", relay, action }),
+      });
+      const data = await res.json();
+      console.log("Command Response:", data);
+    } catch (error) {
+      console.error("Ошибка отправки команды:", error);
+    }
   };
 
   useEffect(() => {
@@ -45,87 +58,58 @@ export default function ZonaRelay() {
     };
 
     checkRemotePiStatus();
-    const remotePiInterval = setInterval(checkRemotePiStatus, 10000); // обновление каждые 10 секунд
-
-    return () => {
-      clearInterval(remotePiInterval); // очищаем интервал при размонтировании
-    };
+    const interval = setInterval(checkRemotePiStatus, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
     <div className="container">
       <h2 className="relay-title text-center mt-4 mb-4">Моніторинг реле:</h2>
       <div className="row">
-        {/* Relay 1 */}
-        <div className="col-6 col-md-4">
-          <div className="relay-status-block-relay">
-            <div className="relay-description-relay">
-              Zona:1 | Relay:1
+        {["relay1", "relay2", "relay3"].map((relay) => (
+          <div key={relay} className="col-6 col-md-4">
+            <div className="relay-status-block-relay">
+              <div className="relay-description-relay">Zona:1 | {relay.toUpperCase()}</div>
+              <button
+                style={{
+                  ...buttonStyle,
+                  backgroundColor: relayStatus[relay as keyof typeof relayStatus] ? "#28a745" : "#dc3545",
+                  boxShadow: relayStatus[relay as keyof typeof relayStatus]
+                    ? "0 0 8px rgba(40, 167, 69, 0.5)"
+                    : "0 0 8px rgba(220, 53, 69, 0.5)",
+                }}
+                className={`relay-status-button-relay ${
+                  relayStatus[relay as keyof typeof relayStatus] ? "relay-online-relay" : "relay-offline-relay"
+                }`}
+                title={`${relay.toUpperCase()} ${relayStatus[relay as keyof typeof relayStatus] ? "ON" : "OFF"}`}
+              >
+                {relayStatus[relay as keyof typeof relayStatus] ? "ON" : "OFF"}
+              </button>
+              <button
+                style={{
+                  ...buttonStyle,
+                  marginTop: "10px",
+                  backgroundColor: "#007bff",
+                }}
+                onClick={() =>
+                  toggleRelay(relay as "relay1" | "relay2" | "relay3", relayStatus[relay as keyof typeof relayStatus] ? 0 : 1)
+                }
+                title={`Переключить ${relay.toUpperCase()}`}
+              >
+                {relayStatus[relay as keyof typeof relayStatus] ? "Выключить" : "Включить"}
+              </button>
             </div>
-            <button
-              style={{
-                ...buttonStyle,
-                backgroundColor: relayStatus.relay1 ? "#28a745" : "#dc3545",
-                boxShadow: relayStatus.relay1 ? "0 0 8px rgba(40, 167, 69, 0.5)" : "0 0 8px rgba(220, 53, 69, 0.5)",
-              }}
-              className={`relay-status-button-relay ${relayStatus.relay1 ? "relay-online-relay" : "relay-offline-relay"}`}
-              title={`Relay 1 ${relayStatus.relay1 ? "ON" : "OFF"}`}
-            >
-              {relayStatus.relay1 ? "ON" : "OFF"}
-            </button>
           </div>
-        </div>
-
-        {/* Relay 2 */}
-        <div className="col-6 col-md-4">
-          <div className="relay-status-block-relay">
-            <div className="relay-description-relay">
-              Zona:1 | Relay:2
-            </div>
-            <button
-              style={{
-                ...buttonStyle,
-                backgroundColor: relayStatus.relay2 ? "#28a745" : "#dc3545",
-                boxShadow: relayStatus.relay2 ? "0 0 8px rgba(40, 167, 69, 0.5)" : "0 0 8px rgba(220, 53, 69, 0.5)",
-              }}
-              className={`relay-status-button-relay ${relayStatus.relay2 ? "relay-online-relay" : "relay-offline-relay"}`}
-              title={`Relay 2 ${relayStatus.relay2 ? "ON" : "OFF"}`}
-            >
-              {relayStatus.relay2 ? "ON" : "OFF"}
-            </button>
-          </div>
-        </div>
-
-        {/* Relay 3 */}
-        <div className="col-6 col-md-4">
-          <div className="relay-status-block-relay">
-            <div className="relay-description-relay">
-              Zona:1 | Relay:3
-            </div>
-            <button
-              style={{
-                ...buttonStyle,
-                backgroundColor: relayStatus.relay3 ? "#28a745" : "#dc3545",
-                boxShadow: relayStatus.relay3 ? "0 0 8px rgba(40, 167, 69, 0.5)" : "0 0 8px rgba(220, 53, 69, 0.5)",
-              }}
-              className={`relay-status-button-relay ${relayStatus.relay3 ? "relay-online-relay" : "relay-offline-relay"}`}
-              title={`Relay 3 ${relayStatus.relay3 ? "ON" : "OFF"}`}
-            >
-              {relayStatus.relay3 ? "ON" : "OFF"}
-            </button>
-          </div>
-        </div>
+        ))}
       </div>
 
       <style jsx>{`
-      
         .relay-title {
           font-size: 1.5rem;
           font-weight: bold;
           margin-bottom: 20px;
-          color: #FFF;
+          color: #fff;
         }
-
         .relay-status-block-relay {
           margin-bottom: 20px;
           padding: 15px;
@@ -133,15 +117,13 @@ export default function ZonaRelay() {
           border-radius: 8px;
           box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
         }
-
         .relay-description-relay {
           color: #fff;
           margin-bottom: 10px;
           font-size: 1rem;
           font-weight: 600;
-          text-align: center;    
+          text-align: center;
         }
-
         .relay-status-button-relay {
           width: 100%;
           height: 20px;
@@ -153,20 +135,15 @@ export default function ZonaRelay() {
           text-align: center;
           transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
-
         .relay-status-button-relay.relay-online-relay {
           background-color: #28a745;
           box-shadow: 0 0 8px rgba(40, 167, 69, 0.5);
         }
-
         .relay-status-button-relay.relay-offline-relay {
           background-color: #dc3545;
           box-shadow: 0 0 8px rgba(220, 53, 69, 0.5);
         }
-
-        /* Стили для мобильных устройств */
         @media (max-width: 576px) {
-
           .relay-status-button-relay {
             font-size: 1rem;
             padding: 8px 16px;
