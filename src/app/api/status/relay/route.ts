@@ -1,8 +1,9 @@
+// src/app/api/status/relay/route.ts
+
 import { NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
 
-// Тип состояния реле
 interface RelayState {
   relay1: number;
   relay2: number;
@@ -10,7 +11,6 @@ interface RelayState {
   timestamp: number;
 }
 
-// Путь до JSON-файла (если локально в /tmp, Vercel позволит писать временно)
 const filePath = path.resolve("/tmp", "relay_state.json");
 
 async function loadStates(): Promise<Record<string, RelayState>> {
@@ -18,7 +18,7 @@ async function loadStates(): Promise<Record<string, RelayState>> {
     const data = await fs.readFile(filePath, "utf-8");
     return JSON.parse(data);
   } catch {
-    return {}; // если файл не существует
+    return {};
   }
 }
 
@@ -26,7 +26,6 @@ async function saveStates(states: Record<string, RelayState>) {
   await fs.writeFile(filePath, JSON.stringify(states, null, 2), "utf-8");
 }
 
-// ✅ POST — обновить состояние реле
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -61,7 +60,6 @@ export async function POST(req: Request) {
   }
 }
 
-// ✅ GET — вернуть все текущие состояния
 export async function GET() {
   const states = await loadStates();
   return NextResponse.json(states);
