@@ -57,7 +57,7 @@ export default function ZonaRelay() {
       <h2 className="relay-title text-center mt-4 mb-4">Моніторинг реле:</h2>
       <div className="relay-row">
         {/* Relay 1 */}
-        <div className="col-6 col-md-4">
+        <div className="col-4 col-md-4">
           <div className="relay-status-block-relay">
             <div className="relay-description-relay">
               Zona:1 | Relay:1
@@ -73,7 +73,7 @@ export default function ZonaRelay() {
         </div>
 
         {/* Relay 2 */}
-        <div className="col-6 col-md-4">
+        <div className="col-4 col-md-4">
           <div className="relay-status-block-relay">
             <div className="relay-description-relay">
               Zona:1 | Relay:2
@@ -89,7 +89,7 @@ export default function ZonaRelay() {
         </div>
 
         {/* Relay 3 */}
-        <div className="col-6 col-md-4">
+        <div className="col-4 col-md-4">
           <div className="relay-status-block-relay">
             <div className="relay-description-relay">
               Zona:1 | Relay:3
@@ -141,6 +141,7 @@ export default function ZonaRelay() {
           display: flex;
           justify-content: space-between;
           align-items: center;
+          color: #fff;
         }
 
         .relay-description-relay span {
