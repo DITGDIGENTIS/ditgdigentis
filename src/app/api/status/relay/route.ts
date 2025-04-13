@@ -1,4 +1,4 @@
-export const runtime = "nodejs"; // обязательно в начале
+export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 
@@ -9,8 +9,10 @@ type RelayCommand = {
   timestamp: number;
 };
 
-// 💾 Переменная для хранения команд
-let lastCommand: Record<string, RelayCommand> = {};
+// 💾 Переменная для хранения команд (в globalThis для надёжности в dev/edge)
+const globalScope = globalThis as any;
+if (!globalScope.lastCommand) globalScope.lastCommand = {};
+const lastCommand: Record<string, RelayCommand> = globalScope.lastCommand;
 
 // ✅ POST — принять команду
 export async function POST(req: Request) {
