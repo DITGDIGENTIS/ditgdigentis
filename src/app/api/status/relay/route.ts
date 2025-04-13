@@ -1,15 +1,13 @@
-export const runtime = "nodejs";
-
 import { NextResponse } from "next/server";
 
-// 👀 Определение типа должно быть ДО использования
+// Тип команды
 type RelayCommand = {
   relay: string;
   action: number;
   timestamp: number;
 };
 
-// 💾 Переменная для хранения команд (в globalThis для надёжности в dev/edge)
+// Область хранения команд
 interface GlobalWithCommand extends Record<string, unknown> {
   lastCommand?: Record<string, RelayCommand>;
 }
@@ -18,7 +16,7 @@ const globalScope: GlobalWithCommand = globalThis as GlobalWithCommand;
 if (!globalScope.lastCommand) globalScope.lastCommand = {};
 const lastCommand = globalScope.lastCommand;
 
-// ✅ POST — принять команду
+// ✅ POST — сохранить команду
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -40,7 +38,7 @@ export async function POST(req: Request) {
   }
 }
 
-// ✅ GET — отдать последнюю команду
+// ✅ GET — отдать команды
 export async function GET() {
   return NextResponse.json(lastCommand);
 }

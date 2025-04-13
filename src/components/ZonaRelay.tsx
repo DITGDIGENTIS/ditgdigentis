@@ -28,13 +28,15 @@ export default function ZonaRelay() {
 
   const toggleRelay = async (relay: "relay1" | "relay2" | "relay3", action: number) => {
     try {
-      const res = await fetch("https://ditgdigentis.vercel.app/api/relay", {
+      const res = await fetch("https://ditgdigentis.vercel.app/api/status/relay", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: "zona1", relay, action }),
       });
       const data = await res.json();
       console.log("Command Response:", data);
+      // Локально обновим статус, чтобы сразу показать на UI
+      setRelayStatus((prev) => ({ ...prev, [relay]: action === 1 }));
     } catch (error) {
       console.error("Ошибка отправки команды:", error);
     }
@@ -92,7 +94,10 @@ export default function ZonaRelay() {
                   backgroundColor: "#007bff",
                 }}
                 onClick={() =>
-                  toggleRelay(relay as "relay1" | "relay2" | "relay3", relayStatus[relay as keyof typeof relayStatus] ? 0 : 1)
+                  toggleRelay(
+                    relay as "relay1" | "relay2" | "relay3",
+                    relayStatus[relay as keyof typeof relayStatus] ? 0 : 1
+                  )
                 }
                 title={`Переключить ${relay.toUpperCase()}`}
               >
