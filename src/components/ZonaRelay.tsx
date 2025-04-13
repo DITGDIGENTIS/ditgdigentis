@@ -2,28 +2,11 @@
 
 import React, { useEffect, useState, CSSProperties } from "react";
 
-const buttonStyle: CSSProperties = {
-  padding: "10px 20px",
-  fontSize: "1rem",
-  fontWeight: "600",
-  cursor: "pointer",
-  color: "#fff",
-  border: "none",
-  borderRadius: "5px",
-  textAlign: "center",
-  transition: "transform 0.3s ease, box-shadow 0.3s ease",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "115px",
-  height: "27px",
-  margin: "auto",
-};
+type RelayKey = "relay1" | "relay2" | "relay3";
+
+const relays: RelayKey[] = ["relay1", "relay2", "relay3"];
 
 export default function ZonaRelay() {
-  const relays = ["relay1", "relay2", "relay3"] as const;
-  type RelayKey = typeof relays[number];
-
   const [relayStatus, setRelayStatus] = useState<Record<RelayKey, boolean>>({
     relay1: false,
     relay2: false,
@@ -52,13 +35,13 @@ export default function ZonaRelay() {
           setBlinking((prev) => ({ ...prev, [relay]: false }));
         }, 1800);
       }
-    } catch (error) {
-      console.error("Ошибка отправки команды:", error);
+    } catch (err) {
+      console.error("Ошибка отправки команды:", err);
     }
   };
 
   useEffect(() => {
-    const checkRemoteStatus = async () => {
+    const fetchStatus = async () => {
       try {
         const res = await fetch("https://ditgdigentis.vercel.app/api/status", { cache: "no-store" });
         const data = await res.json();
@@ -71,12 +54,12 @@ export default function ZonaRelay() {
           });
         }
       } catch {
-        console.error("Ошибка получения статуса реле");
+        console.error("Ошибка получения статуса");
       }
     };
 
-    checkRemoteStatus();
-    const interval = setInterval(checkRemoteStatus, 10000);
+    fetchStatus();
+    const interval = setInterval(fetchStatus, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -84,43 +67,42 @@ export default function ZonaRelay() {
     <div className="container">
       <h2 className="relay-title text-center mt-4 mb-4">Моніторинг реле:</h2>
       <div className="row">
-        {relays.map((relay) => {
-          const isOn = relayStatus[relay];
-          const isBlinking = blinking[relay];
-
-          return (
-            <div key={relay} className="col-6 col-md-4">
-              <div className="relay-status-block-relay">
-                <div className="relay-description-relay">
-                  Zona:1 | {relay.toUpperCase()}
-                  <span className={`relay-indicator ${isOn ? "on" : "off"} ${isBlinking ? "blinking" : ""}`} />
-                </div>
-
-                <button
-                  style={{
-                    ...buttonStyle,
-                    backgroundColor: isOn ? "#28a745" : "#dc3545",
-                    boxShadow: isOn
-                      ? "0 0 8px rgba(40, 167, 69, 0.5)"
-                      : "0 0 8px rgba(220, 53, 69, 0.5)",
-                  }}
-                  title={`${relay.toUpperCase()} ${isOn ? "ON" : "OFF"}`}
-                  className="relay-status-button-relay"
-                >
-                  {isOn ? "ON" : "OFF"}
-                </button>
-
-                <button
-                  style={{ ...buttonStyle, marginTop: "10px", backgroundColor: "#007bff" }}
-                  onClick={() => toggleRelay(relay, isOn ? 0 : 1)}
-                  title={`Переключить ${relay.toUpperCase()}`}
-                >
-                  {isOn ? "Выключить" : "Включить"}
-                </button>
+        {relays.map((relay) => (
+          <div key={relay} className="col-6 col-md-4">
+            <div className="relay-status-block-relay">
+              <div className="relay-description-relay">
+                Zona:1 | {relay.toUpperCase()}
+                <span
+                  className={`relay-indicator ${relayStatus[relay] ? "on" : "off"} ${
+                    blinking[relay] ? "blinking" : ""
+                  }`}
+                />
               </div>
+
+              <button
+                style={{
+                  ...buttonStyle,
+                  backgroundColor: relayStatus[relay] ? "#28a745" : "#dc3545",
+                  boxShadow: relayStatus[relay]
+                    ? "0 0 8px rgba(40, 167, 69, 0.5)"
+                    : "0 0 8px rgba(220, 53, 69, 0.5)",
+                }}
+                title={`${relay.toUpperCase()} ${relayStatus[relay] ? "ON" : "OFF"}`}
+                className="relay-status-button-relay"
+              >
+                {relayStatus[relay] ? "ON" : "OFF"}
+              </button>
+
+              <button
+                style={{ ...buttonStyle, marginTop: "10px", backgroundColor: "#007bff" }}
+                onClick={() => toggleRelay(relay, relayStatus[relay] ? 0 : 1)}
+                title={`Переключить ${relay.toUpperCase()}`}
+              >
+                {relayStatus[relay] ? "Выключить" : "Включить"}
+              </button>
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
 
       <style jsx>{`
@@ -195,3 +177,21 @@ export default function ZonaRelay() {
     </div>
   );
 }
+
+const buttonStyle: CSSProperties = {
+  padding: "10px 20px",
+  fontSize: "1rem",
+  fontWeight: "600",
+  cursor: "pointer",
+  color: "#fff",
+  border: "none",
+  borderRadius: "5px",
+  textAlign: "center",
+  transition: "transform 0.3s ease, box-shadow 0.3s ease",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "115px",
+  height: "27px",
+  margin: "auto",
+};
