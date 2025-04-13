@@ -104,6 +104,8 @@ export default function ZonaRelay() {
         /* Контейнер для реле */
         .relay-container {
           padding: 20px;
+          background: linear-gradient(to bottom, #0E0E0E, #2e2e2e);
+          border-radius: 8px;
         }
 
         /* Заголовок секции реле */
@@ -111,7 +113,7 @@ export default function ZonaRelay() {
           font-size: 1.5rem;
           font-weight: bold;
           margin-bottom: 20px;
-          color: #333;
+          color: #FFD700;
         }
 
         /* Гибкая сетка для блоков реле */
@@ -130,7 +132,7 @@ export default function ZonaRelay() {
         .relay-status-block {
           margin-bottom: 20px;
           padding: 15px;
-          background-color: #f9f9f9;
+          background-color: #2B2B2B;
           border-radius: 8px;
           box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
@@ -145,7 +147,7 @@ export default function ZonaRelay() {
         .relay-description span {
           font-size: 1.2rem;
           font-weight: 500;
-          color: #333;
+          color: #FFD700;
         }
 
         /* Кнопки для реле */
@@ -190,4 +192,3 @@ export default function ZonaRelay() {
     </div>
   );
 }
-     
