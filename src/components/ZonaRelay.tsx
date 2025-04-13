@@ -23,7 +23,7 @@ export default function ZonaRelay() {
     alignItems: "center",
     justifyContent: "center",
     width: "80px",
-    height: "20px",
+    height: "25px",
     margin: "auto",
   };
 
