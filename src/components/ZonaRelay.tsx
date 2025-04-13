@@ -49,7 +49,7 @@ export default function ZonaRelay() {
   // Оно предполагает, что Raspberry Pi (или кто-то ещё) тоже подтверждает / сохраняет обновлённое состояние.
   const fetchStatus = async () => {
     try {
-      const res = await fetch("https://ditgdigentis.vercel.app/api/status", { cache: "no-store" });
+      const res = await fetch("https://ditgdigentis.vercel.app/api/status/relay", { cache: "no-store" });
       const data = await res.json();
       const zona = data?.zona1;
       if (zona) {
