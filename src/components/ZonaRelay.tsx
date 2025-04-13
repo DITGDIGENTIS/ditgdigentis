@@ -57,50 +57,50 @@ export default function ZonaRelay() {
       <h2 className="relay-title text-center mt-4 mb-4">Моніторинг реле:</h2>
       <div className="relay-row">
         {/* Relay 1 */}
-        <div className="col-4 col-md-4">
+        <div className="col-6 col-md-4">
           <div className="relay-status-block-relay">
             <div className="relay-description-relay">
               Zona:1 | Relay:1
-              <button
-                style={buttonStyle}
-                className={`relay-status-button-relay ${relayStatus.relay1 ? "relay-online-relay" : "relay-offline-relay"}`}
-                title={`Relay 1 ${relayStatus.relay1 ? "ON" : "OFF"}`}
-              >
-                ● {relayStatus.relay1 ? "ON" : "OFF"}
-              </button>
             </div>
+            <button
+              style={buttonStyle}
+              className={`relay-status-button-relay ${relayStatus.relay1 ? "relay-online-relay" : "relay-offline-relay"}`}
+              title={`Relay 1 ${relayStatus.relay1 ? "ON" : "OFF"}`}
+            >
+              ● {relayStatus.relay1 ? "ON" : "OFF"}
+            </button>
           </div>
         </div>
 
         {/* Relay 2 */}
-        <div className="col-4 col-md-4">
+        <div className="col-6 col-md-4">
           <div className="relay-status-block-relay">
             <div className="relay-description-relay">
               Zona:1 | Relay:2
-              <button
-                style={buttonStyle}
-                className={`relay-status-button-relay ${relayStatus.relay2 ? "relay-online-relay" : "relay-offline-relay"}`}
-                title={`Relay 2 ${relayStatus.relay2 ? "ON" : "OFF"}`}
-              >
-                ● {relayStatus.relay2 ? "ON" : "OFF"}
-              </button>
             </div>
+            <button
+              style={buttonStyle}
+              className={`relay-status-button-relay ${relayStatus.relay2 ? "relay-online-relay" : "relay-offline-relay"}`}
+              title={`Relay 2 ${relayStatus.relay2 ? "ON" : "OFF"}`}
+            >
+              ● {relayStatus.relay2 ? "ON" : "OFF"}
+            </button>
           </div>
         </div>
 
         {/* Relay 3 */}
-        <div className="col-4 col-md-4">
+        <div className="col-6 col-md-4">
           <div className="relay-status-block-relay">
             <div className="relay-description-relay">
               Zona:1 | Relay:3
-              <button
-                style={buttonStyle}
-                className={`relay-status-button-relay ${relayStatus.relay3 ? "relay-online-relay" : "relay-offline-relay"}`}
-                title={`Relay 3 ${relayStatus.relay3 ? "ON" : "OFF"}`}
-              >
-                ● {relayStatus.relay3 ? "ON" : "OFF"}
-              </button>
             </div>
+            <button
+              style={buttonStyle}
+              className={`relay-status-button-relay ${relayStatus.relay3 ? "relay-online-relay" : "relay-offline-relay"}`}
+              title={`Relay 3 ${relayStatus.relay3 ? "ON" : "OFF"}`}
+            >
+              ● {relayStatus.relay3 ? "ON" : "OFF"}
+            </button>
           </div>
         </div>
       </div>
