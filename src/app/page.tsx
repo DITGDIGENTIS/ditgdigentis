@@ -4,7 +4,8 @@
 import { useEffect, useState } from "react";
 import { ZonaStatus } from "../components/ZonaStatus";
 import { SensorMonitor } from "../components/SensorMonitor";
-import ZonaTemperature from "../components/ZonaTemperature"; 
+import ZonaTemperature from "../components/ZonaTemperature";
+import ZonaRelay from "../components/ZonaRelay"; 
 
 export default function Home() {
   const [time, setTime] = useState("");
@@ -83,6 +84,7 @@ export default function Home() {
       <ZonaStatus />
       <ZonaTemperature />
       <SensorMonitor />
+      <ZonaRelay />
 
       <style jsx>{`
         .ditg-logo {
