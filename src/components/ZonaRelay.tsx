@@ -54,15 +54,16 @@ export default function ZonaRelay() {
 
   return (
     <div className="relay-container">
-      <h2 className="relay-title text-center mt-4 mb-1">Моніторинг реле:</h2>
+      <h2 className="relay-title text-center mt-4 mb-4">Моніторинг реле:</h2>
       <div className="relay-row">
-        <div className="relay-col">
-          <div className="relay-status-block">
-            <div className="relay-description">
-              Relay 1
+        {/* Relay 1 */}
+        <div className="col-6 col-md-4">
+          <div className="relay-status-block-relay">
+            <div className="relay-description-relay">
+              Zona:1 | Relay:1
               <button
                 style={buttonStyle}
-                className={`relay-status-button ${relayStatus.relay1 ? "relay-online" : "relay-offline"}`}
+                className={`relay-status-button-relay ${relayStatus.relay1 ? "relay-online-relay" : "relay-offline-relay"}`}
                 title={`Relay 1 ${relayStatus.relay1 ? "ON" : "OFF"}`}
               >
                 ● {relayStatus.relay1 ? "ON" : "OFF"}
@@ -70,13 +71,15 @@ export default function ZonaRelay() {
             </div>
           </div>
         </div>
-        <div className="relay-col">
-          <div className="relay-status-block">
-            <div className="relay-description">
-              Relay 2
+
+        {/* Relay 2 */}
+        <div className="col-6 col-md-4">
+          <div className="relay-status-block-relay">
+            <div className="relay-description-relay">
+              Zona:1 | Relay:2
               <button
                 style={buttonStyle}
-                className={`relay-status-button ${relayStatus.relay2 ? "relay-online" : "relay-offline"}`}
+                className={`relay-status-button-relay ${relayStatus.relay2 ? "relay-online-relay" : "relay-offline-relay"}`}
                 title={`Relay 2 ${relayStatus.relay2 ? "ON" : "OFF"}`}
               >
                 ● {relayStatus.relay2 ? "ON" : "OFF"}
@@ -84,13 +87,15 @@ export default function ZonaRelay() {
             </div>
           </div>
         </div>
-        <div className="relay-col">
-          <div className="relay-status-block">
-            <div className="relay-description">
-              Relay 3
+
+        {/* Relay 3 */}
+        <div className="col-6 col-md-4">
+          <div className="relay-status-block-relay">
+            <div className="relay-description-relay">
+              Zona:1 | Relay:3
               <button
                 style={buttonStyle}
-                className={`relay-status-button ${relayStatus.relay3 ? "relay-online" : "relay-offline"}`}
+                className={`relay-status-button-relay ${relayStatus.relay3 ? "relay-online-relay" : "relay-offline-relay"}`}
                 title={`Relay 3 ${relayStatus.relay3 ? "ON" : "OFF"}`}
               >
                 ● {relayStatus.relay3 ? "ON" : "OFF"}
@@ -101,14 +106,12 @@ export default function ZonaRelay() {
       </div>
 
       <style jsx>{`
-        /* Контейнер для реле */
         .relay-container {
           padding: 20px;
           background: linear-gradient(to bottom, #0E0E0E, #2e2e2e);
           border-radius: 8px;
         }
 
-        /* Заголовок секции реле */
         .relay-title {
           font-size: 1.5rem;
           font-weight: bold;
@@ -116,7 +119,6 @@ export default function ZonaRelay() {
           color: #FFD700;
         }
 
-        /* Гибкая сетка для блоков реле */
         .relay-row {
           display: flex;
           justify-content: space-around;
@@ -124,12 +126,11 @@ export default function ZonaRelay() {
           gap: 20px;
         }
 
-        .relay-col {
+        .col-6 {
           width: 48%;
         }
 
-        /* Блок статуса реле */
-        .relay-status-block {
+        .relay-status-block-relay {
           margin-bottom: 20px;
           padding: 15px;
           background-color: #2B2B2B;
@@ -137,21 +138,19 @@ export default function ZonaRelay() {
           box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
 
-        /* Описание реле */
-        .relay-description {
+        .relay-description-relay {
           display: flex;
           justify-content: space-between;
           align-items: center;
         }
 
-        .relay-description span {
+        .relay-description-relay span {
           font-size: 1.2rem;
           font-weight: 500;
           color: #FFD700;
         }
 
-        /* Кнопки для реле */
-        .relay-status-button {
+        .relay-status-button-relay {
           width: 50px;
           font-size: 1.6em;
           padding: 5px 16px;
@@ -165,25 +164,22 @@ export default function ZonaRelay() {
           text-align: center;
         }
 
-        /* Стиль для включённого реле */
-        .relay-online {
+        .relay-status-button-relay.online-relay {
           background-color: #28a745;
           box-shadow: 0 0 8px rgba(40, 167, 69, 0.5);
         }
 
-        /* Стиль для выключенного реле */
-        .relay-offline {
+        .relay-status-button-relay.offline-relay {
           background-color: #dc3545;
           box-shadow: 0 0 8px rgba(220, 53, 69, 0.5);
         }
 
-        /* Стили для мобильных устройств */
         @media (max-width: 576px) {
-          .relay-col {
+          .col-6 {
             width: 100%;
           }
 
-          .relay-status-button {
+          .relay-status-button-relay {
             width: 40px;
             height: 40px;
           }
