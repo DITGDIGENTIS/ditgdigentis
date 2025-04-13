@@ -4,8 +4,6 @@ import React, { useEffect, useState, CSSProperties } from "react";
 
 type RelayKey = "relay1" | "relay2" | "relay3";
 
-const relays: RelayKey[] = ["relay1", "relay2", "relay3"];
-
 export default function ZonaRelay() {
   const [relayStatus, setRelayStatus] = useState<Record<RelayKey, boolean>>({
     relay1: false,
@@ -29,21 +27,22 @@ export default function ZonaRelay() {
 
       const data = await res.json();
       if (data.success) {
-        setRelayStatus((prev) => ({ ...prev, [relay]: action === 1 }));
         setBlinking((prev) => ({ ...prev, [relay]: true }));
         setTimeout(() => {
           setBlinking((prev) => ({ ...prev, [relay]: false }));
         }, 1800);
       }
-    } catch (err) {
-      console.error("Ошибка отправки команды:", err);
+    } catch (error) {
+      console.error("Ошибка отправки команды:", error);
     }
   };
 
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const res = await fetch("https://ditgdigentis.vercel.app/api/status", { cache: "no-store" });
+        const res = await fetch("https://ditgdigentis.vercel.app/api/status", {
+          cache: "no-store",
+        });
         const data = await res.json();
         const zona = data?.zona1;
         if (zona) {
@@ -53,56 +52,63 @@ export default function ZonaRelay() {
             relay3: zona.relay3 === 1,
           });
         }
-      } catch {
-        console.error("Ошибка получения статуса");
+      } catch (err) {
+        console.error("Ошибка получения статуса:", err);
       }
     };
 
     fetchStatus();
-    const interval = setInterval(fetchStatus, 10000);
+    const interval = setInterval(fetchStatus, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  const relays: RelayKey[] = ["relay1", "relay2", "relay3"];
 
   return (
     <div className="container">
       <h2 className="relay-title text-center mt-4 mb-4">Моніторинг реле:</h2>
       <div className="row">
-        {relays.map((relay) => (
-          <div key={relay} className="col-6 col-md-4">
-            <div className="relay-status-block-relay">
-              <div className="relay-description-relay">
-                Zona:1 | {relay.toUpperCase()}
-                <span
-                  className={`relay-indicator ${relayStatus[relay] ? "on" : "off"} ${
-                    blinking[relay] ? "blinking" : ""
-                  }`}
-                />
+        {relays.map((relay) => {
+          const isOn = relayStatus[relay];
+          const isBlinking = blinking[relay];
+
+          return (
+            <div key={relay} className="col-6 col-md-4">
+              <div className="relay-status-block-relay">
+                <div className="relay-description-relay">
+                  Zona:1 | {relay.toUpperCase()}
+                  <span className={`relay-indicator ${isOn ? "on" : "off"} ${isBlinking ? "blinking" : ""}`} />
+                </div>
+
+                <button
+                  style={{
+                    ...buttonStyle,
+                    backgroundColor: isOn ? "#28a745" : "#dc3545",
+                    boxShadow: isOn
+                      ? "0 0 8px rgba(40, 167, 69, 0.5)"
+                      : "0 0 8px rgba(220, 53, 69, 0.5)",
+                  }}
+                  title={`${relay.toUpperCase()} ${isOn ? "ON" : "OFF"}`}
+                  className="relay-status-button-relay"
+                >
+                  {isOn ? "ON" : "OFF"}
+                </button>
+
+                <button
+                  style={{
+                    ...buttonStyle,
+                    marginTop: "10px",
+                    backgroundColor: "#007bff",
+                  }}
+                  onClick={() => toggleRelay(relay, isOn ? 0 : 1)}
+                  title={`Переключить ${relay.toUpperCase()}`}
+                >
+                  {isOn ? "Выключить" : "Включить"}
+                </button>
               </div>
-
-              <button
-                style={{
-                  ...buttonStyle,
-                  backgroundColor: relayStatus[relay] ? "#28a745" : "#dc3545",
-                  boxShadow: relayStatus[relay]
-                    ? "0 0 8px rgba(40, 167, 69, 0.5)"
-                    : "0 0 8px rgba(220, 53, 69, 0.5)",
-                }}
-                title={`${relay.toUpperCase()} ${relayStatus[relay] ? "ON" : "OFF"}`}
-                className="relay-status-button-relay"
-              >
-                {relayStatus[relay] ? "ON" : "OFF"}
-              </button>
-
-              <button
-                style={{ ...buttonStyle, marginTop: "10px", backgroundColor: "#007bff" }}
-                onClick={() => toggleRelay(relay, relayStatus[relay] ? 0 : 1)}
-                title={`Переключить ${relay.toUpperCase()}`}
-              >
-                {relayStatus[relay] ? "Выключить" : "Включить"}
-              </button>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <style jsx>{`
