@@ -31,32 +31,38 @@ export default function ZonaRelay() {
         setTimeout(() => {
           setBlinking((prev) => ({ ...prev, [relay]: false }));
         }, 1800);
+
+        // Моментально обновим UI статус
+        setRelayStatus((prev) => ({ ...prev, [relay]: action === 1 }));
+
+        // Через 2 сек — повторный запрос с сервера Pi (для подтверждения)
+        setTimeout(fetchStatus, 2000);
       }
     } catch (error) {
       console.error("Ошибка отправки команды:", error);
     }
   };
 
-  useEffect(() => {
-    const fetchStatus = async () => {
-      try {
-        const res = await fetch("https://ditgdigentis.vercel.app/api/status", {
-          cache: "no-store",
+  const fetchStatus = async () => {
+    try {
+      const res = await fetch("https://ditgdigentis.vercel.app/api/status", {
+        cache: "no-store",
+      });
+      const data = await res.json();
+      const zona = data?.zona1;
+      if (zona) {
+        setRelayStatus({
+          relay1: zona.relay1 === 1,
+          relay2: zona.relay2 === 1,
+          relay3: zona.relay3 === 1,
         });
-        const data = await res.json();
-        const zona = data?.zona1;
-        if (zona) {
-          setRelayStatus({
-            relay1: zona.relay1 === 1,
-            relay2: zona.relay2 === 1,
-            relay3: zona.relay3 === 1,
-          });
-        }
-      } catch (err) {
-        console.error("Ошибка получения статуса:", err);
       }
-    };
+    } catch (err) {
+      console.error("Ошибка получения статуса:", err);
+    }
+  };
 
+  useEffect(() => {
     fetchStatus();
     const interval = setInterval(fetchStatus, 5000);
     return () => clearInterval(interval);
@@ -77,7 +83,11 @@ export default function ZonaRelay() {
               <div className="relay-status-block-relay">
                 <div className="relay-description-relay">
                   Zona:1 | {relay.toUpperCase()}
-                  <span className={`relay-indicator ${isOn ? "on" : "off"} ${isBlinking ? "blinking" : ""}`} />
+                  <span
+                    className={`relay-indicator ${isOn ? "on" : "off"} ${
+                      isBlinking ? "blinking" : ""
+                    }`}
+                  />
                 </div>
 
                 <button
