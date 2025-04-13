@@ -1,6 +1,6 @@
 "use client";  // This marks the file as a client component
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, CSSProperties } from "react";
 
 export default function ZonaRelay() {
   const [relayStatus, setRelayStatus] = useState({
@@ -8,6 +8,21 @@ export default function ZonaRelay() {
     relay2: false,
     relay3: false,
   });
+
+  // Стили для самих кнопок
+  const buttonStyle: CSSProperties = {
+    width: "50px",
+    fontSize: "1.6em",
+    padding: "5px 16px",
+    cursor: "pointer",
+    backgroundColor: "#2B2B2B",
+    color: "#fff",
+    border: "1px solid #999",
+    borderRadius: "8px",
+    boxShadow: "0 0 5px rgba(255, 215, 0, 0.3)",
+    transition: "background-color 0.3s ease, box-shadow 0.3s ease",
+    textAlign: "center",
+  };
 
   useEffect(() => {
     // Функция для получения статуса реле с сервера
@@ -46,6 +61,7 @@ export default function ZonaRelay() {
             <div className="relay-description">
               Relay 1
               <button
+                style={buttonStyle}
                 className={`relay-status-button ${relayStatus.relay1 ? "relay-online" : "relay-offline"}`}
                 title={`Relay 1 ${relayStatus.relay1 ? "ON" : "OFF"}`}
               >
@@ -59,6 +75,7 @@ export default function ZonaRelay() {
             <div className="relay-description">
               Relay 2
               <button
+                style={buttonStyle}
                 className={`relay-status-button ${relayStatus.relay2 ? "relay-online" : "relay-offline"}`}
                 title={`Relay 2 ${relayStatus.relay2 ? "ON" : "OFF"}`}
               >
@@ -72,6 +89,7 @@ export default function ZonaRelay() {
             <div className="relay-description">
               Relay 3
               <button
+                style={buttonStyle}
                 className={`relay-status-button ${relayStatus.relay3 ? "relay-online" : "relay-offline"}`}
                 title={`Relay 3 ${relayStatus.relay3 ? "ON" : "OFF"}`}
               >
@@ -132,12 +150,17 @@ export default function ZonaRelay() {
 
         /* Кнопки для реле */
         .relay-status-button {
-          width: 30px;
-          height: 30px;
-          border-radius: 50%;
-          border: none;
+          width: 50px;
+          font-size: 1.6em;
+          padding: 5px 16px;
           cursor: pointer;
-          transition: all 0.3s ease;
+          background-color: #2b2b2b;
+          color: #fff;
+          border: 1px solid #999;
+          border-radius: 8px;
+          box-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
+          transition: background-color 0.3s ease, box-shadow 0.3s ease;
+          text-align: center;
         }
 
         /* Стиль для включённого реле */
@@ -159,8 +182,8 @@ export default function ZonaRelay() {
           }
 
           .relay-status-button {
-            width: 25px;
-            height: 25px;
+            width: 40px;
+            height: 40px;
           }
         }
       `}</style>
