@@ -10,9 +10,13 @@ type RelayCommand = {
 };
 
 // 💾 Переменная для хранения команд (в globalThis для надёжности в dev/edge)
-const globalScope = globalThis as any;
+interface GlobalWithCommand extends Record<string, unknown> {
+  lastCommand?: Record<string, RelayCommand>;
+}
+
+const globalScope: GlobalWithCommand = globalThis as GlobalWithCommand;
 if (!globalScope.lastCommand) globalScope.lastCommand = {};
-const lastCommand: Record<string, RelayCommand> = globalScope.lastCommand;
+const lastCommand = globalScope.lastCommand;
 
 // ✅ POST — принять команду
 export async function POST(req: Request) {
@@ -31,7 +35,7 @@ export async function POST(req: Request) {
     };
 
     return NextResponse.json({ success: true });
-  } catch (e) {
+  } catch {
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
