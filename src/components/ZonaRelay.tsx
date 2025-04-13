@@ -108,7 +108,6 @@ export default function ZonaRelay() {
       <style jsx>{`
         .relay-container {
           padding: 20px;
-          background: linear-gradient(to bottom, #0E0E0E, #2e2e2e);
           border-radius: 8px;
         }
 
