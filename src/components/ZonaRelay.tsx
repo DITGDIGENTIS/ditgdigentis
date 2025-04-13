@@ -17,6 +17,7 @@ export default function ZonaRelay() {
     relay3: false,
   });
 
+  // 1) Переключаем реле (POST -> Vercel)
   const toggleRelay = async (relay: RelayKey, action: number) => {
     try {
       const res = await fetch("https://ditgdigentis.vercel.app/api/status/relay", {
@@ -27,27 +28,28 @@ export default function ZonaRelay() {
 
       const data = await res.json();
       if (data.success) {
+        // Мигаем визуально (3 раза, 0.6s)
         setBlinking((prev) => ({ ...prev, [relay]: true }));
         setTimeout(() => {
           setBlinking((prev) => ({ ...prev, [relay]: false }));
         }, 1800);
 
-        // Моментально обновим UI статус
+        // Локально ОБНОВИМ UI, чтобы сразу показалось ON
         setRelayStatus((prev) => ({ ...prev, [relay]: action === 1 }));
 
-        // Через 2 сек — повторный запрос с сервера Pi (для подтверждения)
-        setTimeout(fetchStatus, 2000);
+        // 2) Через 3-4 сек повторный запрос – Pi успеет обновить состояние
+        setTimeout(fetchStatus, 4000);
       }
     } catch (error) {
       console.error("Ошибка отправки команды:", error);
     }
   };
 
+  // Запрос состояния (GET -> Vercel). 
+  // Оно предполагает, что Raspberry Pi (или кто-то ещё) тоже подтверждает / сохраняет обновлённое состояние.
   const fetchStatus = async () => {
     try {
-      const res = await fetch("https://ditgdigentis.vercel.app/api/status", {
-        cache: "no-store",
-      });
+      const res = await fetch("https://ditgdigentis.vercel.app/api/status", { cache: "no-store" });
       const data = await res.json();
       const zona = data?.zona1;
       if (zona) {
@@ -62,6 +64,7 @@ export default function ZonaRelay() {
     }
   };
 
+  // 3) При загрузке, и каждые 5сек опрашиваем состояние
   useEffect(() => {
     fetchStatus();
     const interval = setInterval(fetchStatus, 5000);
@@ -105,11 +108,7 @@ export default function ZonaRelay() {
                 </button>
 
                 <button
-                  style={{
-                    ...buttonStyle,
-                    marginTop: "10px",
-                    backgroundColor: "#007bff",
-                  }}
+                  style={{ ...buttonStyle, marginTop: "10px", backgroundColor: "#007bff" }}
                   onClick={() => toggleRelay(relay, isOn ? 0 : 1)}
                   title={`Переключить ${relay.toUpperCase()}`}
                 >
