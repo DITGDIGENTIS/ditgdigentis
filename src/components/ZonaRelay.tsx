@@ -122,7 +122,7 @@ export default function ZonaRelay() {
           display: flex;
           justify-content: space-around;
           flex-wrap: wrap;
-          gap: 20px;
+          gap: 5px;
         }
 
         .col-6 {
@@ -180,8 +180,8 @@ export default function ZonaRelay() {
           }
 
           .relay-status-button-relay {
-            width: 40px;
-            height: 40px;
+            width: 20px;
+            height: 20px;
           }
         }
       `}</style>
