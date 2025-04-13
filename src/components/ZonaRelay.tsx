@@ -12,8 +12,9 @@ export default function ZonaRelay() {
   // Стили для самих кнопок
   const buttonStyle: CSSProperties = {
     padding: "10px 20px",
-    fontSize: "1.2em",
+    fontSize: "1rem",
     cursor: "pointer",
+    color: "#fff",
     border: "none",
     borderRadius: "50px",
     textAlign: "center",
@@ -21,8 +22,9 @@ export default function ZonaRelay() {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    width: "120px",
-    height: "40px",
+    width: "80px",
+    height: "20px",
+    margin: "auto",
   };
 
   useEffect(() => {
@@ -51,11 +53,11 @@ export default function ZonaRelay() {
   }, []);
 
   return (
-    <div className="relay-container">
+    <div className="container">
       <h2 className="relay-title text-center mt-4 mb-4">Моніторинг реле:</h2>
-      <div className="relay-row">
+      <div className="row">
         {/* Relay 1 */}
-        <div className="col-12 col-md-4">
+        <div className="col-6 col-md-4">
           <div className="relay-status-block-relay">
             <div className="relay-description-relay">
               Zona:1 | Relay:1
@@ -75,7 +77,7 @@ export default function ZonaRelay() {
         </div>
 
         {/* Relay 2 */}
-        <div className="col-12 col-md-4">
+        <div className="col-6 col-md-4">
           <div className="relay-status-block-relay">
             <div className="relay-description-relay">
               Zona:1 | Relay:2
@@ -95,7 +97,7 @@ export default function ZonaRelay() {
         </div>
 
         {/* Relay 3 */}
-        <div className="col-12 col-md-4">
+        <div className="col-6 col-md-4">
           <div className="relay-status-block-relay">
             <div className="relay-description-relay">
               Zona:1 | Relay:3
@@ -116,31 +118,12 @@ export default function ZonaRelay() {
       </div>
 
       <style jsx>{`
-        .relay-container {
-          padding: 20px;
-          border-radius: 8px;
-        }
-
+      
         .relay-title {
           font-size: 1.5rem;
           font-weight: bold;
           margin-bottom: 20px;
-          color: #FFD700;
-        }
-
-        .relay-row {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 20px;
-          justify-content: space-around;
-        }
-
-        .col-12 {
-          width: 100%;
-        }
-
-        .col-md-4 {
-          width: 32%;
+          color: #FFF;
         }
 
         .relay-status-block-relay {
@@ -148,18 +131,20 @@ export default function ZonaRelay() {
           padding: 15px;
           background-color: #2B2B2B;
           border-radius: 8px;
-          box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+          box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
         }
 
         .relay-description-relay {
-          font-size: 1.2rem;
-          font-weight: 500;
-          color: #FFD700;
+          color: #fff;
           margin-bottom: 10px;
+          font-size: 1rem;
+          font-weight: 600;
+          text-align: center;    
         }
 
         .relay-status-button-relay {
           width: 100%;
+          height: 20px;
           font-size: 1.2em;
           padding: 10px 20px;
           cursor: pointer;
@@ -181,16 +166,9 @@ export default function ZonaRelay() {
 
         /* Стили для мобильных устройств */
         @media (max-width: 576px) {
-          .col-12 {
-            width: 100%;
-          }
-
-          .col-md-4 {
-            width: 100%;
-          }
 
           .relay-status-button-relay {
-            font-size: 1em;
+            font-size: 1rem;
             padding: 8px 16px;
           }
         }
