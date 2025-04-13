@@ -25,7 +25,6 @@ export default function ZonaRelay() {
     height: "40px",
   };
 
-  // Функция для получения статуса реле с сервера
   useEffect(() => {
     const checkRemotePiStatus = () => {
       fetch("https://ditgdigentis.vercel.app/api/status", { cache: "no-store" })
@@ -56,7 +55,7 @@ export default function ZonaRelay() {
       <h2 className="relay-title text-center mt-4 mb-4">Моніторинг реле:</h2>
       <div className="relay-row">
         {/* Relay 1 */}
-        <div className="col-6 col-md-4">
+        <div className="col-12 col-md-4">
           <div className="relay-status-block-relay">
             <div className="relay-description-relay">
               Zona:1 | Relay:1
@@ -76,7 +75,7 @@ export default function ZonaRelay() {
         </div>
 
         {/* Relay 2 */}
-        <div className="col-6 col-md-4">
+        <div className="col-12 col-md-4">
           <div className="relay-status-block-relay">
             <div className="relay-description-relay">
               Zona:1 | Relay:2
@@ -96,7 +95,7 @@ export default function ZonaRelay() {
         </div>
 
         {/* Relay 3 */}
-        <div className="col-6 col-md-4">
+        <div className="col-12 col-md-4">
           <div className="relay-status-block-relay">
             <div className="relay-description-relay">
               Zona:1 | Relay:3
@@ -119,7 +118,6 @@ export default function ZonaRelay() {
       <style jsx>{`
         .relay-container {
           padding: 20px;
-          background: linear-gradient(to bottom, #0E0E0E, #2e2e2e);
           border-radius: 8px;
         }
 
@@ -132,13 +130,17 @@ export default function ZonaRelay() {
 
         .relay-row {
           display: flex;
-          justify-content: space-around;
           flex-wrap: wrap;
           gap: 20px;
+          justify-content: space-around;
         }
 
-        .col-6 {
-          width: 48%;
+        .col-12 {
+          width: 100%;
+        }
+
+        .col-md-4 {
+          width: 32%;
         }
 
         .relay-status-block-relay {
@@ -157,7 +159,7 @@ export default function ZonaRelay() {
         }
 
         .relay-status-button-relay {
-          width: 120px;
+          width: 100%;
           font-size: 1.2em;
           padding: 10px 20px;
           cursor: pointer;
@@ -179,13 +181,17 @@ export default function ZonaRelay() {
 
         /* Стили для мобильных устройств */
         @media (max-width: 576px) {
-          .col-6 {
+          .col-12 {
+            width: 100%;
+          }
+
+          .col-md-4 {
             width: 100%;
           }
 
           .relay-status-button-relay {
-            width: 100px;
-            height: 40px;
+            font-size: 1em;
+            padding: 8px 16px;
           }
         }
       `}</style>
