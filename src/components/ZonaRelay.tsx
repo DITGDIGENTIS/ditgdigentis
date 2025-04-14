@@ -2,36 +2,26 @@
 
 import React, { useEffect, useState, CSSProperties } from "react";
 
-/** Три реле, которые мы поддерживаем */
 type RelayKey = "relay1" | "relay2" | "relay3";
 
 export default function ZonaRelay() {
-  // Текущее фактическое состояние (ON/OFF) для каждого реле
+  // Локальное представление ON/OFF
   const [relayStatus, setRelayStatus] = useState<Record<RelayKey, boolean>>({
     relay1: false,
     relay2: false,
     relay3: false,
   });
 
-  // Флаг "pending" – когда пользователь нажал «Включить/Выключить»
-  // и мы ещё не получили подтверждение (PUT) от Pi.
-  const [pending, setPending] = useState<Record<RelayKey, boolean>>({
+  // Доп. флаг мигания
+  const [blinking, setBlinking] = useState<Record<RelayKey, boolean>>({
     relay1: false,
     relay2: false,
     relay3: false,
   });
 
-  /**
-   * Отправляем команду на Vercel (POST).
-   * Не переключаем UI мгновенно: ставим pending,
-   * а финальное ON/OFF берём из следующего fetchStatus (подтверждение Pi).
-   */
+  // ОТПРАВИТЬ КОМАНДУ (POST)
   const toggleRelay = async (relay: RelayKey, action: number) => {
     try {
-      // 1) Ставим pending=true для конкретного реле
-      setPending(prev => ({ ...prev, [relay]: true }));
-
-      // 2) Отправляем POST
       const res = await fetch("https://ditgdigentis.vercel.app/api/status/relay", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -40,30 +30,31 @@ export default function ZonaRelay() {
 
       const data = await res.json();
       if (data.success) {
-        // 3) Ждём 2сек, чтобы Pi успела считать команду (GET) и переключить GPIO
-        setTimeout(fetchStatus, 2000);
-      } else {
-        console.error("Ошибка ответа POST:", data);
-        // снимаем pending в случае ошибки
-        setPending(prev => ({ ...prev, [relay]: false }));
+        // Мигание
+        setBlinking((prev) => ({ ...prev, [relay]: true }));
+        setTimeout(() => {
+          setBlinking((prev) => ({ ...prev, [relay]: false }));
+        }, 1800);
+
+        // Локально «угадываем» новое состояние
+        setRelayStatus((prev) => ({ ...prev, [relay]: action === 1 }));
+
+        // Через 4 сек обновим с сервера (Pi)
+        setTimeout(fetchStatus, 4000);
       }
     } catch (error) {
       console.error("Ошибка отправки команды:", error);
-      setPending(prev => ({ ...prev, [relay]: false }));
     }
   };
 
-  /**
-   * Запрашиваем реальное состояние (GET) у Vercel.
-   * Ожидаем, что Pi обновляет его PUT'ом (relayState: {...}).
-   */
+  // ПОЛУЧИТЬ ФАКТИЧЕСКИЙ STATE (GET)
   const fetchStatus = async () => {
     try {
       const url = "https://ditgdigentis.vercel.app/api/status/relay?id=zona1";
       const res = await fetch(url, { cache: "no-store" });
       const data = await res.json();
 
-      // Если Pi прислала relayState
+      // Ожидаем, что server может вернуть { relayState: { relay1:0/1, ...} }
       const relayState = data?.relayState;
       if (relayState) {
         setRelayStatus({
@@ -72,21 +63,19 @@ export default function ZonaRelay() {
           relay3: relayState.relay3 === 1,
         });
       }
-      // Снимаем pending для всех реле, т.к. у нас теперь актуальное состояние
-      setPending({ relay1: false, relay2: false, relay3: false });
+      // Если relayState отсутствует, fallback (но сейчас уже не нужно)
     } catch (err) {
       console.error("Ошибка получения статуса:", err);
     }
   };
 
-  // При монтировании и каждые 10сек опрашиваем (можно 1–2сек)
+  // При монтировании и каждые 5 сек – опрос
   useEffect(() => {
     fetchStatus();
-    const interval = setInterval(fetchStatus, 10000);
+    const interval = setInterval(fetchStatus, 5000);
     return () => clearInterval(interval);
   }, []);
 
-  /** Массив наших реле */
   const relays: RelayKey[] = ["relay1", "relay2", "relay3"];
 
   return (
@@ -94,20 +83,23 @@ export default function ZonaRelay() {
       <h2 className="relay-title text-center mt-4 mb-4">
         Мониторинг реле (Зона:1)
       </h2>
-
       <div className="row">
         {relays.map((relay) => {
           const isOn = relayStatus[relay];
-          const isPending = pending[relay]; // при pending показываем "Ожидание..." и блокируем кнопку
+          const isBlinking = blinking[relay];
 
           return (
             <div key={relay} className="col-6 col-md-4">
               <div className="relay-status-block-relay">
                 <div className="relay-description-relay">
                   Zona:1 | {relay.toUpperCase()}
+                  <span
+                    className={`relay-indicator ${isOn ? "on" : "off"} ${
+                      isBlinking ? "blinking" : ""
+                    }`}
+                  />
                 </div>
 
-                {/* Кнопка статуса */}
                 <button
                   style={{
                     ...buttonStyle,
@@ -119,23 +111,15 @@ export default function ZonaRelay() {
                   title={`${relay.toUpperCase()} ${isOn ? "ON" : "OFF"}`}
                   className="relay-status-button-relay"
                 >
-                  {isPending
-                    ? "Ожидание..."
-                    : (isOn ? "ON" : "OFF")
-                  }
+                  {isOn ? "ON" : "OFF"}
                 </button>
 
-                {/* Кнопка «включить/выключить» */}
                 <button
                   style={{ ...buttonStyle, marginTop: "10px", backgroundColor: "#007bff" }}
                   onClick={() => toggleRelay(relay, isOn ? 0 : 1)}
                   title={`Переключить ${relay.toUpperCase()}`}
-                  disabled={isPending} // Блокируем, пока идёт переключение
                 >
-                  {isPending
-                    ? "Изменяем..."
-                    : (isOn ? "Выключить" : "Включить")
-                  }
+                  {isOn ? "Выключить" : "Включить"}
                 </button>
               </div>
             </div>
@@ -150,7 +134,6 @@ export default function ZonaRelay() {
           margin-bottom: 20px;
           color: #fff;
         }
-
         .relay-status-block-relay {
           margin-bottom: 20px;
           padding: 15px;
@@ -158,15 +141,34 @@ export default function ZonaRelay() {
           border-radius: 8px;
           box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
         }
-
         .relay-description-relay {
           color: #fff;
           margin-bottom: 10px;
           font-size: 1rem;
           font-weight: 600;
           text-align: center;
+          position: relative;
         }
-
+        .relay-indicator {
+          display: inline-block;
+          width: 12px;
+          height: 12px;
+          margin-left: 10px;
+          border-radius: 50%;
+        }
+        .relay-indicator.on {
+          background-color: #28a745;
+        }
+        .relay-indicator.off {
+          background-color: #dc3545;
+        }
+        .blinking {
+          animation: blink 0.6s ease-in-out 0s 3;
+        }
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
+        }
         .relay-status-button-relay {
           width: 100%;
           height: 20px;
@@ -178,7 +180,6 @@ export default function ZonaRelay() {
           text-align: center;
           transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
-
         @media (max-width: 576px) {
           .relay-status-button-relay {
             font-size: 1rem;
@@ -190,7 +191,7 @@ export default function ZonaRelay() {
   );
 }
 
-// Стили кнопки
+// Стили для кнопки
 const buttonStyle: CSSProperties = {
   padding: "10px 20px",
   fontSize: "1rem",
