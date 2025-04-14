@@ -51,7 +51,7 @@ export default function ZonaRelay() {
 
       const data = await res.json();
       if (data.success) {
-        setTimeout(fetchStatus, 1200);
+        setTimeout(fetchStatus, 5000);
       } else {
         setPending((prev) => ({ ...prev, [relay]: false }));
       }
@@ -63,7 +63,7 @@ export default function ZonaRelay() {
 
   useEffect(() => {
     fetchStatus();
-    const interval = setInterval(fetchStatus, 1000);
+    const interval = setInterval(fetchStatus, 5000);
     return () => clearInterval(interval);
   }, []);
 
