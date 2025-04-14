@@ -8,12 +8,12 @@ interface CommandState {
   relay: string | null;
   action: number | null;
   timestamp: number;
+  relayState?: Record<string, number>; // 🟢 добавлено
 }
 type CommandsAllZones = Record<string, CommandState>;
 
 const filePath = path.join("/tmp", "relay_commands.json");
 
-/** Загружаем */
 async function loadCommands(): Promise<CommandsAllZones> {
   try {
     const data = await fs.readFile(filePath, "utf-8");
@@ -22,31 +22,38 @@ async function loadCommands(): Promise<CommandsAllZones> {
     return {};
   }
 }
-/** Сохраняем */
+
 async function saveCommands(cmds: CommandsAllZones) {
   await fs.writeFile(filePath, JSON.stringify(cmds, null, 2), "utf-8");
 }
 
-/** GET /api/status/relay?id=zona1 => {relay, action, timestamp} */
+/** ✅ GET /api/status/relay?id=zona1 => {relay, action, timestamp, relayState} */
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
     if (!id) {
-      return NextResponse.json({ relay: null, action: null, timestamp: 0 });
+      return NextResponse.json({ relay: null, action: null, timestamp: 0, relayState: {} });
     }
+
     const all = await loadCommands();
     if (!all[id]) {
-      return NextResponse.json({ relay: null, action: null, timestamp: 0 });
+      return NextResponse.json({ relay: null, action: null, timestamp: 0, relayState: {} });
     }
-    return NextResponse.json(all[id]);
+
+    return NextResponse.json({
+      relay: all[id].relay ?? null,
+      action: all[id].action ?? null,
+      timestamp: all[id].timestamp ?? 0,
+      relayState: all[id].relayState ?? {},
+    });
   } catch (err) {
     console.error("GET /api/status/relay error:", err);
     return NextResponse.json({ error: "Could not load command" }, { status: 500 });
   }
 }
 
-/** POST /api/status/relay => сохранить команду (id, relay, action) */
+/** ✅ POST /api/status/relay => сохранить команду (id, relay, action) */
 export async function POST(req: Request) {
   try {
     const { id, relay, action } = await req.json();
@@ -56,14 +63,13 @@ export async function POST(req: Request) {
 
     const all = await loadCommands();
     if (!all[id]) {
-      all[id] = { relay: null, action: null, timestamp: 0 };
+      all[id] = { relay: null, action: null, timestamp: 0, relayState: {} };
     }
 
-    all[id] = {
-      relay,
-      action,
-      timestamp: Date.now(),
-    };
+    all[id].relay = relay;
+    all[id].action = action;
+    all[id].timestamp = Date.now();
+
     await saveCommands(all);
 
     return NextResponse.json({ success: true });
@@ -73,9 +79,7 @@ export async function POST(req: Request) {
   }
 }
 
-/** PUT /api/status/relay?id=zona1 => очистить команду
- *  body: { relay: null, action: null, timestamp: ... }
- */
+/** ✅ PUT /api/status/relay?id=zona1 => от Pi: { relayState, timestamp } */
 export async function PUT(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -84,16 +88,26 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "No id provided" }, { status: 400 });
     }
 
-    const payload = await req.json(); // { relay: null, action: null, timestamp: ... }
+    const payload = await req.json(); // { relayState, timestamp }
 
     const all = await loadCommands();
+
     if (!all[id]) {
-      all[id] = { relay: null, action: null, timestamp: 0 };
+      all[id] = {
+        relay: null,
+        action: null,
+        timestamp: 0,
+        relayState: {},
+      };
     }
 
-    all[id].relay = payload.relay;
-    all[id].action = payload.action;
+    all[id].relay = null;
+    all[id].action = null;
     all[id].timestamp = payload.timestamp || Date.now();
+
+    if (payload.relayState && typeof payload.relayState === "object") {
+      all[id].relayState = payload.relayState;
+    }
 
     await saveCommands(all);
     return NextResponse.json({ success: true });
