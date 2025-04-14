@@ -5,21 +5,19 @@ import React, { useEffect, useState, CSSProperties } from "react";
 type RelayKey = "relay1" | "relay2" | "relay3";
 
 export default function ZonaRelay() {
-  // Локальное представление ON/OFF
   const [relayStatus, setRelayStatus] = useState<Record<RelayKey, boolean>>({
     relay1: false,
     relay2: false,
     relay3: false,
   });
 
-  // Доп. флаг мигания
   const [blinking, setBlinking] = useState<Record<RelayKey, boolean>>({
     relay1: false,
     relay2: false,
     relay3: false,
   });
 
-  // ОТПРАВИТЬ КОМАНДУ (POST)
+  // 1) Переключаем реле (POST -> Vercel)
   const toggleRelay = async (relay: RelayKey, action: number) => {
     try {
       const res = await fetch("https://ditgdigentis.vercel.app/api/status/relay", {
@@ -30,16 +28,16 @@ export default function ZonaRelay() {
 
       const data = await res.json();
       if (data.success) {
-        // Мигание
+        // Мигаем визуально (3 раза, 0.6s)
         setBlinking((prev) => ({ ...prev, [relay]: true }));
         setTimeout(() => {
           setBlinking((prev) => ({ ...prev, [relay]: false }));
         }, 1800);
 
-        // Локально «угадываем» новое состояние
+        // Локально ОБНОВИМ UI, чтобы сразу показалось ON
         setRelayStatus((prev) => ({ ...prev, [relay]: action === 1 }));
 
-        // Через 4 сек обновим с сервера (Pi)
+        // 2) Через 3-4 сек повторный запрос – Pi успеет обновить состояние
         setTimeout(fetchStatus, 4000);
       }
     } catch (error) {
@@ -47,29 +45,26 @@ export default function ZonaRelay() {
     }
   };
 
-  // ПОЛУЧИТЬ ФАКТИЧЕСКИЙ STATE (GET)
+  // Запрос состояния (GET -> Vercel). 
+  // Оно предполагает, что Raspberry Pi (или кто-то ещё) тоже подтверждает / сохраняет обновлённое состояние.
   const fetchStatus = async () => {
     try {
-      const url = "https://ditgdigentis.vercel.app/api/status/relay?id=zona1";
-      const res = await fetch(url, { cache: "no-store" });
+      const res = await fetch("https://ditgdigentis.vercel.app/api/status/relay", { cache: "no-store" });
       const data = await res.json();
-
-      // Ожидаем, что server может вернуть { relayState: { relay1:0/1, ...} }
-      const relayState = data?.relayState;
-      if (relayState) {
+      const zona = data?.zona1;
+      if (zona) {
         setRelayStatus({
-          relay1: relayState.relay1 === 1,
-          relay2: relayState.relay2 === 1,
-          relay3: relayState.relay3 === 1,
+          relay1: zona.relay1 === 1,
+          relay2: zona.relay2 === 1,
+          relay3: zona.relay3 === 1,
         });
       }
-      // Если relayState отсутствует, fallback (но сейчас уже не нужно)
     } catch (err) {
       console.error("Ошибка получения статуса:", err);
     }
   };
 
-  // При монтировании и каждые 5 сек – опрос
+  // 3) При загрузке, и каждые 5сек опрашиваем состояние
   useEffect(() => {
     fetchStatus();
     const interval = setInterval(fetchStatus, 5000);
@@ -80,9 +75,7 @@ export default function ZonaRelay() {
 
   return (
     <div className="container">
-      <h2 className="relay-title text-center mt-4 mb-4">
-        Мониторинг реле (Зона:1)
-      </h2>
+      <h2 className="relay-title text-center mt-4 mb-4">Моніторинг реле:</h2>
       <div className="row">
         {relays.map((relay) => {
           const isOn = relayStatus[relay];
@@ -134,6 +127,7 @@ export default function ZonaRelay() {
           margin-bottom: 20px;
           color: #fff;
         }
+
         .relay-status-block-relay {
           margin-bottom: 20px;
           padding: 15px;
@@ -141,6 +135,7 @@ export default function ZonaRelay() {
           border-radius: 8px;
           box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
         }
+
         .relay-description-relay {
           color: #fff;
           margin-bottom: 10px;
@@ -149,6 +144,7 @@ export default function ZonaRelay() {
           text-align: center;
           position: relative;
         }
+
         .relay-indicator {
           display: inline-block;
           width: 12px;
@@ -156,19 +152,24 @@ export default function ZonaRelay() {
           margin-left: 10px;
           border-radius: 50%;
         }
+
         .relay-indicator.on {
           background-color: #28a745;
         }
+
         .relay-indicator.off {
           background-color: #dc3545;
         }
+
         .blinking {
           animation: blink 0.6s ease-in-out 0s 3;
         }
+
         @keyframes blink {
           0%, 100% { opacity: 1; }
           50% { opacity: 0; }
         }
+
         .relay-status-button-relay {
           width: 100%;
           height: 20px;
@@ -180,6 +181,7 @@ export default function ZonaRelay() {
           text-align: center;
           transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
+
         @media (max-width: 576px) {
           .relay-status-button-relay {
             font-size: 1rem;
@@ -191,7 +193,6 @@ export default function ZonaRelay() {
   );
 }
 
-// Стили для кнопки
 const buttonStyle: CSSProperties = {
   padding: "10px 20px",
   fontSize: "1rem",
@@ -209,3 +210,4 @@ const buttonStyle: CSSProperties = {
   height: "27px",
   margin: "auto",
 };
+    
