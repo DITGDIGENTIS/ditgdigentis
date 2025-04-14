@@ -31,9 +31,13 @@ export default function ZonaRelay() {
           relay2: relayState.relay2 === 1,
           relay3: relayState.relay3 === 1,
         });
+        // Обнуляем pending, когда получили обновлённое состояние от Pi
+        setPending({
+          relay1: false,
+          relay2: false,
+          relay3: false,
+        });
       }
-
-      setPending({ relay1: false, relay2: false, relay3: false });
     } catch (err) {
       console.error("Ошибка получения статуса:", err);
     }
@@ -42,7 +46,6 @@ export default function ZonaRelay() {
   const toggleRelay = async (relay: RelayKey, action: number) => {
     try {
       setPending((prev) => ({ ...prev, [relay]: true }));
-
       const res = await fetch("https://ditgdigentis.vercel.app/api/status/relay", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -50,20 +53,18 @@ export default function ZonaRelay() {
       });
 
       const data = await res.json();
-      if (data.success) {
-        setTimeout(fetchStatus, 5000);
-      } else {
+      if (!data.success) {
         setPending((prev) => ({ ...prev, [relay]: false }));
       }
-    } catch (error) {
-      console.error("Ошибка отправки команды:", error);
+    } catch (err) {
+      console.error("Ошибка отправки команды:", err);
       setPending((prev) => ({ ...prev, [relay]: false }));
     }
   };
 
   useEffect(() => {
     fetchStatus();
-    const interval = setInterval(fetchStatus, 5000);
+    const interval = setInterval(fetchStatus, 1000); // <--- обновление каждую секунду
     return () => clearInterval(interval);
   }, []);
 
