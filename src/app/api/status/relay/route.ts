@@ -55,7 +55,7 @@ export async function GET(req: Request) {
     const store = await loadCommands();
     const state = store[id];
     if (!state) {
-      // Если нет записей - вернём пустой
+      // Если нет записей - вернём пустую структуру
       return NextResponse.json({
         relay: null,
         action: null,
@@ -71,8 +71,9 @@ export async function GET(req: Request) {
   }
 }
 
-/** POST /api/status/relay => сайт отправляет { id, relay, action }
- * Pi прочитает (GET) и применит
+/**
+ * POST /api/status/relay => сайт отправляет { id, relay, action }
+ * Pi прочитает (GET) и применит. 
  */
 export async function POST(req: Request) {
   try {
@@ -102,7 +103,8 @@ export async function POST(req: Request) {
   }
 }
 
-/** PUT /api/status/relay?id=zona1 => Pi отправляет { relayState: {...} }
+/**
+ * PUT /api/status/relay?id=zona1 => Pi отправляет { relayState: {...} }
  * Мы сохраняем реальное состояние, чтобы сайт при GET видел { relayState: {...} }
  */
 export async function PUT(req: Request) {
@@ -113,7 +115,7 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "No id provided" }, { status: 400 });
     }
 
-    const payload = await req.json(); // { relay:null, action:null, timestamp, relayState:{...} }
+    const payload = await req.json(); // { relay: null, action: null, timestamp, relayState:{...} }
     const store = await loadCommands();
     if (!store[id]) {
       store[id] = {
@@ -124,13 +126,12 @@ export async function PUT(req: Request) {
       };
     }
 
-    // Обновим store[id]
-    store[id].relay = payload.relay;       // обычно null
-    store[id].action = payload.action;     // обычно null
+    // Запишем ключи, если переданы
+    store[id].relay = payload.relay;
+    store[id].action = payload.action;
     store[id].timestamp = payload.timestamp || Date.now();
 
     if (payload.relayState) {
-      // фактические on/off
       store[id].relayState = payload.relayState;
     }
 

@@ -14,7 +14,7 @@ export default function ZonaRelay() {
   });
 
   // Флаг "pending" – когда пользователь нажал «Включить/Выключить»
-  // и мы ещё не получили подтверждение от Pi.
+  // и мы ещё не получили подтверждение (PUT) от Pi.
   const [pending, setPending] = useState<Record<RelayKey, boolean>>({
     relay1: false,
     relay2: false,
@@ -28,9 +28,10 @@ export default function ZonaRelay() {
    */
   const toggleRelay = async (relay: RelayKey, action: number) => {
     try {
-      // Ставим pending=true для конкретного реле
+      // 1) Ставим pending=true для конкретного реле
       setPending(prev => ({ ...prev, [relay]: true }));
 
+      // 2) Отправляем POST
       const res = await fetch("https://ditgdigentis.vercel.app/api/status/relay", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -39,7 +40,7 @@ export default function ZonaRelay() {
 
       const data = await res.json();
       if (data.success) {
-        // Подождём ~1–2 сек, чтобы Pi успела считать команду и переключить GPIO
+        // 3) Ждём 2сек, чтобы Pi успела считать команду (GET) и переключить GPIO
         setTimeout(fetchStatus, 2000);
       } else {
         console.error("Ошибка ответа POST:", data);
@@ -78,10 +79,10 @@ export default function ZonaRelay() {
     }
   };
 
-  // При монтировании и каждые 1сек (match time.sleep(1) на Pi):
+  // При монтировании и каждые 10сек опрашиваем (можно 1–2сек)
   useEffect(() => {
     fetchStatus();
-    const interval = setInterval(fetchStatus, 10000); // <-- опрос каждые 10 секунд
+    const interval = setInterval(fetchStatus, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -97,7 +98,7 @@ export default function ZonaRelay() {
       <div className="row">
         {relays.map((relay) => {
           const isOn = relayStatus[relay];
-          const isPending = pending[relay]; // показываем "Ожидание..." вместо ON/OFF
+          const isPending = pending[relay]; // при pending показываем "Ожидание..." и блокируем кнопку
 
           return (
             <div key={relay} className="col-6 col-md-4">
@@ -124,7 +125,7 @@ export default function ZonaRelay() {
                   }
                 </button>
 
-                {/* Кнопка включить/выключить */}
+                {/* Кнопка «включить/выключить» */}
                 <button
                   style={{ ...buttonStyle, marginTop: "10px", backgroundColor: "#007bff" }}
                   onClick={() => toggleRelay(relay, isOn ? 0 : 1)}
@@ -142,7 +143,6 @@ export default function ZonaRelay() {
         })}
       </div>
 
-      {/* CSS */}
       <style jsx>{`
         .relay-title {
           font-size: 1.5rem;
