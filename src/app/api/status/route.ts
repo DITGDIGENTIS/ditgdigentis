@@ -21,10 +21,10 @@ export async function POST(req: Request) {
     const form = await req.formData();
     
     // Извлекаем id, ip и температуру
-    const id = form.get("id")?.toString() || "unknown"; // ID устройства, например zona1
+    const id = form.get("id")?.toString() || "unknown"; // ID устройства, например, zona1 или zonaTemperature
     const ip = form.get("ip")?.toString() || "none";  // IP устройства
     const tempRaw = form.get("temp")?.toString(); // Температура в строковом формате
-    const temp = tempRaw && tempRaw !== "undefined" ? tempRaw : undefined;  // Если температура есть, сохраняем её
+    const temp = tempRaw && tempRaw !== "undefined" ? tempRaw : undefined;  // Сохраняем температуру, если она есть
     const timestamp = Date.now(); // Время отправки данных
     
     // Логируем получение данных для дебага
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
       const raw = await readFile(filePath, "utf8");
       data = JSON.parse(raw);
     } catch {
-      data = {}; // Если файл пустой или не существует, начинаем с пустого объекта
+      data = {}; // Если файла нет или он пустой, начинаем с пустого объекта
     }
 
     // Добавляем или обновляем данные для указанного устройства
@@ -58,7 +58,7 @@ export async function POST(req: Request) {
       temp, // Включаем температуру в ответ для дебага
     });
   } catch (error) {
-    console.error("Error in POST request:", error); // Логируем ошибку
+    console.error("Error in POST request:", error);
     return NextResponse.json({ status: "error", message: "Internal server error" }, { status: 500 });
   }
 }
@@ -70,13 +70,10 @@ export async function GET() {
     const raw = await readFile(filePath, "utf8");
     const json = JSON.parse(raw);
 
-    // Логируем возвращаемые данные для дебага
     console.log("Returned data:", json);
-
-    // Возвращаем данные в формате JSON
     return NextResponse.json(json);
   } catch (error) {
-    console.error("Error in GET request:", error); // Логируем ошибку
-    return NextResponse.json({}, { status: 500 }); // Возвращаем пустой объект в случае ошибки
+    console.error("Error in GET request:", error);
+    return NextResponse.json({}, { status: 500 });
   }
 }

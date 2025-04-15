@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, CSSProperties } from "react";
+import React, { useState, CSSProperties, useMemo } from "react";
 
 export default function ZonaTemperature() {
   const [temperature, setTemperature] = useState<number>(21);
@@ -12,47 +12,56 @@ export default function ZonaTemperature() {
     setTemperature((prevTemp) => prevTemp - 1);
   };
 
-  // Контейнер с flex-версткой
-  const containerStyle: CSSProperties = {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "10px",
-    borderRadius: "10px",
-    fontFamily: "Arial, sans-serif",
-    maxWidth: "310px",
-    margin: "auto",
-  };
+  // Используем useMemo, чтобы создать объекты стилей один раз
+  const containerStyle: CSSProperties = useMemo(
+    () => ({
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: "10px",
+      borderRadius: "10px",
+      fontFamily: "Arial, sans-serif",
+      maxWidth: "310px",
+      margin: "auto",
+    }),
+    []
+  );
 
-  // Температура слева
-  const temperatureBlockStyle: CSSProperties = {
-    color: "#FFF",
-    fontSize: "3rem",
-    fontWeight: "600",
-    margin: 0, // убираем лишний отступ
-  };
+  const temperatureBlockStyle: CSSProperties = useMemo(
+    () => ({
+      color: "#FFF",
+      fontSize: "3rem",
+      fontWeight: "600",
+      margin: 0,
+    }),
+    []
+  );
 
-  // Блок для кнопок (справа)
-  const buttonsContainerStyle: CSSProperties = {
-    display: "flex",
-    alignItems: "center",
-    gap: "20px",
-  };
+  const buttonsContainerStyle: CSSProperties = useMemo(
+    () => ({
+      display: "flex",
+      alignItems: "center",
+      gap: "20px",
+    }),
+    []
+  );
 
-  // Стили для самих кнопок
-  const buttonStyle: CSSProperties = {
-    width: "50px",
-    fontSize: "1.6em",
-    padding: "5px 16px",
-    cursor: "pointer",
-    backgroundColor: "#2B2B2B",
-    color: "#fff",
-    border: "1px solid #999",
-    borderRadius: "8px",
-    boxShadow: "0 0 5px rgba(255, 215, 0, 0.3)",
-    transition: "background-color 0.3s ease, box-shadow 0.3s ease",
-    textAlign: "center",
-  };
+  const buttonStyle: CSSProperties = useMemo(
+    () => ({
+      width: "50px",
+      fontSize: "1.6em",
+      padding: "5px 16px",
+      cursor: "pointer",
+      backgroundColor: "#2B2B2B",
+      color: "#fff",
+      border: "1px solid #999",
+      borderRadius: "8px",
+      boxShadow: "0 0 5px rgba(255, 215, 0, 0.3)",
+      transition: "background-color 0.3s ease, box-shadow 0.3s ease",
+      textAlign: "center",
+    }),
+    []
+  );
 
   return (
     <div style={containerStyle}>

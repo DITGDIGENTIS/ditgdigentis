@@ -1,19 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faThermometerHalf } from "@fortawesome/free-solid-svg-icons";
 
 export function SensorMonitor() {
+  // Состояние для температуры сенсора
   const [zona1Temp, setZona1Temp] = useState<string>("--");
+  // Состояние для статуса: онлайн/офлайн
   const [zona1Online, setZona1Online] = useState<boolean>(false);
-  const [lastTemp, setLastTemp] = useState<string | null>(null); // Храним последнее значение температуры
+  // useRef для хранения последнего значения температуры, чтобы избежать лишних обновлений
+  const lastTempRef = useRef<string>("--");
 
   useEffect(() => {
     const fetchStatus = async () => {
       try {
         const res = await fetch("https://ditgdigentis.vercel.app/api/status", {
-          cache: "no-store", // Отключаем кеширование
+          cache: "no-store",
         });
         const data = await res.json();
         const zona = data.zona1;
@@ -21,19 +24,22 @@ export function SensorMonitor() {
         if (zona) {
           const now = Date.now();
           const diff = now - zona.timestamp;
+          // Считаем, что сенсор онлайн, если данные свежие (менее 30 секунд)
           const isOnline = diff < 30000;
           setZona1Online(isOnline);
 
           const temp = zona.temp;
-          console.log("Fetched Temperature:", temp);  // Логируем температуру
-
-          if (temp !== lastTemp && temp !== "none") {
-            const tempNum = parseFloat(temp);
-
-            // Фильтрация изменений: обновляем только если температура изменилась более чем на 0.1°C
-            if (Math.abs(tempNum - parseFloat(lastTemp || "0")) >= 0.1) {
+          // Если значение температуры получено и отличается от ранее установленного более чем на 0.1°C
+          if (temp && temp !== "none") {
+            const newTemp = parseFloat(temp);
+            const currentTemp = parseFloat(lastTempRef.current);
+            if (
+              lastTempRef.current === "--" ||
+              isNaN(currentTemp) ||
+              Math.abs(newTemp - currentTemp) >= 0.1
+            ) {
               setZona1Temp(temp);
-              setLastTemp(temp); // Обновляем последнее значение температуры
+              lastTempRef.current = temp;
             }
           }
         } else {
@@ -41,16 +47,17 @@ export function SensorMonitor() {
           setZona1Temp("--");
         }
       } catch (error) {
-        console.error("Error fetching status:", error);  // Логируем ошибку
+        console.error("Error fetching status:", error);
         setZona1Online(false);
         setZona1Temp("--");
       }
     };
 
+    // Первоначальный вызов и обновление каждые 10 секунд
     fetchStatus();
-    const interval = setInterval(fetchStatus, 10000); // Обновляем данные каждые 10 секунд
+    const interval = setInterval(fetchStatus, 10000);
     return () => clearInterval(interval);
-  }, [lastTemp]); // Зависимость от lastTemp, чтобы следить за изменениями температуры
+  }, []);
 
   return (
     <div className="container sensor-container p-4">
