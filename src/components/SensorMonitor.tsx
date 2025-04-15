@@ -23,15 +23,16 @@ export function SensorMonitor() {
         });
         const data: Record<string, { temp: string; timestamp: number }> = await res.json();
 
-        // Логируем полученные данные
-        console.log("Fetched data:", data);
+        console.log("Fetched data:", data); // Логируем полученные данные
 
         // Список датчиков
         const sensorList: SensorData[] = [];
         const now = Date.now();
 
-        // Обрабатываем данные для каждой зоны
+        // Определяем все зоны
         const zones = ["zona1", "zona1_2", "zona1_3", "zona1_4"];
+
+        // Обрабатываем каждую зону
         zones.forEach((zone) => {
           const sensorData = data[zone];
           const isOnline = sensorData ? now - sensorData.timestamp < 30000 : false; // Проверка на свежесть данных
@@ -44,7 +45,6 @@ export function SensorMonitor() {
           });
         });
 
-        // Устанавливаем список датчиков
         setSensors(sensorList);
       } catch (error) {
         console.error("Error fetching status:", error);
