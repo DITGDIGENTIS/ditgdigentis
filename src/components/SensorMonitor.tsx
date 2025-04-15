@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faThermometerHalf } from "@fortawesome/free-solid-svg-icons";
 
@@ -14,9 +14,6 @@ type SensorData = {
 export function SensorMonitor() {
   // Состояние для всех датчиков
   const [sensors, setSensors] = useState<SensorData[]>([]);
-
-  // useRef для хранения времени последнего обновления для каждого датчика
-  const lastUpdateRefs = useRef<Record<string, number>>({});
 
   useEffect(() => {
     const fetchStatus = async () => {
@@ -38,11 +35,6 @@ export function SensorMonitor() {
 
           const diff = now - sensorData.timestamp;
           const isOnline = diff < 30000; // Проверка на свежесть данных
-
-          // Обновляем время последнего обновления для этого датчика, если прошло больше 5 секунд
-          if (!lastUpdateRefs.current[key] || now - lastUpdateRefs.current[key] > 5000) {
-            lastUpdateRefs.current[key] = now; // Обновляем время последнего обновления
-          }
 
           // Добавляем данные о датчике в список
           const temp = sensorData.temp || "--";
