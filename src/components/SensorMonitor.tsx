@@ -111,6 +111,7 @@ export function SensorMonitor() {
       <h2 className="text-center mt-4 mb-1">Моніторинг сенсорів:</h2>
 
       <div className="row">
+        {/* Первый датчик */}
         <div className="col-6 col-md-3">
           <div className="average-temp-block">
             <div className="description-temp-block">
@@ -131,10 +132,11 @@ export function SensorMonitor() {
           </div>
         </div>
 
+        {/* Второй датчик */}
         <div className="col-6 col-md-3">
           <div className="average-temp-block">
             <div className="description-temp-block">
-              Zona:1 | Sensor:2
+              Zona:1_2 | Sensor:2
               <button
                 className={`status-button ${zona1Sensor2Online ? "online" : "offline"}`}
                 title={`Sensor ${zona1Sensor2Online ? "Online" : "Offline"}`}
