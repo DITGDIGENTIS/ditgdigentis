@@ -31,6 +31,9 @@ export function SensorMonitor() {
         const now = Date.now();
 
         for (const [key, sensorData] of Object.entries(data)) {
+          // Пропускаем сервер (предположим, сервер имеет id = "server")
+          if (key === "server") continue;
+
           const diff = now - sensorData.timestamp;
           const isOnline = diff < 30000; // Проверка на свежесть данных
 
@@ -40,9 +43,10 @@ export function SensorMonitor() {
           }
 
           // Добавляем данные о датчике в список
+          const temp = sensorData.temp || "--";
           sensorList.push({
             id: key,
-            temp: sensorData.temp || "--",
+            temp,
             online: isOnline,
           });
         }
