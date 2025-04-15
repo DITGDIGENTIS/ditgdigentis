@@ -1,8 +1,13 @@
 "use client";
 
-import React, { useEffect, useState, CSSProperties } from "react";
+import React, { useEffect, useState, CSSProperties, useRef } from "react";
 
 type RelayKey = "relay1" | "relay2" | "relay3";
+
+interface RelayResponse {
+  relayState?: Record<RelayKey, number>;
+  timestamp: number;
+}
 
 export default function ZonaRelay() {
   const [relayStatus, setRelayStatus] = useState<Record<RelayKey, boolean>>({
@@ -17,26 +22,31 @@ export default function ZonaRelay() {
     relay3: false,
   });
 
+  const lastUpdateRef = useRef<number>(0);
+
   const fetchStatus = async () => {
     try {
       const res = await fetch("https://ditgdigentis.vercel.app/api/status/relay?id=zona1", {
         cache: "no-store",
       });
-      const data = await res.json();
-      const relayState = data?.relayState;
+      const data: RelayResponse = await res.json();
 
-      if (relayState) {
-        setRelayStatus({
-          relay1: relayState.relay1 === 1,
-          relay2: relayState.relay2 === 1,
-          relay3: relayState.relay3 === 1,
-        });
-        // Обнуляем pending, когда получили обновлённое состояние от Pi
-        setPending({
-          relay1: false,
-          relay2: false,
-          relay3: false,
-        });
+      if (data?.relayState && typeof data.timestamp === "number") {
+        if (data.timestamp > lastUpdateRef.current) {
+          setRelayStatus({
+            relay1: data.relayState.relay1 === 1,
+            relay2: data.relayState.relay2 === 1,
+            relay3: data.relayState.relay3 === 1,
+          });
+
+          lastUpdateRef.current = data.timestamp;
+
+          setPending({
+            relay1: false,
+            relay2: false,
+            relay3: false,
+          });
+        }
       }
     } catch (err) {
       console.error("Ошибка получения статуса:", err);
@@ -46,6 +56,7 @@ export default function ZonaRelay() {
   const toggleRelay = async (relay: RelayKey, action: number) => {
     try {
       setPending((prev) => ({ ...prev, [relay]: true }));
+
       const res = await fetch("https://ditgdigentis.vercel.app/api/status/relay", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -64,7 +75,7 @@ export default function ZonaRelay() {
 
   useEffect(() => {
     fetchStatus();
-    const interval = setInterval(fetchStatus, 1000); // <--- обновление каждую секунду
+    const interval = setInterval(fetchStatus, 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -72,9 +83,7 @@ export default function ZonaRelay() {
 
   return (
     <div className="container">
-      <h2 className="relay-title text-center mt-4 mb-4">
-        Мониторинг реле (Зона:1)
-      </h2>
+      <h2 className="relay-title text-center mt-4 mb-4">Мониторинг реле (Зона:1)</h2>
       <div className="row">
         {relays.map((relay) => {
           const isOn = relayStatus[relay];
@@ -111,11 +120,7 @@ export default function ZonaRelay() {
                   title={`Переключить ${relay.toUpperCase()}`}
                   disabled={isPending}
                 >
-                  {isPending
-                    ? "Изменяем..."
-                    : isOn
-                    ? "Выключить"
-                    : "Включить"}
+                  {isPending ? "Изменяем..." : isOn ? "Выключить" : "Включить"}
                 </button>
               </div>
             </div>

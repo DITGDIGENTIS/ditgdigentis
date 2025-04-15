@@ -8,8 +8,9 @@ interface CommandState {
   relay: string | null;
   action: number | null;
   timestamp: number;
-  relayState?: Record<string, number>; // 🟢 добавлено
+  relayState?: Record<string, number>;
 }
+
 type CommandsAllZones = Record<string, CommandState>;
 
 const filePath = path.join("/tmp", "relay_commands.json");
@@ -27,7 +28,6 @@ async function saveCommands(cmds: CommandsAllZones) {
   await fs.writeFile(filePath, JSON.stringify(cmds, null, 2), "utf-8");
 }
 
-/** ✅ GET /api/status/relay?id=zona1 => {relay, action, timestamp, relayState} */
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -53,7 +53,6 @@ export async function GET(req: Request) {
   }
 }
 
-/** ✅ POST /api/status/relay => сохранить команду (id, relay, action) */
 export async function POST(req: Request) {
   try {
     const { id, relay, action } = await req.json();
@@ -79,7 +78,6 @@ export async function POST(req: Request) {
   }
 }
 
-/** ✅ PUT /api/status/relay?id=zona1 => от Pi: { relayState, timestamp } */
 export async function PUT(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -88,17 +86,11 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "No id provided" }, { status: 400 });
     }
 
-    const payload = await req.json(); // { relayState, timestamp }
-
+    const payload = await req.json();
     const all = await loadCommands();
 
     if (!all[id]) {
-      all[id] = {
-        relay: null,
-        action: null,
-        timestamp: 0,
-        relayState: {},
-      };
+      all[id] = { relay: null, action: null, timestamp: 0, relayState: {} };
     }
 
     all[id].relay = null;
