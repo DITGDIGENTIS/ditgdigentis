@@ -19,6 +19,10 @@ export function SensorMonitor() {
   const lastTempRefZona1 = useRef<string>("--");
   const lastTempRefZona1Sensor2 = useRef<string>("--");
 
+  // Для контроля времени последнего обновления
+  const lastUpdateRefZona1 = useRef<number>(0);
+  const lastUpdateRefZona1Sensor2 = useRef<number>(0);
+
   useEffect(() => {
     const fetchStatus = async () => {
       try {
@@ -33,13 +37,15 @@ export function SensorMonitor() {
         if (zona1) {
           const now = Date.now();
           const diff = now - zona1.timestamp;
-          const isOnline = diff < 30000;
+          const isOnline = diff < 30000;  // Проверка на то, что данные не старше 30 секунд
           setZona1Online(isOnline);
 
           const temp = zona1.temp;
           if (temp && temp !== "none") {
             const newTemp = parseFloat(temp);
             const currentTemp = parseFloat(lastTempRefZona1.current);
+
+            // Если температура изменилась более чем на 0.1°C, обновляем
             if (
               lastTempRefZona1.current === "--" ||
               isNaN(currentTemp) ||
@@ -47,6 +53,7 @@ export function SensorMonitor() {
             ) {
               setZona1Temp(temp);
               lastTempRefZona1.current = temp;
+              lastUpdateRefZona1.current = now; // Обновляем время последнего обновления
             }
           }
         }
@@ -55,13 +62,15 @@ export function SensorMonitor() {
         if (zona1_2) {
           const now = Date.now();
           const diff = now - zona1_2.timestamp;
-          const isOnline = diff < 30000;
+          const isOnline = diff < 30000;  // Проверка на то, что данные не старше 30 секунд
           setZona1Sensor2Online(isOnline);
 
           const temp = zona1_2.temp;
           if (temp && temp !== "none") {
             const newTemp = parseFloat(temp);
             const currentTemp = parseFloat(lastTempRefZona1Sensor2.current);
+
+            // Если температура изменилась более чем на 0.1°C, обновляем
             if (
               lastTempRefZona1Sensor2.current === "--" ||
               isNaN(currentTemp) ||
@@ -69,6 +78,7 @@ export function SensorMonitor() {
             ) {
               setZona1Sensor2Temp(temp);
               lastTempRefZona1Sensor2.current = temp;
+              lastUpdateRefZona1Sensor2.current = now; // Обновляем время последнего обновления
             }
           }
         }
@@ -115,7 +125,7 @@ export function SensorMonitor() {
         <div className="col-6 col-md-3">
           <div className="average-temp-block">
             <div className="description-temp-block">
-              Zona:1 | Sensor:1
+              Zona:1 | SENSOR1
               <button
                 className={`status-button ${zona1Online ? "online" : "offline"}`}
                 title={`Sensor ${zona1Online ? "Online" : "Offline"}`}
@@ -136,7 +146,7 @@ export function SensorMonitor() {
         <div className="col-6 col-md-3">
           <div className="average-temp-block">
             <div className="description-temp-block">
-              Zona:1_2 | Sensor:2
+              Zona:1 | SENSOR2
               <button
                 className={`status-button ${zona1Sensor2Online ? "online" : "offline"}`}
                 title={`Sensor ${zona1Sensor2Online ? "Online" : "Offline"}`}
