@@ -23,29 +23,32 @@ export function SensorMonitor() {
         });
         const data: Record<string, { temp: string; timestamp: number }> = await res.json();
 
-        // Создаём новый список датчиков
+        // Логируем полученные данные
+        console.log("Fetched data:", data);
+
+        // Список датчиков
         const sensorList: SensorData[] = [];
         const now = Date.now();
 
-        // Обрабатываем все полученные датчики
-        for (const [key, sensorData] of Object.entries(data)) {
-          if (key === "server") continue; // Пропускаем сервер
-
-          const diff = now - sensorData.timestamp;
-          const isOnline = diff < 30000; // Проверка на свежесть данных
+        // Обрабатываем данные для каждой зоны
+        const zones = ["zona1", "zona1_2", "zona1_3", "zona1_4"];
+        zones.forEach((zone) => {
+          const sensorData = data[zone];
+          const isOnline = sensorData ? now - sensorData.timestamp < 30000 : false; // Проверка на свежесть данных
 
           // Добавляем данные о датчике в список
           sensorList.push({
-            id: key,
-            temp: sensorData.temp || "--",
+            id: zone,
+            temp: sensorData?.temp || "--", // Если данных нет, показываем "--"
             online: isOnline,
           });
-        }
+        });
 
+        // Устанавливаем список датчиков
         setSensors(sensorList);
       } catch (error) {
         console.error("Error fetching status:", error);
-        setSensors([]);
+        setSensors([]); // Если ошибка, очищаем данные
       }
     };
 
