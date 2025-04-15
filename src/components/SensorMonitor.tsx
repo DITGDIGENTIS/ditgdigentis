@@ -33,9 +33,10 @@ export function SensorMonitor() {
         const zona1 = data.zona1;
         const zona1_2 = data.zona1_2;
 
+        const now = Date.now();
+
         // Обработка данных с первого датчика (zona1)
         if (zona1) {
-          const now = Date.now();
           const diff = now - zona1.timestamp;
           const isOnline = diff < 30000;  // Проверка на то, что данные не старше 30 секунд
           setZona1Online(isOnline);
@@ -45,11 +46,12 @@ export function SensorMonitor() {
             const newTemp = parseFloat(temp);
             const currentTemp = parseFloat(lastTempRefZona1.current);
 
-            // Если температура изменилась более чем на 0.1°C, обновляем
+            // Если температура изменилась более чем на 0.1°C или прошло больше времени (например, 5 секунд)
             if (
               lastTempRefZona1.current === "--" ||
               isNaN(currentTemp) ||
-              Math.abs(newTemp - currentTemp) >= 0.1
+              Math.abs(newTemp - currentTemp) >= 0.1 || 
+              (now - lastUpdateRefZona1.current > 5000) // Обновляем не чаще чем раз в 5 секунд
             ) {
               setZona1Temp(temp);
               lastTempRefZona1.current = temp;
@@ -60,7 +62,6 @@ export function SensorMonitor() {
 
         // Обработка данных с второго датчика (zona1_2)
         if (zona1_2) {
-          const now = Date.now();
           const diff = now - zona1_2.timestamp;
           const isOnline = diff < 30000;  // Проверка на то, что данные не старше 30 секунд
           setZona1Sensor2Online(isOnline);
@@ -70,11 +71,12 @@ export function SensorMonitor() {
             const newTemp = parseFloat(temp);
             const currentTemp = parseFloat(lastTempRefZona1Sensor2.current);
 
-            // Если температура изменилась более чем на 0.1°C, обновляем
+            // Если температура изменилась более чем на 0.1°C или прошло больше времени (например, 5 секунд)
             if (
               lastTempRefZona1Sensor2.current === "--" ||
               isNaN(currentTemp) ||
-              Math.abs(newTemp - currentTemp) >= 0.1
+              Math.abs(newTemp - currentTemp) >= 0.1 || 
+              (now - lastUpdateRefZona1Sensor2.current > 5000) // Обновляем не чаще чем раз в 5 секунд
             ) {
               setZona1Sensor2Temp(temp);
               lastTempRefZona1Sensor2.current = temp;
@@ -125,7 +127,7 @@ export function SensorMonitor() {
         <div className="col-6 col-md-3">
           <div className="average-temp-block">
             <div className="description-temp-block">
-              Zona:1 | SENSOR1
+              Zona:1 | Sensor:1
               <button
                 className={`status-button ${zona1Online ? "online" : "offline"}`}
                 title={`Sensor ${zona1Online ? "Online" : "Offline"}`}
@@ -146,7 +148,7 @@ export function SensorMonitor() {
         <div className="col-6 col-md-3">
           <div className="average-temp-block">
             <div className="description-temp-block">
-              Zona:1 | SENSOR2
+              Zona:1_2 | Sensor:2
               <button
                 className={`status-button ${zona1Sensor2Online ? "online" : "offline"}`}
                 title={`Sensor ${zona1Sensor2Online ? "Online" : "Offline"}`}
