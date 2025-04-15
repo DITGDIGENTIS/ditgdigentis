@@ -26,6 +26,8 @@ export function SensorMonitor() {
         });
         const data: Record<string, { temp: string; timestamp: number }> = await res.json();
 
+        console.log("Fetched data:", data); // Логируем все полученные данные
+
         // Создаём новый список датчиков
         const sensorList: SensorData[] = [];
         const now = Date.now();
@@ -50,6 +52,8 @@ export function SensorMonitor() {
             online: isOnline,
           });
         }
+
+        console.log("Sensors list:", sensorList); // Логируем список датчиков
 
         setSensors(sensorList);
       } catch (error) {
