@@ -1,15 +1,17 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { ZonaStatus } from "../components/ZonaStatus";
 import { SensorMonitor } from "../components/SensorMonitor";
 import ZonaTemperature from "../components/ZonaTemperature";
-import ZonaRelay from "../components/ZonaRelay"; 
+import ZonaRelay from "../components/ZonaRelay";
 
 export default function Home() {
   const [time, setTime] = useState("");
   const [isOnline, setIsOnline] = useState(false);
+  // Храним предыдущее значение статуса сервера, чтобы не обновлять его лишний раз
+  const lastServerOnlineRef = useRef<boolean>(false);
 
   useEffect(() => {
     const updateClock = () => {
@@ -23,22 +25,34 @@ export default function Home() {
     updateClock();
     const clockInterval = setInterval(updateClock, 1000);
 
-    const checkRemotePiStatus = () => {
-      fetch("https://ditgdigentis.vercel.app/api/status", { cache: "no-store" })
-        .then((res) => res.json())
-        .then((data) => {
-          const now = Date.now();
-          const lastUpdate = data["server"]?.timestamp || 0;
-          const online = now - lastUpdate < 20000;
-          setIsOnline(online);
-        })
-        .catch(() => {
-          setIsOnline(false); // В случае ошибки, считаем сервер оффлайн
+    const checkRemotePiStatus = async () => {
+      try {
+        const res = await fetch("https://ditgdigentis.vercel.app/api/status", {
+          cache: "no-store",
         });
+        const data = await res.json();
+        const now = Date.now();
+        // Здесь предполагается, что серверный статус хранится в data.server.timestamp
+        const lastUpdate = data["server"]?.timestamp || 0;
+        const online = now - lastUpdate < 20000;
+        // Обновляем состояние только если результат изменился
+        if (lastServerOnlineRef.current !== online) {
+          lastServerOnlineRef.current = online;
+          setIsOnline(online);
+        }
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          console.error("Error checking server status:", err.message);
+        } else {
+          console.error("Error checking server status:", err);
+        }
+        lastServerOnlineRef.current = false;
+        setIsOnline(false);
+      }
     };
 
     checkRemotePiStatus();
-    const remotePiInterval = setInterval(checkRemotePiStatus, 10000); // Обновляем статус сервера каждые 10 секунд
+    const remotePiInterval = setInterval(checkRemotePiStatus, 10000);
 
     return () => {
       clearInterval(clockInterval);
@@ -57,7 +71,9 @@ export default function Home() {
             height={160}
             className="ditg-logo"
           />
-          <span className="indicator-label fw-bold fs-5 text-light">ID:0001</span>
+          <span className="indicator-label fw-bold fs-5 text-light">
+            ID:0001
+          </span>
           <span
             className={`status-indicator ${isOnline ? "online" : "offline"}`}
             title={isOnline ? "Online" : "Offline"}
@@ -80,7 +96,7 @@ export default function Home() {
           </div>
         </div>
       </div>
-      
+
       <ZonaStatus />
       <ZonaTemperature />
       <SensorMonitor />
