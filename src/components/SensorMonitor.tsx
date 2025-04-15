@@ -15,7 +15,7 @@ export function SensorMonitor() {
   // Состояние для всех датчиков
   const [sensors, setSensors] = useState<SensorData[]>([]);
 
-  // Для контроля времени последнего обновления каждого датчика
+  // useRef для хранения времени последнего обновления для каждого датчика
   const lastUpdateRefs = useRef<Record<string, number>>({});
 
   useEffect(() => {
@@ -32,9 +32,9 @@ export function SensorMonitor() {
         const sensorList: SensorData[] = [];
         const now = Date.now();
 
+        // Обрабатываем все полученные датчики
         for (const [key, sensorData] of Object.entries(data)) {
-          // Пропускаем сервер (предположим, сервер имеет id = "server")
-          if (key === "server") continue;
+          if (key === "server") continue; // Пропускаем сервер
 
           const diff = now - sensorData.timestamp;
           const isOnline = diff < 30000; // Проверка на свежесть данных
