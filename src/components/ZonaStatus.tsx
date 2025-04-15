@@ -1,136 +1,76 @@
 "use client";
 
-import React, { useEffect, useState, CSSProperties } from "react";
+import { useEffect, useState, useRef } from "react";
 
-type RelayKey = "relay1" | "relay2" | "relay3";
+// Определяем тип для состояния зон
+type Zones = {
+  zona1: boolean;
+  zona2: boolean;
+  zona3: boolean;
+};
 
-export default function ZonaRelay() {
-  const [relayStatus, setRelayStatus] = useState<Record<RelayKey, boolean>>({
-    relay1: false,
-    relay2: false,
-    relay3: false,
+export function ZonaStatus() {
+  const [zonaStatus, setZonaStatus] = useState<Zones>({
+    zona1: false,
+    zona2: false,
+    zona3: false,
   });
 
-  const [pending, setPending] = useState<Record<RelayKey, boolean>>({
-    relay1: false,
-    relay2: false,
-    relay3: false,
-  });
+  // Храним предыдущее состояние для сравнения
+  const previousStatusRef = useRef<Zones>(zonaStatus);
 
-  const fetchStatus = async () => {
-    try {
-      const res = await fetch(
-        "https://ditgdigentis.vercel.app/api/status/relay?id=zona1",
-        { cache: "no-store" }
-      );
-      const data = await res.json();
-      const relayState = data?.relayState;
+  const fetchStatus = () => {
+    fetch("https://ditgdigentis.vercel.app/api/status", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        const now = Date.now();
+        const timeout = 90000;
 
-      if (relayState) {
-        // Вычисляем новое состояние
-        const newStatus = {
-          relay1: relayState.relay1 === 1,
-          relay2: relayState.relay2 === 1,
-          relay3: relayState.relay3 === 1,
+        // Вычисляем новое состояние для каждой зоны
+        const newStatus: Zones = {
+          zona1: now - (data?.zona1?.timestamp ?? 0) < timeout,
+          zona2: now - (data?.zona2?.timestamp ?? 0) < timeout,
+          zona3: now - (data?.zona3?.timestamp ?? 0) < timeout,
         };
 
-        // Обновляем только если данные изменились
-        setRelayStatus((prevStatus) => {
-          if (
-            prevStatus.relay1 === newStatus.relay1 &&
-            prevStatus.relay2 === newStatus.relay2 &&
-            prevStatus.relay3 === newStatus.relay3
-          ) {
-            return prevStatus;
-          }
-          return newStatus;
-        });
-
-        // Сбрасываем флаг pending после получения обновлённого состояния
-        setPending({
-          relay1: false,
-          relay2: false,
-          relay3: false,
-        });
-      }
-    } catch (err) {
-      console.error("Ошибка получения статуса:", err);
-    }
-  };
-
-  const toggleRelay = async (relay: RelayKey, action: number) => {
-    try {
-      setPending((prev) => ({ ...prev, [relay]: true }));
-      const res = await fetch(
-        "https://ditgdigentis.vercel.app/api/status/relay",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: "zona1", relay, action }),
+        const prev = previousStatusRef.current;
+        if (
+          newStatus.zona1 !== prev.zona1 ||
+          newStatus.zona2 !== prev.zona2 ||
+          newStatus.zona3 !== prev.zona3
+        ) {
+          setZonaStatus(newStatus);
+          previousStatusRef.current = newStatus;
         }
-      );
-
-      const data = await res.json();
-      if (!data.success) {
-        setPending((prev) => ({ ...prev, [relay]: false }));
-      }
-    } catch (err) {
-      console.error("Ошибка отправки команды:", err);
-      setPending((prev) => ({ ...prev, [relay]: false }));
-    }
+      })
+      .catch(() => {});
   };
 
   useEffect(() => {
     fetchStatus();
-    const interval = setInterval(fetchStatus, 1000); // Обновление каждую секунду
+    const interval = setInterval(fetchStatus, 5000);
     return () => clearInterval(interval);
   }, []);
 
-  const relays: RelayKey[] = ["relay1", "relay2", "relay3"];
-
   return (
-    <div className="container">
-      <h2 className="relay-title text-center mt-4 mb-4">
-        Мониторинг реле (Зона:1)
-      </h2>
-      <div className="row">
-        {relays.map((relay) => {
-          const isOn = relayStatus[relay];
-          const isPending = pending[relay];
-
+    <div className="container mt-4">
+      <div className="status-container-zona">
+        {[1, 2, 3].map((i) => {
+          const zoneKey = `zona${i}` as keyof Zones;
+          const online = zonaStatus[zoneKey];
           return (
-            <div key={relay} className="col-6 col-md-4">
-              <div className="relay-status-block-relay">
-                <div className="relay-description-relay">
-                  Zona:1 | {relay.toUpperCase()}
-                </div>
-
-                <button
-                  style={{
-                    ...buttonStyle,
-                    backgroundColor: isOn ? "#28a745" : "#dc3545",
-                    boxShadow: isOn
-                      ? "0 0 8px rgba(40, 167, 69, 0.5)"
-                      : "0 0 8px rgba(220, 53, 69, 0.5)",
-                  }}
-                  title={`${relay.toUpperCase()} ${isOn ? "ON" : "OFF"}`}
-                  className="relay-status-button-relay"
-                >
-                  {isPending ? "Ожидание..." : isOn ? "ON" : "OFF"}
-                </button>
-
-                <button
-                  style={{
-                    ...buttonStyle,
-                    marginTop: "10px",
-                    backgroundColor: "#007bff",
-                  }}
-                  onClick={() => toggleRelay(relay, isOn ? 0 : 1)}
-                  title={`Переключить ${relay.toUpperCase()}`}
-                  disabled={isPending}
-                >
-                  {isPending ? "Изменяем..." : isOn ? "Выключить" : "Включить"}
-                </button>
+            <div
+              key={zoneKey}
+              className="zona-sensor d-flex align-items-center justify-content-center mb-3"
+            >
+              <div className="zona-label fw-bold fs-5 text-light">
+                Zona {i}
+              </div>
+              <div
+                className={`status-indicator ${online ? "online" : "offline"}`}
+                title={online ? "Online" : "Offline"}
+              >
+                {online ? "● ONLINE" : "○ OFFLINE"}
               </div>
             </div>
           );
@@ -138,66 +78,50 @@ export default function ZonaRelay() {
       </div>
 
       <style jsx>{`
-        .relay-title {
-          font-size: 1.5rem;
-          font-weight: bold;
-          margin-bottom: 20px;
-          color: #fff;
-        }
-
-        .relay-status-block-relay {
-          margin-bottom: 20px;
-          padding: 15px;
-          background-color: #2b2b2b;
-          border-radius: 8px;
-          box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-        }
-
-        .relay-description-relay {
-          color: #fff;
-          margin-bottom: 10px;
-          font-size: 1rem;
+        .status-indicator {
+          padding: 6px 14px;
+          border-radius: 20px;
           font-weight: 600;
-          text-align: center;
+          font-size: 14px;
+          color: white;
+          transition: all 0.3s ease;
+          box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
         }
 
-        .relay-status-button-relay {
-          width: 100%;
-          height: 20px;
-          font-size: 1.2em;
-          padding: 10px 20px;
-          cursor: pointer;
-          border: none;
-          border-radius: 50px;
-          text-align: center;
-          transition: transform 0.3s ease, box-shadow 0.3s ease;
+        .online {
+          background-color: #28a745;
+          animation: pulseGreen 2s infinite;
         }
 
-        @media (max-width: 576px) {
-          .relay-status-button-relay {
-            font-size: 1rem;
-            padding: 8px 16px;
+        .offline {
+          background-color: #dc3545;
+          animation: pulseRed 2s infinite;
+        }
+
+        @keyframes pulseGreen {
+          0% {
+            box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+          }
+          70% {
+            box-shadow: 0 0 0 10px rgba(40, 167, 69, 0);
+          }
+          100% {
+            box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+          }
+        }
+
+        @keyframes pulseRed {
+          0% {
+            box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+          }
+          70% {
+            box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+          }
+          100% {
+            box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
           }
         }
       `}</style>
     </div>
   );
 }
-
-const buttonStyle: CSSProperties = {
-  padding: "10px 20px",
-  fontSize: "1rem",
-  fontWeight: "600",
-  cursor: "pointer",
-  color: "#fff",
-  border: "none",
-  borderRadius: "5px",
-  textAlign: "center",
-  transition: "transform 0.3s ease, box-shadow 0.3s ease",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "115px",
-  height: "27px",
-  margin: "auto",
-};
