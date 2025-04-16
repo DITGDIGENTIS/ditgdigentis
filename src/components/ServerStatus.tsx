@@ -13,11 +13,16 @@ export default function ServerStatus() {
       const res = await fetch("https://ditgdigentis.vercel.app/api/status/serverstatus", {
         cache: "no-store", // Чтобы всегда получать актуальные данные
       });
+
+      if (!res.ok) {
+        throw new Error("Server not reachable");
+      }
+
       const data = await res.json();
       const now = Date.now();
 
       // Получаем последнюю временную метку от сервера
-      const lastUpdate = data["status"] === "online" ? now : 0;
+      const lastUpdate = data["timestamp"] || 0; // предполагается, что метка времени хранится в "timestamp"
 
       // Считаем сервер онлайн, если последнее обновление было в последние 20 секунд
       const online = now - lastUpdate < 20000;
@@ -34,6 +39,7 @@ export default function ServerStatus() {
     }
   };
 
+  // UseEffect hook to check server status when the component mounts
   useEffect(() => {
     checkServerStatus();
     const interval = setInterval(checkServerStatus, 10000); // Периодически обновляем каждые 10 секунд
