@@ -10,8 +10,8 @@ export default function ServerStatus() {
   const checkServerStatus = async () => {
     try {
       // Request the server status
-      const res = await fetch("https://ditgdigentis.vercel.app/api/status", {
-        cache: "no-store", // To always get fresh data
+      const res = await fetch("https://ditgdigentis.vercel.app/api/status/serverstatus", {
+        cache: "no-store", // Чтобы всегда получать актуальные данные
       });
       const data = await res.json();
       const now = Date.now();
