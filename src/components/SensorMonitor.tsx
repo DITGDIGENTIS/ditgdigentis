@@ -29,20 +29,16 @@ export function SensorMonitor() {
         const sensorList: SensorData[] = [];
         const now = Date.now();
 
-        // Итерируем по всем ключам в data и фильтруем только датчики с ID, начинающимися с "28-"
+        // Итерируем по всем датчикам и фильтруем только те, которые начинаются с "zona1" или "SENSOR"
         for (const zone in data) {
-          if (zone.startsWith("28-")) { // Отбираем только датчики
-            const sensorData = data[zone];
-            const isOnline = sensorData
-              ? now - sensorData.timestamp < 30000 // Проверка на свежесть данных
-              : false;
+          const sensorData = data[zone];
+          const isOnline = sensorData ? now - sensorData.timestamp < 30000 : false;
 
-            sensorList.push({
-              id: zone,
-              temp: sensorData?.temp || "--", // Если данных нет, показываем "--"
-              online: isOnline,
-            });
-          }
+          sensorList.push({
+            id: zone,
+            temp: sensorData?.temperature || "--", // Если данных нет, показываем "--"
+            online: isOnline,
+          });
         }
 
         setSensors(sensorList);
@@ -65,9 +61,8 @@ export function SensorMonitor() {
 
   return (
     <div className="container sensor-container p-4">
-      {/* Среднее значение температуры */}
-      <div className="row wrapper-sens-top">
-        <h2 className="text-center mb-1">Средние показания:</h2>
+      <h2 className="text-center mb-1">Средние показания:</h2>
+      <div className="row">
         <div className="col-6 col-md-6 pb-2">
           <div className="top-average-temp-block">
             <div className="top-average-temp-label">
@@ -82,7 +77,6 @@ export function SensorMonitor() {
 
       {/* Датчики */}
       <h2 className="text-center mt-4 mb-1">Мониторинг датчиков температуры:</h2>
-
       <div className="row">
         {sensors.map((sensor, index) => (
           <div key={index} className="col-6 col-md-3">

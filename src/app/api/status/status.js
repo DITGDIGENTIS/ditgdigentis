@@ -1,63 +1,31 @@
+// pages/api/status.js
 import fs from "fs";
 import path from "path";
 
-// Путь к файлу для хранения данных
-const filePath = path.resolve("status.json");
+// Путь к файлу, где будут храниться данные
+const filePath = path.resolve("/home/ditg-z1/sensor_zones.json");
 
-// Функция для чтения и записи данных в файл
-const readData = () => {
+export async function GET(req, res) {
   try {
+    // Чтение данных из файла
     const rawData = fs.readFileSync(filePath, "utf-8");
-    return JSON.parse(rawData);
-  } catch (err) {
-    if (err.code === "ENOENT") {
-      // Если файл не существует, возвращаем пустой объект
-      return {};
-    }
-    throw err;
+    const data = JSON.parse(rawData);
+
+    // Логирование полученных данных
+    console.log("Returning sensor data:", data);
+
+    // Фильтрация только датчиков с ID, начинающимися на "28-" (для температурных датчиков)
+    const filteredData = Object.keys(data)
+      .filter(key => key.startsWith("zona1")) // Или используйте другое условие фильтрации
+      .reduce((obj, key) => {
+        obj[key] = data[key];
+        return obj;
+      }, {});
+
+    // Возвращаем только отфильтрованные данные
+    return res.status(200).json(filteredData);
+  } catch (error) {
+    console.error("Error reading data:", error);
+    return res.status(500).json({ error: "Failed to fetch data" });
   }
-};
-
-const writeData = (data) => {
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf-8");
-};
-
-// Хранение статусов по зонам
-export default function handler(req, res) {
-  // Обработка POST-запроса (получаем данные от Raspberry Pi)
-  if (req.method === "POST") {
-    const { id, ip, temp } = req.body;
-
-    // Проверка на наличие данных
-    if (!id || !ip || !temp) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
-
-    // Чтение текущих данных
-    const statusMap = readData();
-
-    // Сохраняем данные в statusMap
-    statusMap[id] = {
-      timestamp: Date.now(),
-      ip,
-      temp, // Сохраняем температуру
-    };
-
-    // Логируем для отладки
-    console.log(`Received data from ${id}: ${temp} °C`);
-
-    // Записываем обновленные данные в файл
-    writeData(statusMap);
-
-    return res.status(200).json({ ok: true, id, ip, temp });
-  }
-
-  // Обработка GET-запроса (получаем все данные для фронтенда)
-  if (req.method === "GET") {
-    const statusMap = readData();
-    return res.status(200).json(statusMap);
-  }
-
-  // Для других методов возвращаем ошибку
-  res.status(405).end();
 }
