@@ -1,10 +1,8 @@
-// src/app/api/status/serverstatus/route.ts
-
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 
-// Указываем путь к файлу для хранения данных о статусе сервера
+// Указываем путь к файлу для хранения данных
 const filePath = path.resolve("/home/ditg-as/server_status.json");
 
 type ServerStatus = {

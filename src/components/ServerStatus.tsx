@@ -9,39 +9,38 @@ export default function ServerStatus() {
 
   const checkServerStatus = async () => {
     try {
-      // Request the server status
+      // Отправляем запрос на получение статуса сервера
       const res = await fetch("https://ditgdigentis.vercel.app/api/status/serverstatus", {
         cache: "no-store", // Чтобы всегда получать актуальные данные
       });
       const data = await res.json();
       const now = Date.now();
 
-      // Getting the last timestamp from the server
-      const lastUpdate = data["server"]?.timestamp || 0;
+      // Получаем последнюю временную метку от сервера
+      const lastUpdate = data["status"] === "online" ? now : 0;
 
-      // Consider the server online if the last update is within the last 20 seconds
+      // Считаем сервер онлайн, если последнее обновление было в последние 20 секунд
       const online = now - lastUpdate < 20000;
 
-      // Update state only if it has changed
+      // Обновляем состояние, если оно изменилось
       if (lastServerOnlineRef.current !== online) {
         lastServerOnlineRef.current = online;
         setIsOnline(online);
       }
     } catch (error) {
-      console.error("Error checking server status:", error);
+      console.error("Ошибка при проверке статуса сервера:", error);
       setIsOnline(false);
       lastServerOnlineRef.current = false;
     }
   };
 
-  // UseEffect hook to check server status when the component mounts
   useEffect(() => {
     checkServerStatus();
-    const interval = setInterval(checkServerStatus, 10000); // Periodically update every 10 seconds
+    const interval = setInterval(checkServerStatus, 10000); // Периодически обновляем каждые 10 секунд
     return () => {
-      clearInterval(interval); // Cleanup interval when component is unmounted
+      clearInterval(interval); // Очищаем интервал, когда компонент размонтируется
     };
-  }, []); // Empty dependency array means this effect runs once on component mount
+  }, []); // Этот эффект запускается только один раз при монтировании компонента
 
   return (
     <div className="d-flex align-items-center justify-content-center gap-3">
