@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useRef } from "react";
 
-// Определяем тип для состояния зон
 type Zones = {
   zona1: boolean;
   zona2: boolean;
@@ -16,7 +15,6 @@ export function ZonaStatus() {
     zona3: false,
   });
 
-  // Храним предыдущее состояние для сравнения
   const previousStatusRef = useRef<Zones>(zonaStatus);
 
   const fetchStatus = () => {
@@ -24,9 +22,8 @@ export function ZonaStatus() {
       .then((res) => res.json())
       .then((data) => {
         const now = Date.now();
-        const timeout = 90000; // Время на основе последнего обновления, до которого считается зона "онлайн"
+        const timeout = 90000;
 
-        // Вычисляем новое состояние для каждой зоны
         const newStatus: Zones = {
           zona1: now - (data?.zona1?.timestamp ?? 0) < timeout,
           zona2: now - (data?.zona2?.timestamp ?? 0) < timeout,
@@ -48,25 +45,19 @@ export function ZonaStatus() {
 
   useEffect(() => {
     fetchStatus();
-    const interval = setInterval(fetchStatus, 5000); // Обновление статуса каждые 5 секунд
+    const interval = setInterval(fetchStatus, 5000);
     return () => clearInterval(interval);
   }, []);
 
   return (
     <div className="container mt-4">
       <div className="status-container-zona">
-        {/* Отображение статуса для каждой зоны */}
         {[1, 2, 3].map((i) => {
           const zoneKey = `zona${i}` as keyof Zones;
           const online = zonaStatus[zoneKey];
           return (
-            <div
-              key={zoneKey}
-              className="zona-sensor d-flex align-items-center justify-content-center mb-3"
-            >
-              <div className="zona-label fw-bold fs-5 text-light">
-                Zona {i}
-              </div>
+            <div key={zoneKey} className="zona-sensor">
+              <div className="zona-label">Zona {i}</div>
               <div
                 className={`status-indicator ${online ? "online" : "offline"}`}
                 title={online ? "Online" : "Offline"}
@@ -81,20 +72,29 @@ export function ZonaStatus() {
       <style jsx>{`
         .status-container-zona {
           display: flex;
-          flex-direction: column;
-          gap: 15px;
+          flex-direction: row; /* 🔁 теперь в линию */
+          justify-content: center;
           align-items: center;
+          gap: 40px;
+          flex-wrap: wrap;
         }
 
         .zona-sensor {
           display: flex;
-          justify-content: space-between;
-          width: 100%;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 10px 20px;
+          background-color: #1c1c1c;
+          border-radius: 12px;
+          box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
         }
 
         .zona-label {
           font-size: 1.25rem;
           color: white;
+          font-weight: 600;
         }
 
         .status-indicator {
@@ -104,7 +104,6 @@ export function ZonaStatus() {
           font-size: 14px;
           color: white;
           transition: all 0.3s ease;
-          box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
         }
 
         .online {
