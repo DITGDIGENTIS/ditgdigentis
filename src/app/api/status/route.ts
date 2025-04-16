@@ -1,113 +1,75 @@
 import { NextResponse } from "next/server";
-import { writeFile, readFile } from "fs/promises";
+import fs from "fs";
 import path from "path";
 
-// Путь к файлу, где будут храниться данные
-const filePath = path.resolve("/tmp/status.json");
+// Путь к файлу для хранения данных
+const filePath = path.resolve("/home/ditg-z1/sensor_zones.json");
 
-type DeviceStatus = {
-  ip: string;
-  timestamp: number;
-  temp?: string; // Температура датчика (опционально)
-};
+// Функция для обработки GET запроса
+export async function GET(req: Request) {
+  try {
+    // Чтение данных из файла
+    const rawData = await fs.promises.readFile(filePath, "utf-8");
+    const data = JSON.parse(rawData);
 
-type StatusMap = {
-  [key: string]: DeviceStatus;
-};
+    // Фильтруем только те записи, которые начинаются с "28-" (датчики температуры)
+    const filteredData = Object.keys(data)
+      .filter((key) => key.startsWith("28-")) // Фильтруем только датчики
+      .reduce((obj: Record<string, any>, key) => {
+        obj[key] = data[key]; // Копируем только те записи, которые подходят
+        return obj;
+      }, {}); // Инициализируем объект как StatusMap
 
-// Функция обработки POST запроса
+    // Возвращаем отфильтрованные данные о датчиках
+    return NextResponse.json(filteredData);
+  } catch (error) {
+    console.error("Error reading data:", error);
+    return NextResponse.json({ error: "Failed to fetch data" }, { status: 500 });
+  }
+}
+
+// Функция для обработки POST запроса
 export async function POST(req: Request) {
   try {
-    const form = await req.formData();
-    
-    // Извлекаем id, ip и температуру
-    const id = form.get("id")?.toString() || "unknown"; // ID устройства, например, zona1 или zonaTemperature
-    const ip = form.get("ip")?.toString() || "none";  // IP устройства
-    const tempRaw = form.get("temp")?.toString(); // Температура в строковом формате
-    const temp = tempRaw && tempRaw !== "undefined" ? tempRaw : undefined;  // Сохраняем температуру, если она есть
-    const timestamp = Date.now(); // Время отправки данных
-    
-    // Логируем получение данных для дебага
-    console.log("Received data:", { id, ip, temp });
+    // Чтение данных из тела запроса
+    const form = await req.json();
 
-    let data: StatusMap = {};
-    
-    // Попробуем прочитать и распарсить данные из файла
-    try {
-      const raw = await readFile(filePath, "utf8");
-      data = JSON.parse(raw);
-    } catch (e) {
-      // Обработка ошибки чтения файла (например, если файл не существует)
-      if (e instanceof Error) {
-        if (e.message.includes("ENOENT")) {
-          console.warn("File not found, starting with an empty object.");
-        } else {
-          console.error("Error reading file:", e.message);
-        }
-      }
-      data = {}; // Если файла нет или он пустой, начинаем с пустого объекта
+    // Извлекаем id, ip и температуру
+    const { id, ip, temp } = form;
+    if (!id || !ip || !temp) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // Проверка на корректность данных (например, на числовую температуру)
-    if (temp && isNaN(Number(temp))) {
-      return NextResponse.json({ status: "error", message: "Invalid temperature format" }, { status: 400 });
+    let data: Record<string, { timestamp: number; ip: string; temp: string }> = {};
+
+    // Чтение текущих данных
+    try {
+      const raw = await fs.promises.readFile(filePath, "utf-8");
+      data = JSON.parse(raw);
+    } catch (e) {
+      // Если файл не существует, инициализируем с пустым объектом
+      if (e instanceof Error && e.code === "ENOENT") {
+        console.warn("File not found, starting with an empty object.");
+        data = {}; // Если файл не найден, начинаем с пустого объекта
+      } else {
+        console.error("Error reading file:", e);
+        return NextResponse.json({ error: "Error reading file" }, { status: 500 });
+      }
     }
 
     // Добавляем или обновляем данные для указанного устройства
     data[id] = {
+      timestamp: Date.now(),
       ip,
-      timestamp,
-      ...(temp ? { temp } : {}), // Сохраняем температуру, если она есть
+      temp, // Сохраняем температуру
     };
 
-    // Логируем обновление данных
-    console.log("Updated data:", data);
-
     // Записываем обновленные данные в файл
-    await writeFile(filePath, JSON.stringify(data, null, 2), "utf8");
+    await fs.promises.writeFile(filePath, JSON.stringify(data, null, 2), "utf-8");
 
-    // Возвращаем успешный ответ с информацией о сохранённых данных
-    return NextResponse.json({
-      status: "ok",
-      savedAs: id,
-      ip,
-      temp, // Включаем температуру в ответ для дебага
-    });
+    return NextResponse.json({ status: "ok", savedAs: id, ip, temp });
   } catch (error) {
     console.error("Error in POST request:", error);
-    return NextResponse.json({ status: "error", message: "Internal server error" }, { status: 500 });
-  }
-}
-
-// Функция обработки GET запроса для получения данных
-export async function GET() {
-  try {
-    // Попробуем прочитать и распарсить данные из файла
-    const raw = await readFile(filePath, "utf8");
-    const json = JSON.parse(raw);
-
-    // Проверка на существование данных
-    if (typeof json !== "object" || json === null) {
-      console.error("Invalid data format in file.");
-      return NextResponse.json({}, { status: 400 });
-    }
-
-    // Фильтруем только данные о датчиках, которые начинаются на "28-" (датчики температуры)
-    const filteredData = Object.keys(json)
-      .filter(key => key.startsWith("28-") || key === "zona1" || key === "server") // Фильтруем по ID, начинающимся на "28-" или зонам
-      .reduce((obj, key) => {
-        const device = json[key];
-        // Убедимся, что устройство существует и имеет валидную структуру
-        if (device && typeof device === "object") {
-          obj[key] = device;
-        }
-        return obj;
-      }, {} as StatusMap); // Инициализируем объект как StatusMap
-
-    console.log("Returned sensor and zone data:", filteredData);
-    return NextResponse.json(filteredData);
-  } catch (error) {
-    console.error("Error in GET request:", error);
     return NextResponse.json({ status: "error", message: "Internal server error" }, { status: 500 });
   }
 }
