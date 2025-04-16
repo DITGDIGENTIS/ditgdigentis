@@ -78,4 +78,36 @@ export async function POST(req: Request) {
     return NextResponse.json({ status: "error", message: "Internal server error" }, { status: 500 });
   }
 }
-     
+
+// Функция обработки GET запроса для получения данных
+export async function GET() {
+  try {
+    // Попробуем прочитать и распарсить данные из файла
+    const raw = await readFile(filePath, "utf8");
+    const json = JSON.parse(raw);
+
+    // Проверка на существование данных
+    if (typeof json !== "object" || json === null) {
+      console.error("Invalid data format in file.");
+      return NextResponse.json({}, { status: 400 });
+    }
+
+    // Фильтруем только данные о датчиках, которые начинаются на "28-" (датчики температуры)
+    const filteredData = Object.keys(json)
+      .filter(key => key.startsWith("28-") || key === "zona1" || key === "server") // Фильтруем по ID, начинающимся на "28-" или зонам
+      .reduce((obj, key) => {
+        const device = json[key];
+        // Убедимся, что устройство существует и имеет валидную структуру
+        if (device && typeof device === "object") {
+          obj[key] = device;
+        }
+        return obj;
+      }, {} as StatusMap); // Инициализируем объект как StatusMap
+
+    console.log("Returned sensor and zone data:", filteredData);
+    return NextResponse.json(filteredData);
+  } catch (error) {
+    console.error("Error in GET request:", error);
+    return NextResponse.json({}, { status: 500 });
+  }
+}
