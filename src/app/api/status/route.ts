@@ -5,20 +5,27 @@ import path from "path";
 // Путь к файлу для хранения данных
 const filePath = path.resolve("/home/ditg-z1/sensor_zones.json");
 
+// Типизация для структуры данных
+type SensorData = {
+  timestamp: number;
+  ip: string;
+  temp: string;
+};
+
 // Функция для обработки GET запроса
-export async function GET(req: Request) {
+export async function GET() {
   try {
-    // Чтение данных из файла
+    // Чтение данных из файла с использованием асинхронных операций
     const rawData = await fs.promises.readFile(filePath, "utf-8");
-    const data = JSON.parse(rawData);
+    const data: Record<string, SensorData> = JSON.parse(rawData);
 
     // Фильтруем только те записи, которые начинаются с "28-" (датчики температуры)
     const filteredData = Object.keys(data)
       .filter((key) => key.startsWith("28-")) // Фильтруем только датчики
-      .reduce((obj: Record<string, any>, key) => {
+      .reduce((obj: Record<string, SensorData>, key) => {
         obj[key] = data[key]; // Копируем только те записи, которые подходят
         return obj;
-      }, {}); // Инициализируем объект как StatusMap
+      }, {}); // Инициализируем объект как Record<string, SensorData>
 
     // Возвращаем отфильтрованные данные о датчиках
     return NextResponse.json(filteredData);
@@ -40,7 +47,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    let data: Record<string, { timestamp: number; ip: string; temp: string }> = {};
+    let data: Record<string, SensorData> = {};
 
     // Чтение текущих данных
     try {
@@ -48,7 +55,7 @@ export async function POST(req: Request) {
       data = JSON.parse(raw);
     } catch (e) {
       // Если файл не существует, инициализируем с пустым объектом
-      if (e instanceof Error && e.code === "ENOENT") {
+      if ((e as NodeJS.ErrnoException).code === "ENOENT") {
         console.warn("File not found, starting with an empty object.");
         data = {}; // Если файл не найден, начинаем с пустого объекта
       } else {
