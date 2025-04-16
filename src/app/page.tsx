@@ -62,27 +62,27 @@ export default function Home() {
 
   return (
     <main>
-      <div>
-        <div className="d-flex align-items-center justify-content-center gap-3">
-          <img
-            src="/ditg-logo.png"
-            alt="DITG Logo"
-            width={160}
-            height={160}
-            className="ditg-logo"
-          />
-          <span className="indicator-label fw-bold fs-5 text-light">
-            ID:0001
-          </span>
-          <span
-            className={`status-indicator ${isOnline ? "online" : "offline"}`}
-            title={isOnline ? "Online" : "Offline"}
-          >
-            {isOnline ? "● ONLINE" : "○ OFFLINE"}
-          </span>
-        </div>
+      {/* Статус сервера */}
+      <div className="d-flex align-items-center justify-content-center gap-3">
+        <img
+          src="/ditg-logo.png"
+          alt="DITG Logo"
+          width={160}
+          height={160}
+          className="ditg-logo"
+        />
+        <span className="indicator-label fw-bold fs-5 text-light">
+          ID:0001
+        </span>
+        <span
+          className={`status-indicator ${isOnline ? "online" : "offline"}`}
+          title={isOnline ? "Online" : "Offline"}
+        >
+          {isOnline ? "● ONLINE" : "○ OFFLINE"}
+        </span>
       </div>
 
+      {/* Время */}
       <div className="container">
         <div className="row justify-content-center">
           <div className="col-auto text-center">
@@ -97,7 +97,10 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Статус зоны */}
       <ZonaStatus />
+
+      {/* Другие компоненты */}
       <ZonaTemperature />
       <SensorMonitor />
       <ZonaRelay />

@@ -24,7 +24,7 @@ export function ZonaStatus() {
       .then((res) => res.json())
       .then((data) => {
         const now = Date.now();
-        const timeout = 90000;
+        const timeout = 90000; // Время на основе последнего обновления, до которого считается зона "онлайн"
 
         // Вычисляем новое состояние для каждой зоны
         const newStatus: Zones = {
@@ -48,13 +48,14 @@ export function ZonaStatus() {
 
   useEffect(() => {
     fetchStatus();
-    const interval = setInterval(fetchStatus, 5000);
+    const interval = setInterval(fetchStatus, 5000); // Обновление статуса каждые 5 секунд
     return () => clearInterval(interval);
   }, []);
 
   return (
     <div className="container mt-4">
       <div className="status-container-zona">
+        {/* Отображение статуса для каждой зоны */}
         {[1, 2, 3].map((i) => {
           const zoneKey = `zona${i}` as keyof Zones;
           const online = zonaStatus[zoneKey];
@@ -78,6 +79,24 @@ export function ZonaStatus() {
       </div>
 
       <style jsx>{`
+        .status-container-zona {
+          display: flex;
+          flex-direction: column;
+          gap: 15px;
+          align-items: center;
+        }
+
+        .zona-sensor {
+          display: flex;
+          justify-content: space-between;
+          width: 100%;
+        }
+
+        .zona-label {
+          font-size: 1.25rem;
+          color: white;
+        }
+
         .status-indicator {
           padding: 6px 14px;
           border-radius: 20px;
