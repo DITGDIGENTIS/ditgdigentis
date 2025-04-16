@@ -1,25 +1,29 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
+import Image from "next/image";
 
 export default function ServerStatus() {
   const [isOnline, setIsOnline] = useState(false);
-  const lastRef = useRef(false);
+  const lastRef = useRef<boolean>(false);
 
   const checkStatus = async () => {
     try {
-      const res = await fetch("https://ditgdigentis.vercel.app/api/status", { cache: "no-store" });
+      const res = await fetch("https://ditgdigentis.vercel.app/api/status", {
+        cache: "no-store",
+      });
       const data = await res.json();
-      const online = Date.now() - data["server"]?.timestamp < 20000;
+      const lastUpdate = data.server?.timestamp ?? 0;
+      const online = Date.now() - lastUpdate < 20000;
 
       if (lastRef.current !== online) {
         lastRef.current = online;
         setIsOnline(online);
       }
-    } catch (e) {
-      setIsOnline(false);
+    } catch (err: unknown) {
+      console.error("Error fetching server status:", err);
       lastRef.current = false;
+      setIsOnline(false);
     }
   };
 
@@ -30,6 +34,78 @@ export default function ServerStatus() {
   }, []);
 
   return (
-    <span className={`indicator ${isOnline ? "connected" : ""}`}></span>
+    <>
+      <div className="d-flex align-items-center justify-content-center gap-3">
+        <Image
+          src="/ditg-logo.png"
+          alt="DITG Logo"
+          width={160}
+          height={160}
+          className="ditg-logo"
+          priority
+        />
+        <span className="indicator-label fw-bold fs-5 text-light">
+          ID:0001
+        </span>
+        <span
+          className={`status-indicator ${isOnline ? "online" : "offline"}`}
+          title={isOnline ? "Online" : "Offline"}
+        >
+          {isOnline ? "● ONLINE" : "○ OFFLINE"}
+        </span>
+      </div>
+
+      <style jsx>{`
+        .ditg-logo {
+          border-radius: 0;
+          object-fit: contain;
+          padding: 20px;
+        }
+
+        .status-indicator {
+          padding: 6px 14px;
+          border-radius: 20px;
+          font-weight: 600;
+          font-size: 14px;
+          color: white;
+          transition: all 0.3s ease;
+          box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .online {
+          background-color: #28a745;
+          animation: pulseGreen 2s infinite;
+        }
+
+        .offline {
+          background-color: #dc3545;
+          animation: pulseRed 2s infinite;
+        }
+
+        @keyframes pulseGreen {
+          0% {
+            box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+          }
+          70% {
+            box-shadow: 0 0 0 10px rgba(40, 167, 69, 0);
+          }
+          100% {
+            box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+          }
+        }
+
+        @keyframes pulseRed {
+          0% {
+            box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+          }
+          70% {
+            box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+          }
+          100% {
+            box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+          }
+        }
+      `}</style>
+    </>
   );
 }
