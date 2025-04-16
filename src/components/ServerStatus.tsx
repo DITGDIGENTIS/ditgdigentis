@@ -35,12 +35,12 @@ export default function ServerStatus() {
 
   return (
     <>
-      <div className="d-flex align-items-center justify-content-center gap-3">
+      <div className="d-flex align-items-center justify-content-center mt-3 gap-3">
         <Image
           src="/ditg-logo.png"
           alt="DITG Logo"
-          width={160}
-          height={160}
+          width={150}
+          height={150}
           className="ditg-logo"
           priority
         />

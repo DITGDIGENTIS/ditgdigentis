@@ -84,11 +84,8 @@ export function ZonaStatus() {
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          gap: 8px;
-          padding: 10px 20px;
-          background-color: #1c1c1c;
-          border-radius: 12px;
-          box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+          gap: 0;
+          border-radius: 12px; 
         }
 
         .zona-label {
