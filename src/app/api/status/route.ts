@@ -36,8 +36,22 @@ export async function POST(req: Request) {
     try {
       const raw = await readFile(filePath, "utf8");
       data = JSON.parse(raw);
-    } catch {
+    } catch (e) {
+      // Обработка ошибки чтения файла (например, если файл не существует)
+      if (e instanceof Error) {
+        // Проверяем тип ошибки
+        if (e.message.includes("ENOENT")) {
+          console.warn("File not found, starting with an empty object.");
+        } else {
+          console.error("Error reading file:", e.message);
+        }
+      }
       data = {}; // Если файла нет или он пустой, начинаем с пустого объекта
+    }
+
+    // Проверка на корректность данных (например, на числовую температуру)
+    if (temp && isNaN(Number(temp))) {
+      return NextResponse.json({ status: "error", message: "Invalid temperature format" }, { status: 400 });
     }
 
     // Добавляем или обновляем данные для указанного устройства
@@ -48,7 +62,7 @@ export async function POST(req: Request) {
     };
 
     // Записываем обновленные данные в файл
-    await writeFile(filePath, JSON.stringify(data), "utf8");
+    await writeFile(filePath, JSON.stringify(data, null, 2), "utf8");
 
     // Возвращаем успешный ответ с информацией о сохранённых данных
     return NextResponse.json({

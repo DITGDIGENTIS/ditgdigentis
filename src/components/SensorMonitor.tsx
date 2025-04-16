@@ -28,19 +28,19 @@ export function SensorMonitor() {
         const sensorList: SensorData[] = [];
         const now = Date.now();
 
-        // Определяем все зоны
-        const zones = ["zona1", "zona1_2", "zona1_3", "zona1_4"];
-
-        zones.forEach((zone) => {
+        // Итерируем по всем ключам в data
+        for (const zone in data) {
           const sensorData = data[zone];
-          const isOnline = sensorData ? now - sensorData.timestamp < 30000 : false; // Проверка на свежесть данных
+          const isOnline = sensorData
+            ? now - sensorData.timestamp < 30000 // Проверка на свежесть данных
+            : false;
 
           sensorList.push({
             id: zone,
-            temp: sensorData?.temp || "--", // Если данных нет, показываем "--"
+            temp: sensorData?.temperature ? sensorData.temperature.toFixed(2) : "--", // Если данных нет, показываем "--"
             online: isOnline,
           });
-        });
+        }
 
         setSensors(sensorList);
       } catch (error) {
@@ -54,9 +54,11 @@ export function SensorMonitor() {
     return () => clearInterval(interval);
   }, []);
 
-  const averageTemp = sensors.length > 0
-    ? (sensors.reduce((acc, sensor) => acc + parseFloat(sensor.temp || "0"), 0) / sensors.length).toFixed(2)
-    : "--";
+  const averageTemp =
+    sensors.length > 0
+      ? (sensors.reduce((acc, sensor) => acc + parseFloat(sensor.temp || "0"), 0) /
+          sensors.length).toFixed(2)
+      : "--";
 
   return (
     <div className="container sensor-container p-4">
