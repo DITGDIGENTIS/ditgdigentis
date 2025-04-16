@@ -39,7 +39,6 @@ export async function POST(req: Request) {
     } catch (e) {
       // Обработка ошибки чтения файла (например, если файл не существует)
       if (e instanceof Error) {
-        // Проверяем тип ошибки
         if (e.message.includes("ENOENT")) {
           console.warn("File not found, starting with an empty object.");
         } else {
@@ -61,6 +60,9 @@ export async function POST(req: Request) {
       ...(temp ? { temp } : {}), // Сохраняем температуру, если она есть
     };
 
+    // Логируем обновление данных
+    console.log("Updated data:", data);
+
     // Записываем обновленные данные в файл
     await writeFile(filePath, JSON.stringify(data, null, 2), "utf8");
 
@@ -76,36 +78,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ status: "error", message: "Internal server error" }, { status: 500 });
   }
 }
-
-// Функция обработки GET запроса для получения данных
-export async function GET() {
-  try {
-    // Попробуем прочитать и распарсить данные из файла
-    const raw = await readFile(filePath, "utf8");
-    const json = JSON.parse(raw);
-
-    // Проверка на существование данных
-    if (typeof json !== "object" || json === null) {
-      return NextResponse.json({}, { status: 400 });
-    }
-
-    // Фильтруем только данные о датчиках, которые начинаются на "28-" (датчики температуры)
-    const filteredData = Object.keys(json)
-      .filter(key => key.startsWith("28-")) // Фильтруем по ID, начинающимся на "28-" (датчики)
-      .reduce((obj, key) => {
-        const device = json[key];
-        // Убедимся, что устройство существует и имеет валидную структуру
-        if (device && typeof device === "object") {
-          obj[key] = device;
-        }
-        return obj;
-      }, {} as StatusMap); // Инициализируем объект как StatusMap
-
-    console.log("Returned sensor data:", filteredData);
-    return NextResponse.json(filteredData);
-  } catch (error) {
-    console.error("Error in GET request:", error);
-    return NextResponse.json({}, { status: 500 });
-  }
-}
-    
+     

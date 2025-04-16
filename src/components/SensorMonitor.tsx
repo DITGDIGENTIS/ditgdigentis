@@ -24,6 +24,7 @@ export function SensorMonitor() {
           },
         });
         const data = await res.json();
+        console.log("Fetched data:", data); // Логируем, что пришло с сервера
 
         const sensorList: SensorData[] = [];
         const now = Date.now();
@@ -104,4 +105,4 @@ export function SensorMonitor() {
     </div>
   );
 }
-     
+    
