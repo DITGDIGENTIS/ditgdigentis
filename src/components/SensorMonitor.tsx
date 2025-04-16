@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faThermometerHalf } from "@fortawesome/free-solid-svg-icons";
 
+// Типы данных для каждого датчика
 type SensorData = {
   id: string;
   temp: string;
@@ -16,16 +17,20 @@ export function SensorMonitor() {
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const res = await fetch("https://ditgdigentis.vercel.app/api/status", {
-          cache: "no-store", // Отключаем кеширование
+        const res = await fetch("/api/status", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
         });
         const data = await res.json();
 
         const sensorList: SensorData[] = [];
         const now = Date.now();
 
+        // Определяем все зоны
         const zones = ["zona1", "zona1_2", "zona1_3", "zona1_4"];
-        
+
         zones.forEach((zone) => {
           const sensorData = data[zone];
           const isOnline = sensorData ? now - sensorData.timestamp < 30000 : false; // Проверка на свежесть данных
@@ -56,7 +61,7 @@ export function SensorMonitor() {
   return (
     <div className="container sensor-container p-4">
       <div className="row wrapper-sens-top">
-        <h2 className="text-center mb-1">Середні показники:</h2>
+        <h2 className="text-center mb-1">Средние показания:</h2>
         <div className="col-6 col-md-6 pb-2">
           <div className="top-average-temp-block">
             <div className="top-average-temp-label">
@@ -69,7 +74,7 @@ export function SensorMonitor() {
         </div>
       </div>
 
-      <h2 className="text-center mt-4 mb-1">Моніторинг сенсорів:</h2>
+      <h2 className="text-center mt-4 mb-1">Мониторинг датчиков:</h2>
 
       <div className="row">
         {sensors.map((sensor, index) => (
