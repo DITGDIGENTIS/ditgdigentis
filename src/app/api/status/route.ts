@@ -84,11 +84,28 @@ export async function GET() {
     const raw = await readFile(filePath, "utf8");
     const json = JSON.parse(raw);
 
-    console.log("Returned data:", json);
-    return NextResponse.json(json);
+    // Проверка на существование данных
+    if (typeof json !== "object" || json === null) {
+      return NextResponse.json({}, { status: 400 });
+    }
+
+    // Фильтруем только данные о датчиках, которые начинаются на "28-" (датчики температуры)
+    const filteredData = Object.keys(json)
+      .filter(key => key.startsWith("28-")) // Фильтруем по ID, начинающимся на "28-" (датчики)
+      .reduce((obj, key) => {
+        const device = json[key];
+        // Убедимся, что устройство существует и имеет валидную структуру
+        if (device && typeof device === "object") {
+          obj[key] = device;
+        }
+        return obj;
+      }, {} as StatusMap); // Инициализируем объект как StatusMap
+
+    console.log("Returned sensor data:", filteredData);
+    return NextResponse.json(filteredData);
   } catch (error) {
     console.error("Error in GET request:", error);
     return NextResponse.json({}, { status: 500 });
   }
 }
-      
+    
