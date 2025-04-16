@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import ServerStatus from "../components/ServerStatus";  // Importing the ServerStatus component
+import ServerStatus from "../components/ServerStatus";
 import { ZonaStatus } from "../components/ZonaStatus";
 import { SensorMonitor } from "../components/SensorMonitor";
 import ZonaTemperature from "../components/ZonaTemperature";
@@ -29,7 +29,7 @@ export default function Home() {
 
   return (
     <main>
-      <ServerStatus /> {/* Including the ServerStatus component here */}
+      <ServerStatus />
       
       {/* Time display */}
       <div className="container">

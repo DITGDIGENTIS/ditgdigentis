@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -8,6 +9,7 @@ export default function ServerStatus() {
 
   const checkServerStatus = async () => {
     try {
+      // Request the server status
       const res = await fetch("https://ditgdigentis.vercel.app/api/status", {
         cache: "no-store", // To always get fresh data
       });
@@ -32,13 +34,14 @@ export default function ServerStatus() {
     }
   };
 
+  // UseEffect hook to check server status when the component mounts
   useEffect(() => {
     checkServerStatus();
     const interval = setInterval(checkServerStatus, 10000); // Periodically update every 10 seconds
     return () => {
-      clearInterval(interval);
+      clearInterval(interval); // Cleanup interval when component is unmounted
     };
-  }, []);
+  }, []); // Empty dependency array means this effect runs once on component mount
 
   return (
     <div className="d-flex align-items-center justify-content-center gap-3">
