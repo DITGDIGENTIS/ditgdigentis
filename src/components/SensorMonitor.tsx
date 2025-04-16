@@ -22,25 +22,25 @@ export function SensorMonitor() {
           cache: "no-store", // Отключаем кеширование
         });
         const data: Record<string, { temp: string; timestamp: number }> = await res.json();
+        const now = Date.now();
 
-        console.log("Fetched data:", data); // Логируем полученные данные
+        // Логируем полученные данные
+        console.log("Fetched data:", data);
 
         // Список датчиков
         const sensorList: SensorData[] = [];
-        const now = Date.now();
-
-        // Определяем все зоны
         const zones = ["zona1", "zona1_2", "zona1_3", "zona1_4"];
 
         // Обрабатываем каждую зону
         zones.forEach((zone) => {
           const sensorData = data[zone];
           const isOnline = sensorData ? now - sensorData.timestamp < 30000 : false; // Проверка на свежесть данных
+          const temp = sensorData?.temp || "--"; // Если данных нет, показываем "--"
 
           // Добавляем данные о датчике в список
           sensorList.push({
             id: zone,
-            temp: sensorData?.temp || "--", // Если данных нет, показываем "--"
+            temp: temp,
             online: isOnline,
           });
         });
