@@ -1,23 +1,21 @@
+// src/app/api/status/serverstatus/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
-let lastTimestamp = 0;
+let lastTimestamp: number = 0;
 
 export async function POST(req: NextRequest) {
   try {
     const { timestamp } = await req.json();
 
-    if (!timestamp) {
-      return NextResponse.json(
-        { error: "Missing required field 'timestamp'" },
-        { status: 400 }
-      );
+    if (!timestamp || typeof timestamp !== "number") {
+      return NextResponse.json({ error: "Missing or invalid 'timestamp'" }, { status: 400 });
     }
 
     lastTimestamp = timestamp;
 
-    return NextResponse.json({ status: "ok", timestamp });
+    return NextResponse.json({ status: "updated", timestamp });
   } catch (error) {
-    console.error("Ошибка при POST:", error);
+    console.error("POST error:", error);
     return NextResponse.json({ error: "Ошибка сервера" }, { status: 500 });
   }
 }
@@ -32,7 +30,7 @@ export async function GET() {
       timestamp: lastTimestamp,
     });
   } catch (error) {
-    console.error("Ошибка при GET:", error);
+    console.error("GET error:", error);
     return NextResponse.json({ error: "Ошибка получения статуса" }, { status: 500 });
   }
 }
