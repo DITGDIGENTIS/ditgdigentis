@@ -11,7 +11,7 @@ export default function ServerStatus() {
     try {
       const res = await fetch("https://ditgdigentis.vercel.app/api/status", { cache: "no-store" });
       const data = await res.json();
-      const online = Date.now() - data.timestamp < 15000;
+      const online = Date.now() - data["server"]?.timestamp < 20000;
 
       if (lastRef.current !== online) {
         lastRef.current = online;
@@ -25,7 +25,7 @@ export default function ServerStatus() {
 
   useEffect(() => {
     checkStatus();
-    const intv = setInterval(checkStatus, 5000);
+    const intv = setInterval(checkStatus, 1000);
     return () => clearInterval(intv);
   }, []);
 
