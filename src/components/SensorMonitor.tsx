@@ -77,7 +77,7 @@ export function SensorMonitor() {
         </div>
       </div>
 
-      <h2 className="text-center mt-4 mb-1">Мониторинг датчиков:</h2>
+      <h2 className="text-center mt-4 mb-1">Мониторинг датчиков и сервера:</h2>
 
       <div className="row">
         {sensors.map((sensor, index) => (
@@ -105,4 +105,3 @@ export function SensorMonitor() {
     </div>
   );
 }
-    
