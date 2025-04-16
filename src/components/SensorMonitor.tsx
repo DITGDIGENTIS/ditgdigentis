@@ -37,7 +37,7 @@ export function SensorMonitor() {
 
           sensorList.push({
             id: zone,
-            temp: sensorData?.temperature ? sensorData.temperature.toFixed(2) : "--", // Если данных нет, показываем "--"
+            temp: sensorData?.temp || "--", // Если данных нет, показываем "--"
             online: isOnline,
           });
         }
