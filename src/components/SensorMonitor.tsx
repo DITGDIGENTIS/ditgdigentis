@@ -26,7 +26,7 @@ type SensorData = {
 };
 
 const SENSOR_KEYS = ["SENSOR1-1", "SENSOR1-2", "SENSOR1-3", "SENSOR1-4"];
-const TIMEOUT_MS = 5 * 60 * 1000; // 5 минут = 300000 мс
+const TIMEOUT_MS = 5 * 60 * 1000; // 5 минут
 
 export function SensorMonitor() {
   const [sensors, setSensors] = useState<SensorData[]>([]);
@@ -49,16 +49,15 @@ export function SensorMonitor() {
             temp: raw.temperature?.toString() || "--",
             timestamp: raw.timestamp,
             age: serverTime - raw.timestamp,
-            online: true, // ← Всегда считаем ONLINE по умолчанию
+            online: true,
           };
         });
 
         const updatedList = SENSOR_KEYS.map((key) => {
           const cached = sensorCache.current[key];
-
           const isOffline =
             !cached?.timestamp ||
-            (serverTime - cached.timestamp > TIMEOUT_MS);
+            serverTime - cached.timestamp > TIMEOUT_MS;
 
           return {
             id: key,
@@ -76,7 +75,7 @@ export function SensorMonitor() {
     };
 
     fetchStatus();
-    const interval = setInterval(fetchStatus, 3000); // синхронно с отправкой
+    const interval = setInterval(fetchStatus, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -114,9 +113,6 @@ export function SensorMonitor() {
                 >
                   ● {sensor.online ? "ONLINE" : "OFFLINE"}
                 </button>
-                <div className="status-age small text-muted">
-                  Обновлено: {Math.floor(sensor.age / 1000)} сек назад
-                </div>
               </div>
               <div className="average-temp-label">
                 <FontAwesomeIcon icon={faThermometerHalf} />{" "}
