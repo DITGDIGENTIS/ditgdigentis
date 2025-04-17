@@ -22,10 +22,11 @@ type SensorData = {
   temp: string;
   online: boolean;
   timestamp: number;
+  age: number; // ← добавим возраст данных
 };
 
 const SENSOR_KEYS = ["SENSOR1-1", "SENSOR1-2", "SENSOR1-3", "SENSOR1-4"];
-const TIMEOUT_MS = 9000; // буфер надёжности
+const TIMEOUT_MS = 15000;
 
 export function SensorMonitor() {
   const [sensors, setSensors] = useState<SensorData[]>([]);
@@ -39,7 +40,6 @@ export function SensorMonitor() {
         const data = response.sensors;
         const serverTime = response.serverTime;
 
-        // Обновляем кэш по каждому сенсору
         SENSOR_KEYS.forEach((key) => {
           const raw = data[key];
           if (!raw) return;
@@ -48,21 +48,23 @@ export function SensorMonitor() {
             id: key,
             temp: raw.temperature?.toString() || "--",
             timestamp: raw.timestamp,
-            online: Math.abs(serverTime - raw.timestamp) < TIMEOUT_MS,
+            age: serverTime - raw.timestamp,
+            online: serverTime - raw.timestamp < TIMEOUT_MS,
           };
         });
 
-        // Строим итоговый список для отображения
         const updatedList = SENSOR_KEYS.map((key) => {
           const cached = sensorCache.current[key];
+          const isOnline =
+            cached?.timestamp !== undefined &&
+            serverTime - cached.timestamp < TIMEOUT_MS;
 
           return {
             id: key,
             temp: cached?.temp || "--",
-            online:
-              cached?.timestamp !== undefined &&
-              Math.abs(serverTime - cached.timestamp) < TIMEOUT_MS,
+            online: isOnline,
             timestamp: cached?.timestamp || 0,
+            age: serverTime - (cached?.timestamp || 0),
           };
         });
 
@@ -73,7 +75,7 @@ export function SensorMonitor() {
     };
 
     fetchStatus();
-    const interval = setInterval(fetchStatus, 3000); // обновление каждые 3 секунды
+    const interval = setInterval(fetchStatus, 3000); // sync with Pi
     return () => clearInterval(interval);
   }, []);
 
@@ -92,9 +94,7 @@ export function SensorMonitor() {
           <div className="top-average-temp-block">
             <div className="top-average-temp-label">
               <FontAwesomeIcon icon={faThermometerHalf} />{" "}
-              <span className="top-average-temp-data">
-                {averageTemp} °C
-              </span>
+              <span className="top-average-temp-data">{averageTemp} °C</span>
             </div>
           </div>
         </div>
@@ -113,6 +113,9 @@ export function SensorMonitor() {
                 >
                   ● {sensor.online ? "ONLINE" : "OFFLINE"}
                 </button>
+                <div className="status-age small text-muted">
+                  Обновлено: {Math.floor(sensor.age / 1000)} сек назад
+                </div>
               </div>
               <div className="average-temp-label">
                 <FontAwesomeIcon icon={faThermometerHalf} />{" "}
