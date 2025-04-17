@@ -25,7 +25,7 @@ type SensorData = {
 };
 
 const SENSOR_KEYS = ["SENSOR1-1", "SENSOR1-2", "SENSOR1-3", "SENSOR1-4"];
-const TIMEOUT_MS = 10000;
+const TIMEOUT_MS = 1000;
 
 export function SensorMonitor() {
   const [sensors, setSensors] = useState<SensorData[]>([]);
