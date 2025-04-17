@@ -11,7 +11,10 @@ type RawSensorItem = {
 };
 
 type RawSensorResponse = {
-  [sensorKey: string]: RawSensorItem;
+  sensors: {
+    [sensorKey: string]: RawSensorItem;
+  };
+  serverTime: number;
 };
 
 type SensorData = {
@@ -29,24 +32,25 @@ export function SensorMonitor() {
     const fetchStatus = async () => {
       try {
         const res = await fetch("/api/sensors", { cache: "no-store" });
-        const data: RawSensorResponse = await res.json();
+        const response: RawSensorResponse = await res.json();
+
+        const data = response.sensors;
+        const serverTime = response.serverTime;
 
         const sensorList: SensorData[] = SENSOR_KEYS.map((key) => {
           const value = data[key];
           const timestamp = value?.timestamp;
+
           const online =
             typeof timestamp === "number" &&
-            Math.abs(Date.now() - timestamp) < 60000;
-        
-          console.log("Sensor:", key, "Temp:", value?.temperature, "Timestamp:", timestamp, "Online:", online);
-        
+            Math.abs(serverTime - timestamp) < 60000;
+
           return {
             id: key,
             temp: value?.temperature?.toString() || "--",
             online,
           };
         });
-        
 
         setSensors(sensorList);
       } catch (error) {

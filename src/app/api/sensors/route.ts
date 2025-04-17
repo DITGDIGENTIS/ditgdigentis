@@ -13,11 +13,9 @@ type SensorMap = {
   };
 };
 
-// POST от Raspberry Pi
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-
+    const body: SensorMap = await req.json();
     await writeFile(filePath, JSON.stringify(body, null, 2), "utf8");
 
     return NextResponse.json({ status: "ok", received: Object.keys(body).length });
@@ -27,20 +25,24 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// GET для фронта
 export async function GET() {
   try {
     await access(filePath, constants.F_OK);
     const raw = await readFile(filePath, "utf8");
     const data: SensorMap = JSON.parse(raw);
 
-    // Фильтрация только SENSOR1-*
     const filtered = Object.fromEntries(
       Object.entries(data).filter(([key]) => key.startsWith("SENSOR1-"))
     );
 
-    return NextResponse.json(filtered);
+    return NextResponse.json({
+      sensors: filtered,
+      serverTime: Date.now(), // 💥 стабильное серверное время
+    });
   } catch {
-    return NextResponse.json({});
+    return NextResponse.json({
+      sensors: {},
+      serverTime: Date.now(),
+    });
   }
 }
