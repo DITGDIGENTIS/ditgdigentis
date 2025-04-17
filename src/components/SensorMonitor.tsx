@@ -25,7 +25,7 @@ type SensorData = {
 };
 
 const SENSOR_KEYS = ["SENSOR1-1", "SENSOR1-2", "SENSOR1-3", "SENSOR1-4"];
-const TIMEOUT_MS = 30000;
+const TIMEOUT_MS = 9000; // буфер надёжности
 
 export function SensorMonitor() {
   const [sensors, setSensors] = useState<SensorData[]>([]);
@@ -39,6 +39,7 @@ export function SensorMonitor() {
         const data = response.sensors;
         const serverTime = response.serverTime;
 
+        // Обновляем кэш по каждому сенсору
         SENSOR_KEYS.forEach((key) => {
           const raw = data[key];
           if (!raw) return;
@@ -51,15 +52,16 @@ export function SensorMonitor() {
           };
         });
 
+        // Строим итоговый список для отображения
         const updatedList = SENSOR_KEYS.map((key) => {
           const cached = sensorCache.current[key];
-          const stillOnline =
-            cached && Math.abs(Date.now() - cached.timestamp) < TIMEOUT_MS;
 
           return {
             id: key,
             temp: cached?.temp || "--",
-            online: stillOnline,
+            online:
+              cached?.timestamp !== undefined &&
+              Math.abs(serverTime - cached.timestamp) < TIMEOUT_MS,
             timestamp: cached?.timestamp || 0,
           };
         });
@@ -71,7 +73,7 @@ export function SensorMonitor() {
     };
 
     fetchStatus();
-    const interval = setInterval(fetchStatus, 1000); // обновление каждую секунду
+    const interval = setInterval(fetchStatus, 3000); // обновление каждые 3 секунды
     return () => clearInterval(interval);
   }, []);
 
