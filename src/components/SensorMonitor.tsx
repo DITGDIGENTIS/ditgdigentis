@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faThermometerHalf } from "@fortawesome/free-solid-svg-icons";
 
-// Тип ответа от API
 type RawSensorItem = {
   id: string;
   temperature: number | string;
@@ -21,6 +20,8 @@ type SensorData = {
   online: boolean;
 };
 
+const SENSOR_KEYS = ["SENSOR1-1", "SENSOR1-2", "SENSOR1-3", "SENSOR1-4"];
+
 export function SensorMonitor() {
   const [sensors, setSensors] = useState<SensorData[]>([]);
 
@@ -31,16 +32,28 @@ export function SensorMonitor() {
         const data: RawSensorResponse = await res.json();
         const now = Date.now();
 
-        const sensorList: SensorData[] = Object.entries(data).map(([key, value]) => ({
-          id: key,
-          temp: value.temperature?.toString() || "--",
-          online: now - (value.timestamp || 0) < 30000,
-        }));
+        const sensorList: SensorData[] = SENSOR_KEYS.map((key) => {
+          const value = data[key];
+          const online = value ? now - (value.timestamp || 0) < 30000 : false;
+          return {
+            id: key,
+            temp: value?.temperature?.toString() || "--",
+            online,
+          };
+        });
 
         setSensors(sensorList);
       } catch (error) {
         console.error("Ошибка получения:", error);
-        setSensors([]);
+
+        // Отображаем 4 offline-блока даже при ошибке
+        setSensors(
+          SENSOR_KEYS.map((key) => ({
+            id: key,
+            temp: "--",
+            online: false,
+          }))
+        );
       }
     };
 
