@@ -28,7 +28,7 @@ export function SensorMonitor() {
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const res = await fetch("/api/status", { cache: "no-store" });
+        const res = await fetch("/api/sensors", { cache: "no-store" }); // <-- подключаемся к /api/sensors
         const data: RawSensorResponse = await res.json();
         const now = Date.now();
 
@@ -45,8 +45,6 @@ export function SensorMonitor() {
         setSensors(sensorList);
       } catch (error) {
         console.error("Ошибка получения:", error);
-
-        // Отображаем 4 offline-блока даже при ошибке
         setSensors(
           SENSOR_KEYS.map((key) => ({
             id: key,
@@ -84,7 +82,7 @@ export function SensorMonitor() {
         </div>
       </div>
 
-      <h2 className="text-center mt-4 mb-1">Мониторинг датчиков:</h2>
+      <h2 className="text-center mt-4 mb-1">Мониторинг датчиків температури:</h2>
       <div className="row">
         {sensors.map((sensor, index) => (
           <div key={index} className="col-6 col-md-3">
