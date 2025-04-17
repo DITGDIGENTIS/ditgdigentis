@@ -28,13 +28,17 @@ export function SensorMonitor() {
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const res = await fetch("/api/sensors", { cache: "no-store" }); // <-- подключаемся к /api/sensors
+        const res = await fetch("/api/sensors", { cache: "no-store" });
         const data: RawSensorResponse = await res.json();
-        const now = Date.now();
 
         const sensorList: SensorData[] = SENSOR_KEYS.map((key) => {
           const value = data[key];
-          const online = value ? now - (value.timestamp || 0) < 30000 : false;
+          const timestamp = value?.timestamp;
+          const online =
+            typeof timestamp === "number" && Date.now() - timestamp < 30000;
+
+          console.log("Sensor:", key, "Temp:", value?.temperature, "Online:", online);
+
           return {
             id: key,
             temp: value?.temperature?.toString() || "--",
@@ -82,7 +86,7 @@ export function SensorMonitor() {
         </div>
       </div>
 
-      <h2 className="text-center mt-4 mb-1">Мониторинг датчиків температури:</h2>
+      <h2 className="text-center mt-4 mb-1">Моніторинг датчиків температури:</h2>
       <div className="row">
         {sensors.map((sensor, index) => (
           <div key={index} className="col-6 col-md-3">
