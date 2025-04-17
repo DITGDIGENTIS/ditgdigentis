@@ -79,16 +79,23 @@ export function SensorMonitor() {
     return () => clearInterval(interval);
   }, []);
 
-  const averageTemp = sensors.length
-    ? (
-        sensors.reduce((acc, s) => acc + parseFloat(s.temp || "0"), 0) /
-        sensors.length
-      ).toFixed(2)
-    : "--";
+  // Только по SENSOR1-1 и SENSOR1-2
+  const filteredSensors = sensors.filter(
+    (s) => s.id === "SENSOR1-1" || s.id === "SENSOR1-2"
+  );
+
+  const validTemps = filteredSensors
+    .filter((s) => s.online && !isNaN(Number(s.temp)))
+    .map((s) => parseFloat(s.temp));
+
+  const averageTemp =
+    validTemps.length > 0
+      ? (validTemps.reduce((acc, t) => acc + t, 0) / validTemps.length).toFixed(2)
+      : "--";
 
   return (
     <div className="container sensor-container p-4">
-      <h2 className="text-center mb-1">Средние показания:</h2>
+      <h2 className="text-center mb-1">Середні показники температури:(1-1 и 1-2):</h2>
       <div className="row">
         <div className="col-12 col-md-6 pb-2">
           <div className="top-average-temp-block">
