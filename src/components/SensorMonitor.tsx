@@ -22,11 +22,11 @@ type SensorData = {
   temp: string;
   online: boolean;
   timestamp: number;
-  age: number; // ← добавим возраст данных
+  age: number;
 };
 
 const SENSOR_KEYS = ["SENSOR1-1", "SENSOR1-2", "SENSOR1-3", "SENSOR1-4"];
-const TIMEOUT_MS = 15000;
+const TIMEOUT_MS = 5 * 60 * 1000; // 5 минут = 300000 мс
 
 export function SensorMonitor() {
   const [sensors, setSensors] = useState<SensorData[]>([]);
@@ -49,22 +49,23 @@ export function SensorMonitor() {
             temp: raw.temperature?.toString() || "--",
             timestamp: raw.timestamp,
             age: serverTime - raw.timestamp,
-            online: serverTime - raw.timestamp < TIMEOUT_MS,
+            online: true, // ← Всегда считаем ONLINE по умолчанию
           };
         });
 
         const updatedList = SENSOR_KEYS.map((key) => {
           const cached = sensorCache.current[key];
-          const isOnline =
-            cached?.timestamp !== undefined &&
-            serverTime - cached.timestamp < TIMEOUT_MS;
+
+          const isOffline =
+            !cached?.timestamp ||
+            (serverTime - cached.timestamp > TIMEOUT_MS);
 
           return {
             id: key,
             temp: cached?.temp || "--",
-            online: isOnline,
+            online: !isOffline,
             timestamp: cached?.timestamp || 0,
-            age: serverTime - (cached?.timestamp || 0),
+            age: cached?.timestamp ? serverTime - cached.timestamp : 0,
           };
         });
 
@@ -75,7 +76,7 @@ export function SensorMonitor() {
     };
 
     fetchStatus();
-    const interval = setInterval(fetchStatus, 3000); // sync with Pi
+    const interval = setInterval(fetchStatus, 3000); // синхронно с отправкой
     return () => clearInterval(interval);
   }, []);
 
