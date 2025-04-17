@@ -35,16 +35,18 @@ export function SensorMonitor() {
           const value = data[key];
           const timestamp = value?.timestamp;
           const online =
-            typeof timestamp === "number" && Date.now() - timestamp < 30000;
-
-          console.log("Sensor:", key, "Temp:", value?.temperature, "Online:", online);
-
+            typeof timestamp === "number" &&
+            Math.abs(Date.now() - timestamp) < 60000;
+        
+          console.log("Sensor:", key, "Temp:", value?.temperature, "Timestamp:", timestamp, "Online:", online);
+        
           return {
             id: key,
             temp: value?.temperature?.toString() || "--",
             online,
           };
         });
+        
 
         setSensors(sensorList);
       } catch (error) {
