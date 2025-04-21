@@ -26,11 +26,10 @@ type SensorData = {
 };
 
 const SENSOR_KEYS = ["SENSOR1-1", "SENSOR1-2", "SENSOR1-3", "SENSOR1-4"];
-const TIMEOUT_MS = 5 * 60 * 1000; // 5 минут
+const TIMEOUT_MS = 5 * 60 * 1000;
 
 export function SensorMonitor() {
   const [sensors, setSensors] = useState<SensorData[]>([]);
-  const [alerts, setAlerts] = useState<string[]>([]);
   const sensorCache = useRef<Record<string, SensorData>>({});
 
   useEffect(() => {
@@ -75,13 +74,6 @@ export function SensorMonitor() {
           });
 
         setSensors(updatedList);
-
-        // Генерация алертов
-        const offlineAlerts = updatedList
-          .filter((s) => !s.online)
-          .map((s) => `⚠️ ${s.id} не в мережі`);
-
-        setAlerts(offlineAlerts);
       } catch (error) {
         console.error("Ошибка получения:", error);
       }
@@ -107,14 +99,6 @@ export function SensorMonitor() {
 
   return (
     <div className="container sensor-container p-4">
-      {alerts.length > 0 && (
-        <div className="alert alert-warning text-center mb-4" role="alert">
-          {alerts.map((msg, index) => (
-            <div key={index}>{msg}</div>
-          ))}
-        </div>
-      )}
-
       <h2 className="text-center mb-1">Середні показники температури: 1-1 и 1-2</h2>
       <div className="row">
         <div className="col-12 col-md-6 pb-2">
@@ -131,6 +115,11 @@ export function SensorMonitor() {
       <div className="row">
         {sensors.map((sensor, index) => (
           <div key={index} className="col-6 col-md-3">
+            {!sensor.online && (
+              <div className="alert alert-danger text-center p-2 mb-2">
+                ⚠ {sensor.id} не в мережі
+              </div>
+            )}
             <div className="average-temp-block">
               <div className="description-temp-block">
                 {sensor.id}
