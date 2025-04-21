@@ -53,20 +53,25 @@ export function SensorMonitor() {
           };
         });
 
-        const updatedList = SENSOR_KEYS.map((key) => {
-          const cached = sensorCache.current[key];
-          const isOffline =
-            !cached?.timestamp ||
-            serverTime - cached.timestamp > TIMEOUT_MS;
+        const updatedList = SENSOR_KEYS
+          .map((key) => {
+            const cached = sensorCache.current[key];
+            const isOffline =
+              !cached?.timestamp || serverTime - cached.timestamp > TIMEOUT_MS;
 
-          return {
-            id: key,
-            temp: cached?.temp || "--",
-            online: !isOffline,
-            timestamp: cached?.timestamp || 0,
-            age: cached?.timestamp ? serverTime - cached.timestamp : 0,
-          };
-        });
+            return {
+              id: key,
+              temp: !isOffline ? cached?.temp || "--" : "--",
+              online: !isOffline,
+              timestamp: cached?.timestamp || 0,
+              age: cached?.timestamp ? serverTime - cached.timestamp : 0,
+            };
+          })
+          .sort((a, b) => {
+            const aNum = parseInt(a.id.split("-")[1]);
+            const bNum = parseInt(b.id.split("-")[1]);
+            return aNum - bNum;
+          });
 
         setSensors(updatedList);
       } catch (error) {
@@ -79,7 +84,7 @@ export function SensorMonitor() {
     return () => clearInterval(interval);
   }, []);
 
-  // Только по SENSOR1-1 и SENSOR1-2
+  // Только SENSOR1-1 и SENSOR1-2
   const filteredSensors = sensors.filter(
     (s) => s.id === "SENSOR1-1" || s.id === "SENSOR1-2"
   );
