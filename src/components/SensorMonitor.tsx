@@ -30,6 +30,7 @@ const TIMEOUT_MS = 5 * 60 * 1000; // 5 минут
 
 export function SensorMonitor() {
   const [sensors, setSensors] = useState<SensorData[]>([]);
+  const [alerts, setAlerts] = useState<string[]>([]);
   const sensorCache = useRef<Record<string, SensorData>>({});
 
   useEffect(() => {
@@ -74,6 +75,13 @@ export function SensorMonitor() {
           });
 
         setSensors(updatedList);
+
+        // Генерация алертов
+        const offlineAlerts = updatedList
+          .filter((s) => !s.online)
+          .map((s) => `⚠️ ${s.id} не в мережі`);
+
+        setAlerts(offlineAlerts);
       } catch (error) {
         console.error("Ошибка получения:", error);
       }
@@ -84,7 +92,6 @@ export function SensorMonitor() {
     return () => clearInterval(interval);
   }, []);
 
-  // Только SENSOR1-1 и SENSOR1-2
   const filteredSensors = sensors.filter(
     (s) => s.id === "SENSOR1-1" || s.id === "SENSOR1-2"
   );
@@ -100,6 +107,14 @@ export function SensorMonitor() {
 
   return (
     <div className="container sensor-container p-4">
+      {alerts.length > 0 && (
+        <div className="alert alert-warning text-center mb-4" role="alert">
+          {alerts.map((msg, index) => (
+            <div key={index}>{msg}</div>
+          ))}
+        </div>
+      )}
+
       <h2 className="text-center mb-1">Середні показники температури: 1-1 и 1-2</h2>
       <div className="row">
         <div className="col-12 col-md-6 pb-2">
