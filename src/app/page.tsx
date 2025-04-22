@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import ServerStatus from "../components/ServerStatus";
 import { ZonaStatus } from "../components/ZonaStatus";
 import { SensorMonitor } from "../components/SensorMonitor";
+import { HumidityMonitor } from "../components/HumidityMonitor";
 import ZonaTemperature from "../components/ZonaTemperature";
 import ZonaRelay from "../components/ZonaRelay";
 
@@ -45,6 +46,7 @@ export default function Home() {
       <ZonaStatus />
       <ZonaTemperature />
       <SensorMonitor />
+      <HumidityMonitor />
       <ZonaRelay />
 
       <style jsx>{`
