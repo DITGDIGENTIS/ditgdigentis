@@ -78,33 +78,8 @@ export function HumidityMonitor() {
     return () => clearInterval(interval);
   }, []);
 
-  const filtered = sensors.filter(
-    (s) => s.id === "HUM1-1" || s.id === "HUM1-2"
-  );
-
-  const validValues = filtered
-    .filter((s) => s.online && !isNaN(Number(s.humidity)))
-    .map((s) => parseFloat(s.humidity));
-
-  const averageHumidity =
-    validValues.length > 0
-      ? (validValues.reduce((acc, h) => acc + h, 0) / validValues.length).toFixed(2)
-      : "--";
-
   return (
     <div className="container sensor-container p-4">
-      <h2 className="text-center mb-1">Середній рівень вологості: HUM1-1 і HUM1-2</h2>
-      <div className="row">
-        <div className="col-12 col-md-6 pb-2">
-          <div className="top-average-temp-block">
-            <div className="top-average-temp-label">
-              <FontAwesomeIcon icon={faTint} />{" "}
-              <span className="top-average-temp-data">{averageHumidity} %</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <h2 className="text-center mt-4 mb-1">Моніторинг датчиків вологості:</h2>
       <div className="row">
         {sensors.map((sensor, index) => (

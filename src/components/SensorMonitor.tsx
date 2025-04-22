@@ -84,33 +84,8 @@ export function SensorMonitor() {
     return () => clearInterval(interval);
   }, []);
 
-  const filteredSensors = sensors.filter(
-    (s) => s.id === "SENSOR1-1" || s.id === "SENSOR1-2"
-  );
-
-  const validTemps = filteredSensors
-    .filter((s) => s.online && !isNaN(Number(s.temp)))
-    .map((s) => parseFloat(s.temp));
-
-  const averageTemp =
-    validTemps.length > 0
-      ? (validTemps.reduce((acc, t) => acc + t, 0) / validTemps.length).toFixed(2)
-      : "--";
-
   return (
     <div className="container sensor-container p-4">
-      <h2 className="text-center mb-1">Середні показники температури: 1-1 и 1-2</h2>
-      <div className="row">
-        <div className="col-12 col-md-6 pb-2">
-          <div className="top-average-temp-block">
-            <div className="top-average-temp-label">
-              <FontAwesomeIcon icon={faThermometerHalf} />{" "}
-              <span className="top-average-temp-data">{averageTemp} °C</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <h2 className="text-center mt-4 mb-1">Моніторинг датчиків температури:</h2>
       <div className="row">
         {sensors.map((sensor, index) => (
