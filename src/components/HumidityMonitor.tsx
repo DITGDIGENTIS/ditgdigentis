@@ -25,7 +25,7 @@ type HumidityData = {
   age: number;
 };
 
-const HUMIDITY_KEYS = ["HUM1-1", "HUM1-2", "HUM1-3", "HUM1-4"];
+const HUMIDITY_KEYS = ["HUM1-1", "HUM1-2"];
 const TIMEOUT_MS = 5 * 60 * 1000;
 
 export function HumidityMonitor() {
