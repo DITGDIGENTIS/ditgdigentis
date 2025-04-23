@@ -61,22 +61,22 @@ export default function ZonaAverageBlock() {
 
   const cards = [
     {
-      id: "Темп. повітря",
+      id: "ТЕМП | ПОВІТРЯ",
       icon: faThermometerHalf,
       value: airTemp,
     },
     {
-      id: "Темп. ґрунту",
+      id: "ТЕМП | ГРУНТУ",
       icon: faTemperatureLow,
       value: soilTemp,
     },
     {
-      id: "Вологість повітря",
+      id: "ВОЛОГІСТЬ | ПОВІТРЯ",
       icon: faTint,
       value: airHumidity,
     },
     {
-      id: "Вологість ґрунту",
+      id: "ВОЛОГІСТЬ | ГРУНТУ",
       icon: faWater,
       value: soilHumidity,
     },
