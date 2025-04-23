@@ -50,7 +50,7 @@ export default function ZonaAverageBlock() {
         if (soilHums.length)
           setSoilHumidity((soilHums.reduce((a, b) => a + b, 0) / soilHums.length).toFixed(2) + " %");
       } catch (e) {
-        console.error("Ошибка при получении средних значений", e);
+        console.error("Ошибка при получении средніх значень", e);
       }
     };
 
@@ -59,42 +59,46 @@ export default function ZonaAverageBlock() {
     return () => clearInterval(interval);
   }, []);
 
+  const cards = [
+    {
+      id: "Темп. повітря",
+      icon: faThermometerHalf,
+      value: airTemp,
+    },
+    {
+      id: "Темп. ґрунту",
+      icon: faTemperatureLow,
+      value: soilTemp,
+    },
+    {
+      id: "Вологість повітря",
+      icon: faTint,
+      value: airHumidity,
+    },
+    {
+      id: "Вологість ґрунту",
+      icon: faWater,
+      value: soilHumidity,
+    },
+  ];
+
   return (
-    <div className="zona-average-block text-center text-white mt-4">
-      <h2 className="text-center mb-4">Середні показники</h2>
-
-      <div className="row row-cols-2 row-cols-md-4 g-4">
-        <div className="col">
-          <div className="bg-dark p-4 rounded-4 shadow-lg">
-            <FontAwesomeIcon icon={faThermometerHalf} className="me-2" style={{ color: "#FFD700" }} />
-            <strong className="d-block mt-2">Темп. повітря</strong>
-            <div className="fs-4 mt-1">{airTemp}</div>
+    <div className="container sensor-container p-4">
+      <h2 className="text-center mt-4 mb-1">Середні значення:</h2>
+      <div className="row">
+        {cards.map((card, index) => (
+          <div key={index} className="col-6 col-md-3">
+            <div className="average-temp-block text-white bg-dark p-3 mb-4 rounded-4 shadow-lg text-center">
+              <div className="description-temp-block mb-2">
+                <FontAwesomeIcon icon={card.icon} style={{ color: "#FFD700" }} className="me-2" />
+                <strong>{card.id}</strong>
+              </div>
+              <div className="average-temp-label fs-4">
+                <span className="average-temp-data">{card.value}</span>
+              </div>
+            </div>
           </div>
-        </div>
-
-        <div className="col">
-          <div className="bg-dark p-4 rounded-4 shadow-lg">
-            <FontAwesomeIcon icon={faTemperatureLow} className="me-2" style={{ color: "#FFD700" }} />
-            <strong className="d-block mt-2">Темп. ґрунту</strong>
-            <div className="fs-4 mt-1">{soilTemp}</div>
-          </div>
-        </div>
-
-        <div className="col">
-          <div className="bg-dark p-4 rounded-4 shadow-lg">
-            <FontAwesomeIcon icon={faTint} className="me-2" style={{ color: "#FFD700" }} />
-            <strong className="d-block mt-2">Вологість повітря</strong>
-            <div className="fs-4 mt-1">{airHumidity}</div>
-          </div>
-        </div>
-
-        <div className="col">
-          <div className="bg-dark p-4 rounded-4 shadow-lg">
-            <FontAwesomeIcon icon={faWater} className="me-2" style={{ color: "#FFD700" }} />
-            <strong className="d-block mt-2">Вологість ґрунту</strong>
-            <div className="fs-4 mt-1">{soilHumidity}</div>
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   );
