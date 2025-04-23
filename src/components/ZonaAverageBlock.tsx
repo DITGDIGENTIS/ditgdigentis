@@ -50,7 +50,7 @@ export default function ZonaAverageBlock() {
         if (soilHums.length)
           setSoilHumidity((soilHums.reduce((a, b) => a + b, 0) / soilHums.length).toFixed(2) + " %");
       } catch (e) {
-        console.error("Ошибка при получении средніх значень", e);
+        console.error("Ошибка при получении середніх значень", e);
       }
     };
 
@@ -83,23 +83,59 @@ export default function ZonaAverageBlock() {
   ];
 
   return (
-    <div className="container sensor-container p-4">
+    <div className="container zona-stats-container p-4">
       <h2 className="text-center mt-4 mb-1">Середні значення:</h2>
       <div className="row">
         {cards.map((card, index) => (
           <div key={index} className="col-6 col-md-3">
-            <div className="average-temp-block text-white text-center p-3 mb-4 rounded-4">
-              <div className="description-temp-block mb-2">
-                <FontAwesomeIcon icon={card.icon} style={{ color: "#FFD700" }} className="me-2" />
-                <strong>{card.id}</strong>
+            <div className="zona-stats-card text-white text-center p-3 mb-4 rounded-4">
+              <div className="zona-stats-label mb-2">
+                <FontAwesomeIcon
+                  icon={card.icon}
+                  className="zona-stats-icon me-2"
+                  style={{ color: "#FFD700" }}
+                />
+                <span className="zona-stats-title">{card.id}</span>
               </div>
-              <div className="average-temp-label fs-4">
-                <span className="average-temp-data">{card.value}</span>
-              </div>
+              <div className="zona-stats-value fs-4">{card.value}</div>
             </div>
           </div>
         ))}
       </div>
+
+      <style jsx>{`
+        .zona-stats-container {
+          background: transparent;
+        }
+
+        .zona-stats-card {
+          background: transparent;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          transition: background 0.3s, transform 0.3s;
+        }
+
+        .zona-stats-card:hover {
+          background: rgba(255, 255, 255, 0.05);
+          transform: translateY(-3px);
+        }
+
+        .zona-stats-label {
+          font-weight: 600;
+          font-size: 1rem;
+        }
+
+        .zona-stats-value {
+          font-size: 1.4rem;
+        }
+
+        .zona-stats-icon {
+          font-size: 1.2rem;
+        }
+
+        .zona-stats-title {
+          vertical-align: middle;
+        }
+      `}</style>
     </div>
   );
 }
