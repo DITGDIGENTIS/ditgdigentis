@@ -110,7 +110,7 @@ export default function ZonaAverageBlock() {
 
         .zona-stats-card {
           background: transparent;
-          border: 1px solid rgba(255, 255, 255, 0.2);
+          // border: 1px solid rgba(255, 255, 255, 0.2);
           transition: background 0.3s, transform 0.3s;
         }
 
@@ -126,6 +126,7 @@ export default function ZonaAverageBlock() {
 
         .zona-stats-value {
           font-size: 1.4rem;
+          font-weight: 600;
         }
 
         .zona-stats-icon {
