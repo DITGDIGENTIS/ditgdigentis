@@ -115,7 +115,7 @@ export default function ZonaAverageBlock() {
         }
 
         .zona-stats-card:hover {
-          background: rgba(255, 255, 255, 0.05);
+          // background: rgba(255, 255, 255, 0.05);
           transform: translateY(-3px);
         }
 
@@ -130,7 +130,7 @@ export default function ZonaAverageBlock() {
         }
 
         .zona-stats-icon {
-          font-size: 1.2rem;
+          font-size: 1.4rem;
         }
 
         .zona-stats-title {
