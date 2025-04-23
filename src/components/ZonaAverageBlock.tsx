@@ -88,7 +88,7 @@ export default function ZonaAverageBlock() {
       <div className="row">
         {cards.map((card, index) => (
           <div key={index} className="col-6 col-md-3">
-            <div className="average-temp-block text-white bg-dark p-3 mb-4 rounded-4 shadow-lg text-center">
+            <div className="average-temp-block text-white text-center p-3 mb-4 rounded-4">
               <div className="description-temp-block mb-2">
                 <FontAwesomeIcon icon={card.icon} style={{ color: "#FFD700" }} className="me-2" />
                 <strong>{card.id}</strong>
