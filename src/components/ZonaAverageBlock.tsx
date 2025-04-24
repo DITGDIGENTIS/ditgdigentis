@@ -121,7 +121,7 @@ export default function ZonaAverageBlock() {
 
         .zona-stats-label {
           font-weight: 600;
-          font-size: 1rem;
+          font-size: 1.1rem;
         }
 
         .zona-stats-value {
