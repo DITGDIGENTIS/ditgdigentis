@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 export default function FurnisetPage() {
   return (
     <div style={{ padding: "2rem" }}>

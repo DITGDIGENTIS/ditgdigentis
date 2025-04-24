@@ -17,7 +17,7 @@ export default function LoginPage() {
     });
 
     if (res.ok) {
-      router.push("/furniset");
+      router.push("/furniset"); // ⬅️ Куда: сюда
     } else {
       alert("❌ Неверный пароль");
     }
@@ -35,7 +35,9 @@ export default function LoginPage() {
           required
           style={{ display: "block", marginBottom: "1rem", width: "100%" }}
         />
-        <button type="submit" style={{ width: "100%" }}>Войти</button>
+        <button type="submit" style={{ width: "100%" }}>
+          Войти
+        </button>
       </form>
     </div>
   );

@@ -1,17 +1,19 @@
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-  const body = await req.json();
+  const { password } = await req.json();
 
-  if (body.password === "12345") {
-    const res = NextResponse.json({ ok: true });
-
-    res.headers.set(
-      "Set-Cookie",
-      `auth=true; Path=/; HttpOnly; SameSite=Strict; Max-Age=${60 * 60 * 24}`
-    );
-
-    return res;
+  if (password === "12345") {
+    const response = NextResponse.redirect(new URL("/furniset", req.url));
+    response.cookies.set({
+      name: "auth",
+      value: "true",
+      httpOnly: true,
+      path: "/",
+      sameSite: "strict",
+      maxAge: 60 * 60 * 24,
+    });
+    return response;
   }
 
   return new Response("Unauthorized", { status: 401 });
