@@ -1,20 +1,15 @@
 // middleware.ts
 import { NextRequest, NextResponse } from "next/server";
 
-export function middleware(req: NextRequest) {
-  try {
-    const isProtected = req.nextUrl.pathname.startsWith("/furniset");
-    const isLoggedIn = req.cookies.get("auth")?.value === "true";
+export function middleware(request: NextRequest) {
+  const isAuth = request.cookies.get("auth")?.value === "true";
+  const isProtectedRoute = request.nextUrl.pathname.startsWith("/furniset");
 
-    if (isProtected && !isLoggedIn) {
-      return NextResponse.redirect(new URL("/login", req.url));
-    }
-
-    return NextResponse.next();
-  } catch (error) {
-    console.error("Middleware error:", error);
-    return new Response("Internal middleware error", { status: 500 });
+  if (!isAuth && isProtectedRoute) {
+    return NextResponse.redirect(new URL("/login", request.url));
   }
+
+  return NextResponse.next();
 }
 
 export const config = {
