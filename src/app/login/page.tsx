@@ -1,44 +1,39 @@
+// src/app/login/page.tsx
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [password, setPassword] = useState("");
+  const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const handleLogin = async () => {
     const res = await fetch("/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ password }),
     });
-
     if (res.ok) {
-      router.push("/furniset"); // ⬅️ Куда: сюда
+      router.push("/furniset");
     } else {
-      alert("❌ Неверный пароль");
+      alert("Неверный пароль");
     }
   };
 
   return (
-    <div style={{ padding: "2rem", maxWidth: 300 }}>
+    <div style={{ padding: "2rem", maxWidth: 320 }}>
       <h1>🔐 Вход в Furniset</h1>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="password"
-          placeholder="Введите пароль"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          style={{ display: "block", marginBottom: "1rem", width: "100%" }}
-        />
-        <button type="submit" style={{ width: "100%" }}>
-          Войти
-        </button>
-      </form>
+      <input
+        type="password"
+        placeholder="Введите пароль"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        style={{ width: "100%", marginBottom: "1rem" }}
+      />
+      <button onClick={handleLogin} style={{ width: "100%" }}>
+        Войти
+      </button>
     </div>
   );
 }
