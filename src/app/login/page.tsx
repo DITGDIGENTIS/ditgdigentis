@@ -2,22 +2,27 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const [password, setPassword] = useState("");
-  const router = useRouter();
 
   const handleLogin = async () => {
-    const res = await fetch("/api/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
-    });
-    if (res.ok) {
-      router.push("/furniset");
-    } else {
-      alert("Неверный пароль");
+    try {
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+        redirect: "follow"
+      });
+
+      if (res.redirected) {
+        window.location.href = res.url;
+      } else if (!res.ok) {
+        alert("Неверный пароль");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      alert("Произошла ошибка при входе");
     }
   };
 
@@ -25,7 +30,7 @@ export default function LoginPage() {
     <div style={{ padding: "2rem", maxWidth: 320 }}>
       <h1>🔐 Вход в Furniset</h1>
       <input
-        type="password"
+        type="text"
         placeholder="Введите пароль"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
