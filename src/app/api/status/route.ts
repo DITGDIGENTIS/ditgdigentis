@@ -15,6 +15,7 @@ type StatusMap = {
 
 export async function POST(req: Request) {
   const form = await req.formData();
+  console.log(form, "=================================== POST STATUS");
   const id = form.get("id")?.toString();
   const ip = form.get("ip")?.toString() ?? "none";
   const timestamp = Date.now();
