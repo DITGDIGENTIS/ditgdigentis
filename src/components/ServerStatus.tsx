@@ -17,6 +17,8 @@ export const ServerStatus: FC<IProps> = ({ companyName }) => {
         cache: "no-store",
       });
       const data = await res.json();
+
+    console.log(data, "=================================== SERVER STATUS");
       const lastUpdate = data.server?.timestamp ?? 0;
       const online = Date.now() - lastUpdate < 20000;
 

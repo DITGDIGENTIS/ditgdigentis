@@ -21,6 +21,7 @@ export function ZonaStatus() {
     fetch("https://ditgdigentis.vercel.app/api/status", { cache: "no-store" })
       .then((res) => res.json())
       .then((data) => {
+        console.log(data, "=================================== ZONA STATUS");
         const now = Date.now();
         const timeout = 90000;
 

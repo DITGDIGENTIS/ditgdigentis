@@ -39,7 +39,7 @@ export function HumidityMonitor() {
         const response: RawHumidityResponse = await res.json();
         const data = response.sensors;
         const serverTime = response.serverTime;
-
+        
         HUMIDITY_KEYS.forEach((key) => {
           const raw = data[key];
           if (!raw) return;
