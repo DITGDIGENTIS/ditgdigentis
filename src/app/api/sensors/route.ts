@@ -29,12 +29,13 @@ export async function GET() {
   try {
     await access(filePath, constants.F_OK);
     const raw = await readFile(filePath, "utf8");
+    console.log(raw, "=================================== SENSORS READ FILE");
     const data: SensorMap = JSON.parse(raw);
-
+    console.log(data, "=================================== SENSORS PARSE DATA");
     const filtered = Object.fromEntries(
       Object.entries(data).filter(([key]) => key.startsWith("SENSOR1-"))
     );
-
+    console.log(filtered, "=================================== SENSORS FILTERED");
     return NextResponse.json({
       sensors: filtered,
       serverTime: Date.now(), // 💥 стабильное серверное время
