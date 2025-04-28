@@ -7,6 +7,7 @@ export const ROUTES = {
   GREEN_HOUSE: "/green-house",
   TEST: "/test",
   HOME: "/",
+  LINK_PAGE: "/link-page",
 } as const;
 
 export function getPageTypeFromUrl(url: string): string | null {
@@ -97,6 +98,10 @@ export const PUBLIC_ROUTES: RouteConfig[] = [
   },
   {
     path: ROUTES.HOME,
+    requireAuth: false,
+  },
+  {
+    path: ROUTES.LINK_PAGE,
     requireAuth: false,
   },
 ];
