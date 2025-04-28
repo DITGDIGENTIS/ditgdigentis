@@ -30,7 +30,8 @@ export const Furniset: FC = () => {
   return (
     <div>
       <LogoutButton />
-      <ServerStatus companyName={"Furniset"} />
+      <ServerStatus companyName={"Furniset"} deviceId="server" />
+
 
       {/* Time display */}
       <div className="container">
