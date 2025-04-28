@@ -25,7 +25,9 @@ export const ServerStatus: FC<IProps> = ({
       console.log(data, "=== SERVER STATUS ===");
 
       const lastUpdate = data?.[deviceId]?.timestamp ?? 0;
-      const online = Date.now() - lastUpdate * 1000 < 20000;
+
+      // УБИРАЕМ *1000, потому что timestamp уже в миллисекундах
+      const online = Date.now() - lastUpdate < 20000; // 20 секунд окно
 
       if (lastRef.current !== online) {
         lastRef.current = online;
@@ -40,7 +42,7 @@ export const ServerStatus: FC<IProps> = ({
 
   useEffect(() => {
     checkStatus();
-    const intv = setInterval(checkStatus, 2000); // или 5000 для продакшна
+    const intv = setInterval(checkStatus, 2000); // каждые 2 секунды
     return () => clearInterval(intv);
   }, [deviceId]);
 
