@@ -3,24 +3,29 @@
 import { FC, useEffect, useState, useRef } from "react";
 import Image from "next/image";
 
-
 interface IProps {
   companyName?: string;
+  deviceId?: string;
 }
-export const ServerStatus: FC<IProps> = ({ companyName }) => {
+
+export const ServerStatus: FC<IProps> = ({
+  companyName,
+  deviceId = "server",
+}) => {
   const [isOnline, setIsOnline] = useState(false);
   const lastRef = useRef<boolean>(false);
 
   const checkStatus = async () => {
     try {
       const res = await fetch("https://ditgdigentis.vercel.app/api/status", {
-        cache: "no-store",
+        next: { revalidate: 0 },
       });
       const data = await res.json();
 
-    console.log(data, "=================================== SERVER STATUS");
-      const lastUpdate = data.server?.timestamp ?? 0;
-      const online = Date.now() - lastUpdate < 20000;
+      console.log(data, "=== SERVER STATUS ===");
+
+      const lastUpdate = data?.[deviceId]?.timestamp ?? 0;
+      const online = Date.now() - lastUpdate * 1000 < 20000;
 
       if (lastRef.current !== online) {
         lastRef.current = online;
@@ -35,9 +40,9 @@ export const ServerStatus: FC<IProps> = ({ companyName }) => {
 
   useEffect(() => {
     checkStatus();
-    const intv = setInterval(checkStatus, 1000);
+    const intv = setInterval(checkStatus, 2000); // или 5000 для продакшна
     return () => clearInterval(intv);
-  }, []);
+  }, [deviceId]);
 
   return (
     <>
@@ -85,7 +90,7 @@ export const ServerStatus: FC<IProps> = ({ companyName }) => {
 
         .offline {
           background-color: #dc3545;
-          animation: pulseRed 2s infinite;
+          animation: pulseRed 1s infinite;
         }
 
         @keyframes pulseGreen {
@@ -105,7 +110,7 @@ export const ServerStatus: FC<IProps> = ({ companyName }) => {
             box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
           }
           70% {
-            box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+            box-shadow: 0 0 0 15px rgba(220, 53, 69, 0);
           }
           100% {
             box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
@@ -114,4 +119,4 @@ export const ServerStatus: FC<IProps> = ({ companyName }) => {
       `}</style>
     </>
   );
-}
+};
