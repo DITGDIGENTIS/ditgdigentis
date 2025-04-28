@@ -30,6 +30,7 @@ export default function ZonaRelay() {
         cache: "no-store",
       });
       const data: RelayResponse = await res.json();
+      console.log(data, "=================================== ZONA RELAY");
 
       if (data?.relayState && typeof data.timestamp === "number") {
         if (data.timestamp > lastUpdateRef.current) {
