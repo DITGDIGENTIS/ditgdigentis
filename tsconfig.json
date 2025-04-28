@@ -21,7 +21,11 @@
       {
         "name": "next"
       }
-    ]
+    ],
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "allowUnusedLabels": true,
+    "allowUnreachableCode": true
   },
   "include": [
     "next-env.d.ts",

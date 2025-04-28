@@ -1,9 +1,13 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import { FC, useEffect, useState, useRef } from "react";
 import Image from "next/image";
 
-export default function ServerStatus() {
+
+interface IProps {
+  companyName?: string;
+}
+export const ServerStatus: FC<IProps> = ({ companyName }) => {
   const [isOnline, setIsOnline] = useState(false);
   const lastRef = useRef<boolean>(false);
 
@@ -45,7 +49,7 @@ export default function ServerStatus() {
           priority
         />
         <span className="indicator-label fw-bold fs-5 text-light">
-          ID:0001
+          {companyName}
         </span>
         <span
           className={`status-indicator ${isOnline ? "online" : "offline"}`}

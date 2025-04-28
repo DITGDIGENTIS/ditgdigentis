@@ -1,59 +1,29 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import ServerStatus from "../components/ServerStatus";
-import { ZonaStatus } from "../components/ZonaStatus";
-import ZonaAverageBlock from "../components/ZonaAverageBlock";
-import { SensorMonitor } from "../components/SensorMonitor";
-import { HumidityMonitor } from "../components/HumidityMonitor";
-import ZonaTemperature from "../components/ZonaTemperature";
-import ZonaRelay from "../components/ZonaRelay";
+import Link from "next/link";
 
 export default function Home() {
-  const [time, setTime] = useState("");
-
-  useEffect(() => {
-    const updateClock = () => {
-      const now = new Date();
-      const hours = now.getHours().toString().padStart(2, "0");
-      const minutes = now.getMinutes().toString().padStart(2, "0");
-      const seconds = now.getSeconds().toString().padStart(2, "0");
-      setTime(`${hours}:${minutes}:${seconds}`);
-    };
-
-    updateClock();
-    const clockInterval = setInterval(updateClock, 1000); // Update time every second
-
-    return () => {
-      clearInterval(clockInterval); // Cleanup on component unmount
-    };
-  }, []);
-
   return (
-    <main>
-      <ServerStatus />
-      
-      {/* Time display */}
-      <div className="container">
-        <div className="row justify-content-center">
-          <div className="col-auto text-center">
-            <span id="clock" className="fw-semibold" style={{ fontSize: "2.6rem" }}>
-              {time}
-            </span>
-          </div>
-        </div>
+    <main className="container mt-5">
+      <h1 className="mb-4 text-white">Home Page</h1>
+      <div className="list-group">
+        <Link 
+          href="/furniset" 
+          className="list-group-item list-group-item-action"
+        >
+          Furniset
+        </Link>
+        <Link 
+          href="/green-house" 
+          className="list-group-item list-group-item-action"
+        >
+          Green House
+        </Link>
+        <Link 
+          href="/test" 
+          className="list-group-item list-group-item-action"
+        >
+          Test
+        </Link>
       </div>
-
-      <ZonaStatus />
-      <ZonaTemperature />
-      <ZonaAverageBlock />
-      <SensorMonitor />
-      <HumidityMonitor />
-      <ZonaRelay />
-
-      <style jsx>{`
-        /* Additional custom styling can go here */
-      `}</style>
     </main>
   );
 }
