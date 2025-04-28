@@ -3,7 +3,6 @@
 import { FC, useEffect, useState } from "react";
 import { LogoutButton } from "../LogoutButton";
 import { ServerStatus } from "../ServerStatus";
-import ZonaAverageBlock from "../ZonaAverageBlock";
 import { SensorMonitor } from "../SensorMonitor";
 import { HumidityMonitor } from "../HumidityMonitor";
 
@@ -30,7 +29,7 @@ export const Furniset: FC = () => {
   return (
     <div>
       <LogoutButton />
-      <ServerStatus companyName={"Furniset"} deviceId="server" />
+      <ServerStatus companyName={"FURNISET"} deviceId="server" />
 
 
       {/* Time display */}
@@ -47,8 +46,6 @@ export const Furniset: FC = () => {
           </div>
         </div>
       </div>
-
-      <ZonaAverageBlock />
       <SensorMonitor />
       <HumidityMonitor />
     </div>
