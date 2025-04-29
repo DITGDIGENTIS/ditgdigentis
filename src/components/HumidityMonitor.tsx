@@ -25,7 +25,7 @@ type HumidityData = {
   age: number;
 };
 
-const TIMEOUT_MS = 5 * 60 * 1000; // 5 минут
+const TIMEOUT_MS = 6 * 60 * 1000; // 6 минут
 
 export function HumidityMonitor() {
   const [sensors, setSensors] = useState<HumidityData[]>([]);
