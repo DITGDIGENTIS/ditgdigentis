@@ -1,30 +1,53 @@
-import { NextResponse } from "next/server";
+import { writeFile, readFile, access } from "fs/promises";
+import { constants } from "fs";
+import path from "path";
+import { NextRequest, NextResponse } from "next/server";
 
-const PI_HUMIDITY_URL = "https://furniset.tail68d252.ts.net:8787/humidity.json";
+// Інтерфейс для одного датчика
+interface HumiditySensor {
+  id: string;
+  humidity: number | string;
+  timestamp: number;
+}
 
-/**
- * Обробник GET-запитів на /api/humidity
- */
-export async function GET() {
+// Інтерфейс для всіх датчиків
+interface HumidityData {
+  sensors: Record<string, HumiditySensor>;
+  serverTime: number;
+}
+
+const filePath = path.resolve("/tmp/humidity_sensors.json");
+
+export async function POST(req: NextRequest) {
   try {
-    const res = await fetch(PI_HUMIDITY_URL, { cache: "no-store" });
+    const body: HumidityData = await req.json();
+    await writeFile(filePath, JSON.stringify(body, null, 2), "utf8");
 
-    if (!res.ok) {
-      console.error(`Ошибка запроса к Raspberry Pi: ${res.status}`);
-      return NextResponse.json(
-        {
-          sensors: {},
-          serverTime: Date.now(),
-          error: `Ошибка подключения к Raspberry Pi: ${res.status}`,
-        },
-        { status: 500 }
-      );
+    return NextResponse.json({
+      status: "ok",
+      received: Object.keys(body?.sensors || {}).length,
+    });
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      console.error("Помилка запису у файл:", err.message);
+    } else {
+      console.error("Невідома помилка під час запису даних у файл.");
     }
 
-    const data = await res.json();
+    return NextResponse.json(
+      { error: "Failed to save humidity data" },
+      { status: 500 }
+    );
+  }
+}
 
-    // Фільтрація тільки сенсорів типу HUM1-
-    const filteredSensors = Object.fromEntries(
+export async function GET() {
+  try {
+    await access(filePath, constants.F_OK);
+    const raw = await readFile(filePath, "utf8");
+    const data: HumidityData = JSON.parse(raw);
+
+    const filteredSensors: Record<string, HumiditySensor> = Object.fromEntries(
       Object.entries(data.sensors || {}).filter(([key]) =>
         key.startsWith("HUM1-")
       )
@@ -34,25 +57,14 @@ export async function GET() {
       sensors: filteredSensors,
       serverTime: Date.now(),
     });
-  } catch (error) {
-    console.error("Ошибка получения данных с Pi:", error);
-    return NextResponse.json(
-      {
-        sensors: {},
-        serverTime: Date.now(),
-        error: "Ошибка подключения к Raspberry Pi",
-      },
-      { status: 500 }
-    );
-  }
-}
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      console.error("Помилка читання файлу:", err.message);
+    }
 
-/**
- * Обробник POST-запитів на /api/humidity
- */
-export async function POST() {
-  return NextResponse.json(
-    { error: "Saving запрещено на Vercel" },
-    { status: 405 }
-  );
+    return NextResponse.json({
+      sensors: {},
+      serverTime: Date.now(),
+    });
+  }
 }
