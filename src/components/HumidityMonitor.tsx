@@ -92,7 +92,7 @@ export function HumidityMonitor() {
 
   return (
     <div className="container sensor-container p-4">
-      <h2 className="text-center mt-4 mb-1">Моніторинг датчиків вологості:</h2>
+      <h2 className="text-center mt-4 mb-1">Моніторинг датчика вологості:</h2>
       <div className="row">
         {sensors.map((sensor, index) => (
           <div key={index} className="col-12 col-md-12">
