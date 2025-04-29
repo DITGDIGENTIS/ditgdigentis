@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 
 const PI_HUMIDITY_URL = "https://furniset.tail68d252.ts.net:8787/humidity.json";
 
+/**
+ * Обробник GET-запитів на /api/humidity
+ */
 export async function GET() {
   try {
     const res = await fetch(PI_HUMIDITY_URL, { cache: "no-store" });
@@ -20,6 +23,7 @@ export async function GET() {
 
     const data = await res.json();
 
+    // Фільтрація тільки сенсорів типу HUM1-
     const filteredSensors = Object.fromEntries(
       Object.entries(data.sensors || {}).filter(([key]) =>
         key.startsWith("HUM1-")
@@ -43,6 +47,9 @@ export async function GET() {
   }
 }
 
+/**
+ * Обробник POST-запитів на /api/humidity
+ */
 export async function POST() {
   return NextResponse.json(
     { error: "Saving запрещено на Vercel" },
