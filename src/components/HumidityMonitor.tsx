@@ -60,7 +60,7 @@ export function HumidityMonitor() {
           return {
             id: key,
             humidity: !isOffline ? cached?.humidity || "--" : "--",
-            online: !isOffline,
+            online: !isOffline && cached?.humidity !== "--",
             timestamp: cached?.timestamp || 0,
             age: cached?.timestamp ? serverTime - cached.timestamp : 0,
           };
