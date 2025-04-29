@@ -39,7 +39,6 @@ export function HumidityMonitor() {
         const data = response.sensors || {};
         const serverTime = response.serverTime;
 
-        // Обновляем кэш актуальными сенсорами
         Object.keys(data).forEach((key) => {
           const raw = data[key];
           if (!raw) return;
@@ -53,7 +52,6 @@ export function HumidityMonitor() {
           };
         });
 
-        // Формируем список сенсоров из кэша
         let updatedList = Object.keys(sensorCache.current).map((key) => {
           const cached = sensorCache.current[key];
           const isOffline =
@@ -68,7 +66,6 @@ export function HumidityMonitor() {
           };
         });
 
-        // 🔁 Если нет ни одного датчика — добавим заглушку HUM1-1
         if (updatedList.length === 0) {
           updatedList = [
             {
@@ -81,7 +78,6 @@ export function HumidityMonitor() {
           ];
         }
 
-        // Сортируем по ID для стабильного порядка
         updatedList.sort((a, b) => a.id.localeCompare(b.id));
         setSensors(updatedList);
       } catch (error) {
