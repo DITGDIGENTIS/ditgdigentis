@@ -25,7 +25,7 @@ type HumidityData = {
   age: number;
 };
 
-const TIMEOUT_MS = 5 * 60 * 1000; // 5 минут
+const TIMEOUT_MS = 5 * 60 * 1000;
 
 export function HumidityMonitor() {
   const [sensors, setSensors] = useState<HumidityData[]>([]);
@@ -39,7 +39,6 @@ export function HumidityMonitor() {
         const data = response.sensors;
         const serverTime = response.serverTime;
 
-        // Заполняем кэш актуальными сенсорами
         Object.keys(data).forEach((key) => {
           const raw = data[key];
           if (!raw) return;
@@ -53,7 +52,6 @@ export function HumidityMonitor() {
           };
         });
 
-        // Формируем новый список для отображения
         const updatedList = Object.keys(sensorCache.current).map((key) => {
           const cached = sensorCache.current[key];
           const isOffline =
@@ -68,9 +66,7 @@ export function HumidityMonitor() {
           };
         });
 
-        // Сортируем сенсоры по ID для стабильного порядка
         updatedList.sort((a, b) => a.id.localeCompare(b.id));
-
         setSensors(updatedList);
       } catch (error) {
         console.error("Ошибка получения влажности:", error);
@@ -88,12 +84,13 @@ export function HumidityMonitor() {
       <div className="row">
         {sensors.map((sensor, index) => (
           <div key={index} className="col-6 col-md-3">
-            {!sensor.online && (
-              <div className="alert alert-danger text-center p-2 mb-2">
-                ⚠ {sensor.id} не в мережі
-              </div>
-            )}
             <div className="average-temp-block">
+              {/** ✔ сообщение оффлайн внутри блока, но над остальным */}
+              {!sensor.online && (
+                <div className="alert alert-danger text-center p-2 mb-2">
+                  ⚠ {sensor.id} не в мережі
+                </div>
+              )}
               <div className="description-temp-block">
                 {sensor.id}
                 <button
