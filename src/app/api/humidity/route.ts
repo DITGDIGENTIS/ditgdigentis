@@ -1,48 +1,40 @@
-import { NextRequest, NextResponse } from "next/server";
-import { writeFile, readFile, access } from "fs/promises";
-import { constants } from "fs";
-import path from "path";
-
-const filePath = path.resolve("/tmp/humidity_sensors.json");
-
-type HumidityMap = {
-  [key: string]: {
-    id: string;
-    humidity: number | string;
-    timestamp: number;
-  };
-};
-
-export async function POST(req: NextRequest) {
-  try {
-    const body: HumidityMap = await req.json();
-    await writeFile(filePath, JSON.stringify(body, null, 2), "utf8");
-
-    return NextResponse.json({ status: "ok", received: Object.keys(body).length });
-  } catch (err) {
-    console.error("Ошибка при записи влажности:", err);
-    return NextResponse.json({ error: "Failed to save humidity data" }, { status: 500 });
-  }
-}
+const PI_HUMIDITY_URL = "https://furniset.tail68d252.ts.net:8787/humidity.json";
 
 export async function GET() {
   try {
-    await access(filePath, constants.F_OK);
-    const raw = await readFile(filePath, "utf8");
-    const data: HumidityMap = JSON.parse(raw);
+    const res = await fetch(PI_HUMIDITY_URL, { cache: "no-store" });
 
-    const filtered = Object.fromEntries(
-      Object.entries(data).filter(([key]) => key.startsWith("HUM1-"))
+    if (!res.ok) {
+      throw new Error(`Ошибка запроса к Raspberry Pi: ${res.status}`);
+    }
+
+    const data = await res.json();
+
+    // Фильтрация только по ключам HUM1-
+    const filteredSensors = Object.fromEntries(
+      Object.entries(data.sensors || {}).filter(([key]) =>
+        key.startsWith("HUM1-")
+      )
     );
 
-    return NextResponse.json({
-      sensors: filtered,
+    return Response.json({
+      sensors: filteredSensors,
       serverTime: Date.now(),
     });
-  } catch {
-    return NextResponse.json({
-      sensors: {},
-      serverTime: Date.now(),
-    });
+  } catch (error) {
+    console.error("Ошибка получения данных с Pi:", error);
+    return Response.json(
+      {
+        sensors: {},
+        serverTime: Date.now(),
+        error: "Ошибка подключения к Raspberry Pi",
+      },
+      { status: 500 }
+    );
   }
 }
+
+export async function POST() {
+  return Response.json({ error: "Saving запрещено на Vercel" }, { status: 405 });
+}
+
