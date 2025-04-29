@@ -25,7 +25,7 @@ type HumidityData = {
   age: number;
 };
 
-const TIMEOUT_MS = 5 * 60 * 1000;
+const TIMEOUT_MS = 5 * 60 * 1000; // 5 минут
 
 export function HumidityMonitor() {
   const [sensors, setSensors] = useState<HumidityData[]>([]);
@@ -36,9 +36,10 @@ export function HumidityMonitor() {
       try {
         const res = await fetch("/api/humidity", { cache: "no-store" });
         const response: RawHumidityResponse = await res.json();
-        const data = response.sensors;
+        const data = response.sensors || {};
         const serverTime = response.serverTime;
 
+        // Обновляем кэш актуальными сенсорами
         Object.keys(data).forEach((key) => {
           const raw = data[key];
           if (!raw) return;
@@ -52,7 +53,8 @@ export function HumidityMonitor() {
           };
         });
 
-        const updatedList = Object.keys(sensorCache.current).map((key) => {
+        // Формируем список сенсоров из кэша
+        let updatedList = Object.keys(sensorCache.current).map((key) => {
           const cached = sensorCache.current[key];
           const isOffline =
             !cached?.timestamp || serverTime - cached.timestamp > TIMEOUT_MS;
@@ -66,6 +68,20 @@ export function HumidityMonitor() {
           };
         });
 
+        // 🔁 Если нет ни одного датчика — добавим заглушку HUM1-1
+        if (updatedList.length === 0) {
+          updatedList = [
+            {
+              id: "HUM1-1",
+              humidity: "--",
+              online: false,
+              timestamp: 0,
+              age: 0,
+            },
+          ];
+        }
+
+        // Сортируем по ID для стабильного порядка
         updatedList.sort((a, b) => a.id.localeCompare(b.id));
         setSensors(updatedList);
       } catch (error) {
@@ -85,7 +101,6 @@ export function HumidityMonitor() {
         {sensors.map((sensor, index) => (
           <div key={index} className="col-6 col-md-3">
             <div className="average-temp-block">
-              {/** ✔ сообщение оффлайн внутри блока, но над остальным */}
               {!sensor.online && (
                 <div className="alert alert-danger text-center p-2 mb-2">
                   ⚠ {sensor.id} не в мережі
