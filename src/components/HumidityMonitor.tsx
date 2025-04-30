@@ -39,6 +39,7 @@ export function HumidityMonitor() {
         const data = response.sensors || {};
         const serverTime = response.serverTime;
 
+        // Сохраняем сырые данные с обновлённым timestamp
         Object.entries(data).forEach(([key, raw]) => {
           if (!raw || !raw.timestamp) return;
 
@@ -48,17 +49,20 @@ export function HumidityMonitor() {
             id: key,
             humidity: humidityStr,
             timestamp: raw.timestamp,
-            age: serverTime - raw.timestamp,
-            online: humidityStr !== "--" && serverTime - raw.timestamp <= TIMEOUT_MS,
+            age: 0, // пересчитается ниже
+            online: true, // пересчитается ниже
           };
         });
 
+        // Формируем список с актуальными age/online
         let updatedList = Object.keys(sensorCache.current).map((key) => {
           const cached = sensorCache.current[key];
-          const isOffline = !cached?.timestamp || cached.age > TIMEOUT_MS;
+          const age = serverTime - cached.timestamp;
+          const isOffline = age > TIMEOUT_MS;
 
           return {
             ...cached,
+            age,
             humidity: isOffline ? "--" : cached.humidity,
             online: !isOffline && cached.humidity !== "--",
           };
