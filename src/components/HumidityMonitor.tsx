@@ -25,7 +25,7 @@ type HumidityData = {
   age: number;
 };
 
-const TIMEOUT_MS = 6 * 60 * 1000; // 6 минут
+const TIMEOUT_MS = 5 * 60 * 1000; // 5 минут
 
 export function HumidityMonitor() {
   const [sensors, setSensors] = useState<HumidityData[]>([]);
@@ -92,8 +92,8 @@ export function HumidityMonitor() {
     <div className="container sensor-container p-4">
       <h2 className="text-center mt-4 mb-1">Моніторинг датчика вологості:</h2>
       <div className="row">
-        {sensors.map((sensor, index) => (
-          <div key={index} className="col-12 col-md-12">
+        {sensors.map((sensor) => (
+          <div key={sensor.id} className="col-12 col-md-12">
             <div className={`average-temp-block ${sensor.online ? "online" : "offline"}`}>
               {!sensor.online && (
                 <div className="alert alert-danger text-center p-2 mb-2">
