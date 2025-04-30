@@ -45,7 +45,7 @@ export function HumidityMonitor() {
 
           return {
             id,
-            humidity: online ? humidityStr : "--",
+            humidity: humidityStr, // ✅ всегда показываем значение
             timestamp: raw.timestamp,
             age,
             online,
@@ -68,15 +68,15 @@ export function HumidityMonitor() {
       <h2 className="text-center mt-4 mb-1">Моніторинг датчика вологості:</h2>
       <div className="row">
         {sensors.map((sensor) => (
-          <div key={sensor.id} className="col-12 col-md-12">
-            <div className={`average-temp-block ${sensor.online ? "online" : "offline"}`}>
+          <div key={sensor.id} className="col-12 col-md-12 mb-3">
+            <div className={`average-temp-block ${sensor.online ? "online" : "offline"} p-3 rounded shadow-sm`}>
               {!sensor.online && (
                 <div className="alert alert-danger text-center p-2 mb-2">
                   ⚠ {sensor.id} не в мережі
                 </div>
               )}
-              <div className="description-temp-block">
-                {sensor.id}
+              <div className="description-temp-block d-flex justify-content-between align-items-center mb-2">
+                <strong>{sensor.id}</strong>
                 <button
                   className={`status-button ${sensor.online ? "online" : "offline"}`}
                   title={`Sensor ${sensor.online ? "Online" : "Offline"}`}
@@ -84,9 +84,9 @@ export function HumidityMonitor() {
                   ● {sensor.online ? "ONLINE" : "OFFLINE"}
                 </button>
               </div>
-              <div className="average-temp-label">
+              <div className="average-temp-label fs-5">
                 <FontAwesomeIcon icon={faTint} />{" "}
-                <span className="average-temp-data">{sensor.humidity} %</span>
+                <span className="average-temp-data fw-bold">{sensor.humidity} %</span>
               </div>
               <div className="text-muted small mt-1">
                 Оновлено: {(sensor.age / 1000).toFixed(0)} сек. тому
