@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTint } from "@fortawesome/free-solid-svg-icons";
+import { faTint, faExclamationTriangle } from "@fortawesome/free-solid-svg-icons";
 
 type RawHumidityItem = {
   id: string;
@@ -23,7 +23,7 @@ type HumidityData = {
   online: boolean;
 };
 
-const TIMEOUT_MS = 5 * 60 * 1000; // 5 минут
+const TIMEOUT_MS = 1 * 60 * 1000; // 1 минута
 
 export function HumidityMonitor() {
   const [sensors, setSensors] = useState<HumidityData[]>([]);
@@ -66,21 +66,30 @@ export function HumidityMonitor() {
       <div className="row">
         {sensors.map((sensor) => (
           <div key={sensor.id} className="col-12 col-md-12 mb-3">
-            <div className={`average-temp-block ${sensor.online ? "online" : "offline"} p-3 rounded shadow-sm`}>
+            <div
+              className={`average-temp-block ${
+                sensor.online ? "online" : "offline"
+              } p-3 rounded shadow-sm border`}
+            >
               {!sensor.online && (
-                <div className="alert alert-danger text-center p-2 mb-2">
-                  ⚠ {sensor.id} не в мережі
+                <div className="alert alert-danger text-center p-2 mb-2 d-flex justify-content-center align-items-center gap-2">
+                  <FontAwesomeIcon icon={faExclamationTriangle} />
+                  {sensor.id} не в мережі (понад 1 хвилину)
                 </div>
               )}
+
               <div className="description-temp-block d-flex justify-content-between align-items-center mb-2">
                 <strong>{sensor.id}</strong>
-                <button
-                  className={`status-button ${sensor.online ? "online" : "offline"}`}
+                <span
+                  className={`status-button fw-bold ${
+                    sensor.online ? "online" : "offline"
+                  }`}
                   title={sensor.online ? "Sensor Online" : "Sensor Offline"}
                 >
                   ● {sensor.online ? "ONLINE" : "OFFLINE"}
-                </button>
+                </span>
               </div>
+
               <div className="average-temp-label fs-5">
                 <FontAwesomeIcon icon={faTint} />{" "}
                 <span className="average-temp-data fw-bold">{sensor.humidity} %</span>
