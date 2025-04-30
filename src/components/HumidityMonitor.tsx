@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTint } from "@fortawesome/free-solid-svg-icons";
 
@@ -20,70 +20,41 @@ type RawHumidityResponse = {
 type HumidityData = {
   id: string;
   humidity: string;
-  online: boolean;
   timestamp: number;
   age: number;
+  online: boolean;
 };
 
 const TIMEOUT_MS = 5 * 60 * 1000; // 5 минут
 
 export function HumidityMonitor() {
   const [sensors, setSensors] = useState<HumidityData[]>([]);
-  const sensorCache = useRef<Record<string, HumidityData>>({});
 
   useEffect(() => {
     const fetchHumidity = async () => {
       try {
         const res = await fetch("/api/humidity", { cache: "no-store" });
         const response: RawHumidityResponse = await res.json();
-        const data = response.sensors || {};
         const serverTime = response.serverTime;
+        const data = response.sensors || {};
 
-        // Сохраняем сырые данные с обновлённым timestamp
-        Object.entries(data).forEach(([key, raw]) => {
-          if (!raw || !raw.timestamp) return;
-
+        const updatedList: HumidityData[] = Object.entries(data).map(([id, raw]) => {
           const humidityStr = raw.humidity?.toString() || "--";
-
-          sensorCache.current[key] = {
-            id: key,
-            humidity: humidityStr,
-            timestamp: raw.timestamp,
-            age: 0, // пересчитается ниже
-            online: true, // пересчитается ниже
-          };
-        });
-
-        // Формируем список с актуальными age/online
-        let updatedList = Object.keys(sensorCache.current).map((key) => {
-          const cached = sensorCache.current[key];
-          const age = serverTime - cached.timestamp;
-          const isOffline = age > TIMEOUT_MS;
+          const age = serverTime - raw.timestamp;
+          const online = humidityStr !== "--" && age < TIMEOUT_MS;
 
           return {
-            ...cached,
+            id,
+            humidity: online ? humidityStr : "--",
+            timestamp: raw.timestamp,
             age,
-            humidity: isOffline ? "--" : cached.humidity,
-            online: !isOffline && cached.humidity !== "--",
+            online,
           };
         });
 
-        if (updatedList.length === 0) {
-          updatedList = [
-            {
-              id: "HUM1-1",
-              humidity: "--",
-              online: false,
-              timestamp: 0,
-              age: 0,
-            },
-          ];
-        }
-
-        updatedList.sort((a, b) => a.id.localeCompare(b.id));
-        setSensors(updatedList);
+        setSensors(updatedList.sort((a, b) => a.id.localeCompare(b.id)));
       } catch (error) {
-        console.error("Ошибка получения влажности:", error);
+        console.error("Ошибка загрузки данных:", error);
       }
     };
 
@@ -116,6 +87,9 @@ export function HumidityMonitor() {
               <div className="average-temp-label">
                 <FontAwesomeIcon icon={faTint} />{" "}
                 <span className="average-temp-data">{sensor.humidity} %</span>
+              </div>
+              <div className="text-muted small mt-1">
+                Оновлено: {(sensor.age / 1000).toFixed(0)} сек. тому
               </div>
             </div>
           </div>
