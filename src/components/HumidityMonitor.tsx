@@ -21,7 +21,6 @@ type HumidityData = {
   id: string;
   humidity: string;
   online: boolean;
-  age: number;
 };
 
 const TIMEOUT_MS = 5 * 60 * 1000; // 5 минут
@@ -47,7 +46,6 @@ export function HumidityMonitor() {
             id,
             humidity: humidityStr,
             online,
-            age,
           };
         });
 
@@ -71,7 +69,7 @@ export function HumidityMonitor() {
             <div className={`average-temp-block ${sensor.online ? "online" : "offline"} p-3 rounded shadow-sm`}>
               {!sensor.online && (
                 <div className="alert alert-danger text-center p-2 mb-2">
-                  ⚠ {sensor.id} не в мережі (ост. оновлення {(sensor.age / 1000).toFixed(0)} сек тому)
+                  ⚠ {sensor.id} не в мережі
                 </div>
               )}
               <div className="description-temp-block d-flex justify-content-between align-items-center mb-2">
