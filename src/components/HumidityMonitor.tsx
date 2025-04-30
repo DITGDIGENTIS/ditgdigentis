@@ -39,30 +39,28 @@ export function HumidityMonitor() {
         const data = response.sensors || {};
         const serverTime = response.serverTime;
 
-        Object.keys(data).forEach((key) => {
-          const raw = data[key];
-          if (!raw) return;
+        Object.entries(data).forEach(([key, raw]) => {
+          if (!raw || !raw.timestamp) return;
+
+          const humidityStr = raw.humidity?.toString() || "--";
 
           sensorCache.current[key] = {
             id: key,
-            humidity: raw.humidity?.toString() || "--",
+            humidity: humidityStr,
             timestamp: raw.timestamp,
             age: serverTime - raw.timestamp,
-            online: true,
+            online: humidityStr !== "--" && serverTime - raw.timestamp <= TIMEOUT_MS,
           };
         });
 
         let updatedList = Object.keys(sensorCache.current).map((key) => {
           const cached = sensorCache.current[key];
-          const isOffline =
-            !cached?.timestamp || serverTime - cached.timestamp > TIMEOUT_MS;
+          const isOffline = !cached?.timestamp || cached.age > TIMEOUT_MS;
 
           return {
-            id: key,
-            humidity: !isOffline ? cached?.humidity || "--" : "--",
-            online: !isOffline && cached?.humidity !== "--",
-            timestamp: cached?.timestamp || 0,
-            age: cached?.timestamp ? serverTime - cached.timestamp : 0,
+            ...cached,
+            humidity: isOffline ? "--" : cached.humidity,
+            online: !isOffline && cached.humidity !== "--",
           };
         });
 
@@ -96,7 +94,7 @@ export function HumidityMonitor() {
       <div className="row">
         {sensors.map((sensor, index) => (
           <div key={index} className="col-12 col-md-12">
-            <div className="average-temp-block">
+            <div className={`average-temp-block ${sensor.online ? "online" : "offline"}`}>
               {!sensor.online && (
                 <div className="alert alert-danger text-center p-2 mb-2">
                   ⚠ {sensor.id} не в мережі
