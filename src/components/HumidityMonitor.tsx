@@ -39,14 +39,15 @@ export function HumidityMonitor() {
         const data = response.sensors || {};
 
         const updatedList: HumidityData[] = Object.entries(data).map(([id, raw]) => {
+          const ts = Number(raw.timestamp); // 👈 гарантируем число
           const humidityStr = raw.humidity?.toString() || "--";
-          const age = serverTime - raw.timestamp;
+          const age = serverTime - ts;
           const online = humidityStr !== "--" && age < TIMEOUT_MS;
 
           return {
             id,
-            humidity: humidityStr, // ✅ всегда показываем значение
-            timestamp: raw.timestamp,
+            humidity: humidityStr,
+            timestamp: ts,
             age,
             online,
           };
