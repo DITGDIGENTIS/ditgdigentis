@@ -7,14 +7,14 @@ import { faTint } from "@fortawesome/free-solid-svg-icons";
 type RawHumidityItem = {
   id: string;
   humidity: number | string;
-  timestamp: number;
+  timestamp: number | string;
 };
 
 type RawHumidityResponse = {
   sensors: {
     [sensorKey: string]: RawHumidityItem;
   };
-  serverTime: number;
+  serverTime: number | string;
 };
 
 type HumidityData = {
@@ -35,14 +35,16 @@ export function HumidityMonitor() {
       try {
         const res = await fetch("/api/humidity", { cache: "no-store" });
         const response: RawHumidityResponse = await res.json();
-        const serverTime = response.serverTime;
+        const serverTime = Number(response.serverTime);
         const data = response.sensors || {};
 
         const updatedList: HumidityData[] = Object.entries(data).map(([id, raw]) => {
-          const ts = Number(raw.timestamp); // 👈 гарантируем число
+          const ts = Number(raw.timestamp);
           const humidityStr = raw.humidity?.toString() || "--";
           const age = serverTime - ts;
-          const online = humidityStr !== "--" && age < TIMEOUT_MS;
+          const online = humidityStr !== "--" && !isNaN(age) && age < TIMEOUT_MS;
+
+          console.log(`[DEBUG] ${id}: humidity=${humidityStr}, ts=${ts}, serverTime=${serverTime}, age=${age}, online=${online}`);
 
           return {
             id,
