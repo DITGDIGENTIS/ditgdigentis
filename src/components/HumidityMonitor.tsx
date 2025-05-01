@@ -98,16 +98,21 @@ export function HumidityMonitor() {
                   ● {sensor.online ? "ONLINE" : "OFFLINE"}
                 </button>
               </div>
-              <div className="average-temp-label mb-2">
-                <FontAwesomeIcon icon={faTint} />{" "}
-                <span className="average-temp-data">{sensor.humidity}%</span>
-              </div>
-              <div className="average-temp-label">
-                <FontAwesomeIcon icon={faTemperatureHalf} />{" "}
-                <span className="average-temp-data">
-                  {sensor.temperature}°C
+
+              {/* 👇 ВЛАЖНОСТЬ + ТЕМПЕРАТУРА В ОДНУ ЛИНИЮ */}
+              <div className="d-flex justify-content-between gap-3 average-temp-label">
+                <span>
+                  <FontAwesomeIcon icon={faTint} />{" "}
+                  <span className="average-temp-data">{sensor.humidity}%</span>
+                </span>
+                <span>
+                  <FontAwesomeIcon icon={faTemperatureHalf} />{" "}
+                  <span className="average-temp-data">
+                    {sensor.temperature}°C
+                  </span>
                 </span>
               </div>
+
             </div>
           </div>
         ))}
