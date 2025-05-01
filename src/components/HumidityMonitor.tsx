@@ -1,101 +1,96 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTint } from "@fortawesome/free-solid-svg-icons";
+import { faTint, faTemperatureHalf } from "@fortawesome/free-solid-svg-icons";
 
 type RawHumidityItem = {
   id: string;
-  humidity: number | string;
-  timestamp: number | string;
+  humidity: number;
+  temperature: number;
+  timestamp: number;
 };
 
 type RawHumidityResponse = {
   sensors: {
     [sensorKey: string]: RawHumidityItem;
   };
-  serverTime: number | string;
+  serverTime: number;
 };
 
 type HumidityData = {
   id: string;
   humidity: string;
+  temperature: string;
   online: boolean;
-  humidityLevel: "low" | "normal" | "high";
+  timestamp: number;
+  age: number;
 };
 
-const TIMEOUT_MS = 2 * 60 * 1000; // 2 хвилини
+const SENSOR_KEYS = ["HUM1-1"];
+const TIMEOUT_MS = 5 * 60 * 1000;
 
 export function HumidityMonitor() {
   const [sensors, setSensors] = useState<HumidityData[]>([]);
+  const sensorCache = useRef<Record<string, HumidityData>>({});
 
   useEffect(() => {
     const fetchHumidity = async () => {
       try {
         const res = await fetch("/api/humidity", { cache: "no-store" });
-        const response: RawHumidityResponse = await res.json();
-        const serverTime = Number(response.serverTime);
-        const data = response.sensors || {};
+        const data: RawHumidityResponse = await res.json();
+        const now = Date.now();
 
-        const updatedList: HumidityData[] = Object.entries(data).map(([id, raw]) => {
-          const ts = Number(raw.timestamp);
-          const humidityVal = parseFloat(raw.humidity as string);
-          const age = !isNaN(ts) && !isNaN(serverTime) ? serverTime - ts : Infinity;
+        const updated: HumidityData[] = SENSOR_KEYS.map((key) => {
+          const raw = data.sensors?.[key];
+          const timestamp = raw?.timestamp ?? 0;
+          const age = now - timestamp;
           const online = age < TIMEOUT_MS;
 
-          let level: "low" | "normal" | "high" = "normal";
-          if (!online || isNaN(humidityVal)) level = "low";
-          else if (humidityVal < 30) level = "low";
-          else if (humidityVal > 60) level = "high";
-
-          return {
-            id,
-            humidity: online && !isNaN(humidityVal) ? humidityVal.toFixed(0) : "--",
+          const item: HumidityData = {
+            id: key,
+            humidity: raw?.humidity?.toFixed(1) ?? "--",
+            temperature: raw?.temperature?.toFixed(1) ?? "--",
+            timestamp,
+            age,
             online,
-            humidityLevel: level,
           };
+
+          sensorCache.current[key] = item;
+          return item;
         });
 
-        setSensors(updatedList.sort((a, b) => a.id.localeCompare(b.id)));
+        setSensors(updated);
       } catch (e) {
-        console.error("Ошибка получения даних:", e);
+        console.warn("[HumidityMonitor] Ошибка запроса:", e);
+        // fallback на кэш
+        setSensors(Object.values(sensorCache.current));
       }
     };
 
     fetchHumidity();
-    const interval = setInterval(fetchHumidity, 5000);
+    const interval = setInterval(fetchHumidity, 1000);
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <div className="container sensor-container p-4">
-      <h2 className="text-center mt-4 mb-3">Моніторинг датчиків вологості:</h2>
-      <div className="row">
-        {sensors.map((sensor) => (
-          <div key={sensor.id} className="col-12 col-md-12 mb-3">
-            <div className={`average-temp-block ${sensor.online ? "online" : "offline"} p-3 rounded shadow-sm`}>
-              {!sensor.online && (
-                <div className="alert alert-danger text-center p-2 mb-2">
-                  ⚠ {sensor.id} не в мережі (понад 2 хвилини)
-                </div>
-              )}
-              <div className="description-temp-block d-flex justify-content-between align-items-center mb-2">
-                <strong>{sensor.id}</strong>
-                <button
-                  className={`status-button ${sensor.online ? "online" : "offline blink"}`}
-                  title={sensor.online ? "Sensor Online" : "Sensor Offline"}
-                >
-                  ● {sensor.online ? "ONLINE" : "OFFLINE"}
-                </button>
-              </div>
-              <div className="average-temp-label fs-5">
-                <FontAwesomeIcon icon={faTint} />{" "}
-                <span className="average-temp-data fw-bold text-white">{sensor.humidity} %</span>
-              </div>
+    <div className="humidity-monitor">
+      {sensors.map((sensor) => (
+        <div key={sensor.id} className={`sensor-block ${sensor.online ? "online" : "offline"}`}>
+          <h5>{sensor.id}</h5>
+          <p>
+            <FontAwesomeIcon icon={faTint} /> Влажность: {sensor.humidity}%
+          </p>
+          <p>
+            <FontAwesomeIcon icon={faTemperatureHalf} /> Температура: {sensor.temperature}°C
+          </p>
+          {!sensor.online && (
+            <div className="alert">
+              ⚠️ Сенсор {sensor.id} не в мережі
             </div>
-          </div>
-        ))}
-      </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
