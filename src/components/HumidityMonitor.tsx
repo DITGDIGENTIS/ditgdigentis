@@ -21,6 +21,7 @@ type HumidityData = {
   id: string;
   humidity: string;
   online: boolean;
+  humidityLevel: "low" | "normal" | "high";
 };
 
 const TIMEOUT_MS = 60 * 1000; // 1 хвилина
@@ -38,14 +39,20 @@ export function HumidityMonitor() {
 
         const updatedList: HumidityData[] = Object.entries(data).map(([id, raw]) => {
           const ts = Number(raw.timestamp);
-          const humidityStr = raw.humidity?.toString() || "--";
+          const humidityVal = parseFloat(raw.humidity as string);
           const age = !isNaN(ts) && !isNaN(serverTime) ? serverTime - ts : Infinity;
           const online = age < TIMEOUT_MS;
 
+          let level: "low" | "normal" | "high" = "normal";
+          if (!online || isNaN(humidityVal)) level = "low";
+          else if (humidityVal < 30) level = "low";
+          else if (humidityVal > 60) level = "high";
+
           return {
             id,
-            humidity: online ? humidityStr : "--",
+            humidity: online && !isNaN(humidityVal) ? humidityVal.toFixed(0) : "--",
             online,
+            humidityLevel: level,
           };
         });
 
@@ -83,7 +90,17 @@ export function HumidityMonitor() {
               </div>
               <div className="average-temp-label fs-5">
                 <FontAwesomeIcon icon={faTint} />{" "}
-                <span className="average-temp-data fw-bold">{sensor.humidity}</span>
+                <span
+                  className={`average-temp-data fw-bold ${
+                    sensor.humidityLevel === "low"
+                      ? "text-danger"
+                      : sensor.humidityLevel === "high"
+                      ? "text-primary"
+                      : "text-success"
+                  }`}
+                >
+                  {sensor.humidity} %
+                </span>
               </div>
             </div>
           </div>
