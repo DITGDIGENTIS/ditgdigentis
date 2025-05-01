@@ -90,17 +90,7 @@ export function HumidityMonitor() {
               </div>
               <div className="average-temp-label fs-5">
                 <FontAwesomeIcon icon={faTint} />{" "}
-                <span
-                  className={`average-temp-data fw-bold ${
-                    sensor.humidityLevel === "low"
-                      ? "text-danger"
-                      : sensor.humidityLevel === "high"
-                      ? "text-primary"
-                      : "text-success"
-                  }`}
-                >
-                  {sensor.humidity} %
-                </span>
+                <span className="average-temp-data fw-bold text-white">{sensor.humidity} %</span>
               </div>
             </div>
           </div>
