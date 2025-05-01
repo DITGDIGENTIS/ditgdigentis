@@ -51,7 +51,7 @@ export function HumidityMonitor() {
 
         setSensors(updatedList.sort((a, b) => a.id.localeCompare(b.id)));
       } catch (e) {
-        console.error("Ошибка получения данных:", e);
+        console.error("Ошибка получения даних:", e);
       }
     };
 
@@ -62,7 +62,7 @@ export function HumidityMonitor() {
 
   return (
     <div className="container sensor-container p-4">
-      <h2 className="text-center mt-4 mb-3">Моніторинг датчика вологості:</h2>
+      <h2 className="text-center mt-4 mb-3">Моніторинг датчиків вологості:</h2>
       <div className="row">
         {sensors.map((sensor) => (
           <div key={sensor.id} className="col-12 col-md-12 mb-3">
@@ -75,7 +75,7 @@ export function HumidityMonitor() {
               <div className="description-temp-block d-flex justify-content-between align-items-center mb-2">
                 <strong>{sensor.id}</strong>
                 <button
-                  className={`status-button ${sensor.online ? "online" : "offline"}`}
+                  className={`status-button ${sensor.online ? "online" : "offline blink"}`}
                   title={sensor.online ? "Sensor Online" : "Sensor Offline"}
                 >
                   ● {sensor.online ? "ONLINE" : "OFFLINE"}
