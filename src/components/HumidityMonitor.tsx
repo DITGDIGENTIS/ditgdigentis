@@ -8,14 +8,14 @@ type RawHumidityItem = {
   id: string;
   humidity: number | string;
   temperature?: number | string;
-  timestamp: number;
+  timestamp: number | string;
 };
 
 type RawHumidityResponse = {
   sensors: {
     [sensorKey: string]: RawHumidityItem;
   };
-  serverTime: number;
+  serverTime: number | string;
 };
 
 type HumidityData = {
@@ -26,7 +26,7 @@ type HumidityData = {
   humidityLevel: "low" | "normal" | "high";
 };
 
-const TIMEOUT_MS = 2 * 60 * 1000;
+const TIMEOUT_MS = 2 * 60 * 1000; // 2 хвилини
 
 export function HumidityMonitor() {
   const [sensors, setSensors] = useState<HumidityData[]>([]);
@@ -36,14 +36,15 @@ export function HumidityMonitor() {
       try {
         const res = await fetch("/api/humidity", { cache: "no-store" });
         const response: RawHumidityResponse = await res.json();
-        const serverTime = Number(response.serverTime);
+
+        const serverTime = Number(response.serverTime) || Date.now();
         const data = response.sensors || {};
 
         const updatedList: HumidityData[] = Object.entries(data).map(([id, raw]) => {
           const ts = Number(raw.timestamp);
-          const humidityVal = parseFloat(raw.humidity as string);
-          const temperatureVal = parseFloat(raw.temperature as string);
-          const age = !isNaN(ts) && !isNaN(serverTime) ? serverTime - ts : Infinity;
+          const humidityVal = parseFloat(String(raw.humidity));
+          const temperatureVal = parseFloat(String(raw.temperature));
+          const age = !isNaN(ts) ? serverTime - ts : Infinity;
           const online = age < TIMEOUT_MS;
 
           let level: "low" | "normal" | "high" = "normal";
@@ -92,9 +93,8 @@ export function HumidityMonitor() {
                   ● {sensor.online ? "ONLINE" : "OFFLINE"}
                 </button>
               </div>
-              <div className="average-temp-label fs-5">
-                <FontAwesomeIcon icon={faTint} />{" "}
-                <span className="average-temp-data fw-bold text-white">{sensor.humidity} %</span>
+              <div className="average-temp-label fs-5 text-white">
+                <FontAwesomeIcon icon={faTint} /> {sensor.humidity} %
               </div>
               <div className="average-temp-label fs-6 text-white">
                 <FontAwesomeIcon icon={faTemperatureLow} /> {sensor.temperature} °C
