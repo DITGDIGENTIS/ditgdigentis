@@ -1,16 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faTint,
-  faTemperatureHalf,
-} from "@fortawesome/free-solid-svg-icons";
+import { faTint, faTemperatureLow } from "@fortawesome/free-solid-svg-icons";
 
 type RawHumidityItem = {
   id: string;
-  humidity: number;
-  temperature: number;
+  humidity: number | string;
+  temperature?: number | string;
   timestamp: number;
 };
 
@@ -26,93 +23,82 @@ type HumidityData = {
   humidity: string;
   temperature: string;
   online: boolean;
-  timestamp: number;
-  age: number;
+  humidityLevel: "low" | "normal" | "high";
 };
 
-const SENSOR_KEYS = ["HUM1-1"];
-const TIMEOUT_MS = 5 * 60 * 1000;
+const TIMEOUT_MS = 2 * 60 * 1000;
 
 export function HumidityMonitor() {
   const [sensors, setSensors] = useState<HumidityData[]>([]);
-  const sensorCache = useRef<Record<string, HumidityData>>({});
 
   useEffect(() => {
     const fetchHumidity = async () => {
       try {
         const res = await fetch("/api/humidity", { cache: "no-store" });
-        const data: RawHumidityResponse = await res.json();
-        const now = Date.now();
+        const response: RawHumidityResponse = await res.json();
+        const serverTime = Number(response.serverTime);
+        const data = response.sensors || {};
 
-        const updated: HumidityData[] = SENSOR_KEYS.map((key) => {
-          const raw = data.sensors?.[key];
-          const timestamp = raw?.timestamp ?? 0;
-          const age = now - timestamp;
+        const updatedList: HumidityData[] = Object.entries(data).map(([id, raw]) => {
+          const ts = Number(raw.timestamp);
+          const humidityVal = parseFloat(raw.humidity as string);
+          const temperatureVal = parseFloat(raw.temperature as string);
+          const age = !isNaN(ts) && !isNaN(serverTime) ? serverTime - ts : Infinity;
           const online = age < TIMEOUT_MS;
 
-          const item: HumidityData = {
-            id: key,
-            humidity: raw?.humidity?.toFixed(1) ?? "--",
-            temperature: raw?.temperature?.toFixed(1) ?? "--",
-            timestamp,
-            age,
-            online,
-          };
+          let level: "low" | "normal" | "high" = "normal";
+          if (!online || isNaN(humidityVal)) level = "low";
+          else if (humidityVal < 30) level = "low";
+          else if (humidityVal > 60) level = "high";
 
-          sensorCache.current[key] = item;
-          return item;
+          return {
+            id,
+            humidity: online && !isNaN(humidityVal) ? humidityVal.toFixed(0) : "--",
+            temperature: online && !isNaN(temperatureVal) ? temperatureVal.toFixed(1) : "--",
+            online,
+            humidityLevel: level,
+          };
         });
 
-        setSensors(updated);
+        setSensors(updatedList.sort((a, b) => a.id.localeCompare(b.id)));
       } catch (e) {
-        console.warn("[HumidityMonitor] Ошибка запроса:", e);
-        setSensors(Object.values(sensorCache.current));
+        console.error("Помилка завантаження вологості:", e);
       }
     };
 
     fetchHumidity();
-    const interval = setInterval(fetchHumidity, 1000);
+    const interval = setInterval(fetchHumidity, 5000);
     return () => clearInterval(interval);
   }, []);
 
   return (
     <div className="container sensor-container p-4">
-      <h2 className="text-center mt-4 mb-1">Моніторинг датчиків вологості:</h2>
+      <h2 className="text-center mt-4 mb-3">Моніторинг датчиків вологості:</h2>
       <div className="row">
-        {sensors.map((sensor, index) => (
-          <div key={index} className="col-12 col-md-4 col-lg-3 mb-3">
-            {!sensor.online && (
-              <div className="alert alert-danger text-center p-2 mb-2">
-                ⚠ {sensor.id} не в мережі
-              </div>
-            )}
-            <div className="average-temp-block">
-              <div className="description-temp-block">
-                {sensor.id}
+        {sensors.map((sensor) => (
+          <div key={sensor.id} className="col-12 col-md-12 mb-3">
+            <div className={`average-temp-block ${sensor.online ? "online" : "offline"} p-3 rounded shadow-sm`}>
+              {!sensor.online && (
+                <div className="alert alert-danger text-center p-2 mb-2">
+                  ⚠ {sensor.id} не в мережі (понад 2 хвилини)
+                </div>
+              )}
+              <div className="description-temp-block d-flex justify-content-between align-items-center mb-2">
+                <strong>{sensor.id}</strong>
                 <button
-                  className={`status-button ${
-                    sensor.online ? "online" : "offline"
-                  }`}
-                  title={`Sensor ${sensor.online ? "Online" : "Offline"}`}
+                  className={`status-button ${sensor.online ? "online" : "offline blink"}`}
+                  title={sensor.online ? "Sensor Online" : "Sensor Offline"}
                 >
                   ● {sensor.online ? "ONLINE" : "OFFLINE"}
                 </button>
               </div>
-
-              {/* 👇 ВЛАЖНОСТЬ + ТЕМПЕРАТУРА В ОДНУ ЛИНИЮ */}
-              <div className="d-flex justify-content-between gap-3 average-temp-label">
-                <span>
-                  <FontAwesomeIcon icon={faTint} />{" "}
-                  <span className="average-temp-data">{sensor.humidity}%</span>
-                </span>
-                <span>
-                  <FontAwesomeIcon icon={faTemperatureHalf} />{" "}
-                  <span className="average-temp-data">
-                    {sensor.temperature}°C
-                  </span>
-                </span>
+              <div className="average-temp-label fs-5">
+                <FontAwesomeIcon icon={faTint} />{" "}
+                <span className="average-temp-data fw-bold text-white">{sensor.humidity} %</span>
               </div>
-
+              <div className="average-temp-label fs-6 text-white">
+                <FontAwesomeIcon icon={faTemperatureLow} /> {sensor.temperature} °C
+              </div>
             </div>
           </div>
         ))}
