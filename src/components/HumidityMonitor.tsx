@@ -102,11 +102,11 @@ export function HumidityMonitor() {
               {/* 👇 ВЛАЖНОСТЬ + ТЕМПЕРАТУРА В ОДНУ ЛИНИЮ */}
               <div className="d-flex justify-content-between gap-3 average-temp-label">
                 <span>
-                  <FontAwesomeIcon icon={faTint} />Повітря{" "}
+                  <FontAwesomeIcon icon={faTint} />{" "}
                   <span className="average-temp-data">{sensor.humidity}%</span>
                 </span>
                 <span>
-                  <FontAwesomeIcon icon={faTemperatureHalf} />Повітря{" "}
+                  <FontAwesomeIcon icon={faTemperatureHalf} />{" "}
                   <span className="average-temp-data">
                     {sensor.temperature}°C
                   </span>
