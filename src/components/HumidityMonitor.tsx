@@ -2,7 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTint, faTemperatureHalf, faCircleExclamation } from "@fortawesome/free-solid-svg-icons";
+import {
+  faTint,
+  faTemperatureHalf,
+} from "@fortawesome/free-solid-svg-icons";
 
 type RawHumidityItem = {
   id: string;
@@ -73,61 +76,39 @@ export function HumidityMonitor() {
   }, []);
 
   return (
-    <div style={{
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      minHeight: "100vh",
-      backgroundColor: "#111",
-    }}>
-      <div style={{
-        display: "flex",
-        gap: "2rem",
-        flexWrap: "wrap",
-        justifyContent: "center",
-      }}>
-        {sensors.map((sensor) => (
-          <div
-            key={sensor.id}
-            style={{
-              width: "260px",
-              borderRadius: "16px",
-              padding: "20px",
-              backgroundColor: sensor.online ? "#1e1e1e" : "#3b1c1c",
-              color: sensor.online ? "white" : "#ff4d4f",
-              border: `2px solid ${sensor.online ? "#4caf50" : "#f44336"}`,
-              boxShadow: sensor.online ? "0 0 15px #4caf50aa" : "0 0 15px #f4433688",
-              transition: "all 0.3s ease",
-              textAlign: "center",
-            }}
-          >
-            <h3 style={{ marginBottom: "16px", fontSize: "1.25rem" }}>{sensor.id}</h3>
-            <p style={{ margin: "8px 0", fontSize: "1.1rem" }}>
-              <FontAwesomeIcon icon={faTint} /> Влажность:
-              <strong> {sensor.humidity}%</strong>
-            </p>
-            <p style={{ margin: "8px 0", fontSize: "1.1rem" }}>
-              <FontAwesomeIcon icon={faTemperatureHalf} /> Температура:
-              <strong> {sensor.temperature}°C</strong>
-            </p>
+    <div className="container sensor-container p-4">
+      <h2 className="text-center mt-4 mb-1">Моніторинг датчиків вологості:</h2>
+      <div className="row">
+        {sensors.map((sensor, index) => (
+          <div key={index} className="col-12 col-md-4 col-lg-3 mb-3">
             {!sensor.online && (
-              <div style={{
-                marginTop: "16px",
-                backgroundColor: "#ffcccc",
-                color: "#a10000",
-                padding: "10px",
-                borderRadius: "8px",
-                fontWeight: "bold",
-                fontSize: "0.95rem",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                gap: "8px",
-              }}>
-                <FontAwesomeIcon icon={faCircleExclamation} />
-                Сенсор {sensor.id} не в мережі
+              <div className="alert alert-danger text-center p-2 mb-2">
+                ⚠ {sensor.id} не в мережі
               </div>
             )}
+            <div className="average-temp-block">
+              <div className="description-temp-block">
+                {sensor.id}
+                <button
+                  className={`status-button ${
+                    sensor.online ? "online" : "offline"
+                  }`}
+                  title={`Sensor ${sensor.online ? "Online" : "Offline"}`}
+                >
+                  ● {sensor.online ? "ONLINE" : "OFFLINE"}
+                </button>
+              </div>
+              <div className="average-temp-label mb-2">
+                <FontAwesomeIcon icon={faTint} />{" "}
+                <span className="average-temp-data">{sensor.humidity}%</span>
+              </div>
+              <div className="average-temp-label">
+                <FontAwesomeIcon icon={faTemperatureHalf} />{" "}
+                <span className="average-temp-data">
+                  {sensor.temperature}°C
+                </span>
+              </div>
+            </div>
           </div>
         ))}
       </div>
