@@ -16,10 +16,15 @@ type SensorMap = {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const sensors: SensorMap = body?.sensors || {};
 
-    if (Object.keys(sensors).length === 0) {
-      return NextResponse.json({ error: "Empty sensor data" }, { status: 400 });
+    if (!body || typeof body !== "object" || !("sensors" in body)) {
+      return NextResponse.json({ error: "Invalid payload structure" }, { status: 400 });
+    }
+
+    const sensors: SensorMap = body.sensors;
+
+    if (!sensors || Object.keys(sensors).length === 0) {
+      return NextResponse.json({ error: "Empty sensor list" }, { status: 400 });
     }
 
     await writeFile(filePath, JSON.stringify(sensors, null, 2), "utf8");
