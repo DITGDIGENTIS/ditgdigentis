@@ -3,14 +3,12 @@ import { constants } from "fs";
 import path from "path";
 import { NextRequest, NextResponse } from "next/server";
 
-// Інтерфейс для одного датчика
 interface HumiditySensor {
   id: string;
   humidity: number | string;
   timestamp: number;
 }
 
-// Інтерфейс для всіх датчиків
 interface HumidityData {
   sensors: Record<string, HumiditySensor>;
   serverTime: number;
@@ -28,16 +26,8 @@ export async function POST(req: NextRequest) {
       received: Object.keys(body?.sensors || {}).length,
     });
   } catch (err: unknown) {
-    if (err instanceof Error) {
-      console.error("Помилка запису у файл:", err.message);
-    } else {
-      console.error("Невідома помилка під час запису даних у файл.");
-    }
-
-    return NextResponse.json(
-      { error: "Failed to save humidity data" },
-      { status: 500 }
-    );
+    console.error("Помилка запису у файл:", err instanceof Error ? err.message : err);
+    return NextResponse.json({ error: "Failed to save humidity data" }, { status: 500 });
   }
 }
 
@@ -48,9 +38,7 @@ export async function GET() {
     const data: HumidityData = JSON.parse(raw);
 
     const filteredSensors: Record<string, HumiditySensor> = Object.fromEntries(
-      Object.entries(data.sensors || {}).filter(([key]) =>
-        key.startsWith("HUM1-")
-      )
+      Object.entries(data.sensors || {}).filter(([key]) => key.startsWith("HUM1-"))
     );
 
     return NextResponse.json({
@@ -58,10 +46,7 @@ export async function GET() {
       serverTime: Date.now(),
     });
   } catch (err: unknown) {
-    if (err instanceof Error) {
-      console.error("Помилка читання файлу:", err.message);
-    }
-
+    console.error("Помилка читання файлу:", err instanceof Error ? err.message : err);
     return NextResponse.json({
       sensors: {},
       serverTime: Date.now(),
