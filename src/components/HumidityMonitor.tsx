@@ -63,7 +63,6 @@ export function HumidityMonitor() {
         setSensors(updated);
       } catch (e) {
         console.warn("[HumidityMonitor] Ошибка запроса:", e);
-        // fallback на кэш
         setSensors(Object.values(sensorCache.current));
       }
     };
@@ -74,9 +73,20 @@ export function HumidityMonitor() {
   }, []);
 
   return (
-    <div className="humidity-monitor">
+    <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem" }}>
       {sensors.map((sensor) => (
-        <div key={sensor.id} className={`sensor-block ${sensor.online ? "online" : "offline"}`}>
+        <div
+          key={sensor.id}
+          style={{
+            width: "220px",
+            borderRadius: "12px",
+            padding: "16px",
+            backgroundColor: sensor.online ? "#222" : "#2a1b1b",
+            color: sensor.online ? "white" : "#f44336",
+            border: `2px solid ${sensor.online ? "#4caf50" : "#f44336"}`,
+            transition: "0.3s",
+          }}
+        >
           <h5>{sensor.id}</h5>
           <p>
             <FontAwesomeIcon icon={faTint} /> Влажность: {sensor.humidity}%
@@ -85,7 +95,16 @@ export function HumidityMonitor() {
             <FontAwesomeIcon icon={faTemperatureHalf} /> Температура: {sensor.temperature}°C
           </p>
           {!sensor.online && (
-            <div className="alert">
+            <div
+              style={{
+                marginTop: "8px",
+                color: "#f44336",
+                fontWeight: "bold",
+                backgroundColor: "#330000",
+                padding: "6px",
+                borderRadius: "6px",
+              }}
+            >
               ⚠️ Сенсор {sensor.id} не в мережі
             </div>
           )}
