@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTint, faTemperatureHalf } from "@fortawesome/free-solid-svg-icons";
+import { faTint, faTemperatureHalf, faCircleExclamation } from "@fortawesome/free-solid-svg-icons";
 
 type RawHumidityItem = {
   id: string;
@@ -73,43 +73,64 @@ export function HumidityMonitor() {
   }, []);
 
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem" }}>
-      {sensors.map((sensor) => (
-        <div
-          key={sensor.id}
-          style={{
-            width: "220px",
-            borderRadius: "12px",
-            padding: "16px",
-            backgroundColor: sensor.online ? "#222" : "#2a1b1b",
-            color: sensor.online ? "white" : "#f44336",
-            border: `2px solid ${sensor.online ? "#4caf50" : "#f44336"}`,
-            transition: "0.3s",
-          }}
-        >
-          <h5>{sensor.id}</h5>
-          <p>
-            <FontAwesomeIcon icon={faTint} /> Влажность: {sensor.humidity}%
-          </p>
-          <p>
-            <FontAwesomeIcon icon={faTemperatureHalf} /> Температура: {sensor.temperature}°C
-          </p>
-          {!sensor.online && (
-            <div
-              style={{
-                marginTop: "8px",
-                color: "#f44336",
+    <div style={{
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      minHeight: "100vh",
+      backgroundColor: "#111",
+    }}>
+      <div style={{
+        display: "flex",
+        gap: "2rem",
+        flexWrap: "wrap",
+        justifyContent: "center",
+      }}>
+        {sensors.map((sensor) => (
+          <div
+            key={sensor.id}
+            style={{
+              width: "260px",
+              borderRadius: "16px",
+              padding: "20px",
+              backgroundColor: sensor.online ? "#1e1e1e" : "#3b1c1c",
+              color: sensor.online ? "white" : "#ff4d4f",
+              border: `2px solid ${sensor.online ? "#4caf50" : "#f44336"}`,
+              boxShadow: sensor.online ? "0 0 15px #4caf50aa" : "0 0 15px #f4433688",
+              transition: "all 0.3s ease",
+              textAlign: "center",
+            }}
+          >
+            <h3 style={{ marginBottom: "16px", fontSize: "1.25rem" }}>{sensor.id}</h3>
+            <p style={{ margin: "8px 0", fontSize: "1.1rem" }}>
+              <FontAwesomeIcon icon={faTint} /> Влажность:
+              <strong> {sensor.humidity}%</strong>
+            </p>
+            <p style={{ margin: "8px 0", fontSize: "1.1rem" }}>
+              <FontAwesomeIcon icon={faTemperatureHalf} /> Температура:
+              <strong> {sensor.temperature}°C</strong>
+            </p>
+            {!sensor.online && (
+              <div style={{
+                marginTop: "16px",
+                backgroundColor: "#ffcccc",
+                color: "#a10000",
+                padding: "10px",
+                borderRadius: "8px",
                 fontWeight: "bold",
-                backgroundColor: "#330000",
-                padding: "6px",
-                borderRadius: "6px",
-              }}
-            >
-              ⚠️ Сенсор {sensor.id} не в мережі
-            </div>
-          )}
-        </div>
-      ))}
+                fontSize: "0.95rem",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: "8px",
+              }}>
+                <FontAwesomeIcon icon={faCircleExclamation} />
+                Сенсор {sensor.id} не в мережі
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
