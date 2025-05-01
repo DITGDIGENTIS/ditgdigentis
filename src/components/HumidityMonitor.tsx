@@ -24,7 +24,7 @@ type HumidityData = {
   humidityLevel: "low" | "normal" | "high";
 };
 
-const TIMEOUT_MS = 60 * 1000; // 1 хвилина
+const TIMEOUT_MS = 2 * 60 * 1000; // 2 хвилини
 
 export function HumidityMonitor() {
   const [sensors, setSensors] = useState<HumidityData[]>([]);
@@ -76,7 +76,7 @@ export function HumidityMonitor() {
             <div className={`average-temp-block ${sensor.online ? "online" : "offline"} p-3 rounded shadow-sm`}>
               {!sensor.online && (
                 <div className="alert alert-danger text-center p-2 mb-2">
-                  ⚠ {sensor.id} не в мережі (понад 1 хвилину)
+                  ⚠ {sensor.id} не в мережі (понад 2 хвилини)
                 </div>
               )}
               <div className="description-temp-block d-flex justify-content-between align-items-center mb-2">
