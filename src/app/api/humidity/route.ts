@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 interface HumiditySensor {
   id: string;
   humidity: number | string;
+  temperature?: number | string;
   timestamp: number;
 }
 
@@ -14,8 +15,8 @@ interface HumidityData {
   serverTime: number;
 }
 
-const filePath = path.resolve("/home/ditg-z1/humidity.json");
-
+// ⚠️ Шлях, який буде працювати на Vercel
+const filePath = path.resolve("/tmp/humidity_sensors.json");
 
 export async function POST(req: NextRequest) {
   try {
