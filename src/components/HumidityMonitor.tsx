@@ -48,7 +48,6 @@ export function HumidityMonitor() {
           const humidity = raw ? parseFloat(String(raw.humidity)) : NaN;
           const temperature = raw ? parseFloat(String(raw.temperature)) : NaN;
 
-          // Створюємо порожній слот, якщо його немає
           if (!sensorCache.current[key]) {
             sensorCache.current[key] = {
               id: key,
@@ -61,29 +60,23 @@ export function HumidityMonitor() {
           }
 
           if (raw && !isNaN(humidity) && !isNaN(temperature)) {
+            const age = serverTime - ts;
             sensorCache.current[key] = {
               id: key,
               humidity: humidity.toFixed(0),
               temperature: temperature.toFixed(1),
               timestamp: ts,
-              age: serverTime - ts,
-              online: true,
+              age,
+              online: age < TIMEOUT_MS,
             };
           }
         });
 
         const updatedList = SENSOR_KEYS.map((key) => {
           const cached = sensorCache.current[key];
-          const isOffline =
-            !cached?.timestamp || serverTime - cached.timestamp > TIMEOUT_MS;
-
           return {
-            id: key,
-            humidity: !isOffline ? cached?.humidity || "--" : "--",
-            temperature: !isOffline ? cached?.temperature || "--" : "--",
-            timestamp: cached?.timestamp || 0,
-            age: cached?.timestamp ? serverTime - cached.timestamp : 0,
-            online: !isOffline,
+            ...cached,
+            online: cached.age < TIMEOUT_MS,
           };
         });
 
