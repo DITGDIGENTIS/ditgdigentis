@@ -48,6 +48,7 @@ export function HumidityMonitor() {
           const humidity = raw ? parseFloat(String(raw.humidity)) : NaN;
           const temperature = raw ? parseFloat(String(raw.temperature)) : NaN;
 
+          // Ініціалізувати порожній слот, якщо його ще немає
           if (!sensorCache.current[key]) {
             sensorCache.current[key] = {
               id: key,
@@ -60,29 +61,46 @@ export function HumidityMonitor() {
           }
 
           if (raw && !isNaN(humidity) && !isNaN(temperature)) {
-            const age = serverTime - ts;
             sensorCache.current[key] = {
               id: key,
               humidity: humidity.toFixed(0),
               temperature: temperature.toFixed(1),
               timestamp: ts,
-              age,
-              online: age < TIMEOUT_MS,
+              age: serverTime - ts,
+              online: true,
             };
           }
         });
 
         const updatedList = SENSOR_KEYS.map((key) => {
           const cached = sensorCache.current[key];
-          return {
-            ...cached,
-            online: cached.age < TIMEOUT_MS,
+          const isOffline =
+            !cached?.timestamp || serverTime - cached.timestamp > TIMEOUT_MS;
+
+          const result = {
+            id: key,
+            humidity: !isOffline ? cached?.humidity || "--" : "--",
+            temperature: !isOffline ? cached?.temperature || "--" : "--",
+            timestamp: cached?.timestamp || 0,
+            age: cached?.timestamp ? serverTime - cached.timestamp : Infinity,
+            online: !isOffline,
           };
+
+          // 🛠️ DEBUG
+          console.log("DEBUG:", {
+            id: key,
+            serverTime,
+            sensorTimestamp: cached?.timestamp,
+            age: result.age,
+            online: result.online,
+          });
+
+          return result;
         });
 
         setSensors(updatedList);
       } catch (e) {
-        console.error("Помилка завантаження:", e);
+        console.error("❌ Помилка завантаження вологості:", e);
       }
     };
 
