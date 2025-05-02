@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTint, faTemperatureLow } from "@fortawesome/free-solid-svg-icons";
 
@@ -93,25 +93,29 @@ export function HumidityMonitor() {
       <h2 className="text-center mt-4 mb-1">Моніторинг датчика вологості:</h2>
       <div className="row">
         {sensors.map((sensor, index) => (
-          <div key={index} className="col-12 col-md-6 col-lg-4">
+          <div key={index} className="col-6 col-md-3">
             {!sensor.online && (
               <div className="alert alert-danger text-center p-2 mb-2">
                 ⚠ {sensor.id} не в мережі
               </div>
             )}
-            <div className="average-temp-block p-3 rounded shadow-sm">
+            <div className="average-temp-block">
               <div className="description-temp-block d-flex justify-content-between mb-2">
                 <strong>{sensor.id}</strong>
                 <button
                   className={`status-button ${sensor.online ? "online" : "offline"}`}
+                  title={`Sensor ${sensor.online ? "Online" : "Offline"}`}
                 >
                   ● {sensor.online ? "ONLINE" : "OFFLINE"}
                 </button>
               </div>
-              <div className="average-temp-label text-white fs-6">
-                <FontAwesomeIcon icon={faTint} /> {sensor.humidity} %{" "}
-                <FontAwesomeIcon icon={faTemperatureLow} className="ms-3" />{" "}
-                {sensor.temperature} °C
+              <div className="average-temp-label">
+                <FontAwesomeIcon icon={faTint} />{" "}
+                <span className="average-temp-data">{sensor.humidity} %</span>
+              </div>
+              <div className="average-temp-label mt-1">
+                <FontAwesomeIcon icon={faTemperatureLow} />{" "}
+                <span className="average-temp-data">{sensor.temperature} °C</span>
               </div>
             </div>
           </div>
