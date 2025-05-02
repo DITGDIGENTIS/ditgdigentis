@@ -99,7 +99,7 @@ export function HumidityMonitor() {
                 ⚠ {sensor.id} не в мережі
               </div>
             )}
-            <div className="average-temp-block">
+            <div className="average-temp-block p-3 rounded shadow-sm">
               <div className="description-temp-block d-flex justify-content-between mb-2">
                 <strong>{sensor.id}</strong>
                 <button
@@ -109,13 +109,15 @@ export function HumidityMonitor() {
                   ● {sensor.online ? "ONLINE" : "OFFLINE"}
                 </button>
               </div>
-              <div className="average-temp-label">
-                <FontAwesomeIcon icon={faTint} />{" "}
-                <span className="average-temp-data">{sensor.humidity} %</span>
-              </div>
-              <div className="average-temp-label mt-1">
-                <FontAwesomeIcon icon={faTemperatureLow} />{" "}
-                <span className="average-temp-data">{sensor.temperature} °C</span>
+              <div className="average-temp-label d-flex justify-content-between gap-3 text-white">
+                <div>
+                  <FontAwesomeIcon icon={faTint} />{" "}
+                  <span className="average-temp-data fw-bold">{sensor.humidity} %</span>
+                </div>
+                <div>
+                  <FontAwesomeIcon icon={faTemperatureLow} />{" "}
+                  <span className="average-temp-data fw-bold">{sensor.temperature} °C</span>
+                </div>
               </div>
             </div>
           </div>
