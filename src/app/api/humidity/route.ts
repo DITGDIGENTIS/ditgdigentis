@@ -14,7 +14,8 @@ interface HumidityData {
   serverTime: number;
 }
 
-const filePath = path.resolve("/tmp/humidity_sensors.json");
+const filePath = path.resolve("/home/ditg-z1/humidity.json");
+
 
 export async function POST(req: NextRequest) {
   try {

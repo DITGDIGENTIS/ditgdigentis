@@ -12,10 +12,8 @@ type RawHumidityItem = {
 };
 
 type RawHumidityResponse = {
-  sensors: {
-    [sensorKey: string]: RawHumidityItem;
-  };
-  serverTime: number | string;
+  sensors: Record<string, RawHumidityItem>;
+  serverTime: number;
 };
 
 type HumidityData = {
@@ -32,89 +30,75 @@ const TIMEOUT_MS = 2 * 60 * 1000;
 
 export function HumidityMonitor() {
   const [sensors, setSensors] = useState<HumidityData[]>([]);
-  const sensorCache = useRef<Record<string, HumidityData>>({});
+  const cache = useRef<Record<string, HumidityData>>({});
 
   useEffect(() => {
     const fetchStatus = async () => {
       try {
         const res = await fetch("/api/humidity", { cache: "no-store" });
-        const response: RawHumidityResponse = await res.json();
-        const data = response.sensors || {};
-        const serverTime = Number(response.serverTime) || Date.now();
+        const { sensors: data, serverTime }: RawHumidityResponse = await res.json();
 
         SENSOR_KEYS.forEach((key) => {
           const raw = data[key];
-          const ts = raw ? Number(raw.timestamp) : 0;
-          const humidity = raw ? parseFloat(String(raw.humidity)) : NaN;
-          const temperature = raw ? parseFloat(String(raw.temperature)) : NaN;
+          if (!raw) return;
+          const ts = Number(raw.timestamp);
+          const h = parseFloat(String(raw.humidity));
+          const t = parseFloat(String(raw.temperature));
+          const age = serverTime - ts;
 
-          // Ініціалізувати порожній слот, якщо його ще немає
-          if (!sensorCache.current[key]) {
-            sensorCache.current[key] = {
+          if (!isNaN(h) && !isNaN(t)) {
+            cache.current[key] = {
               id: key,
-              humidity: "--",
-              temperature: "--",
-              timestamp: 0,
-              age: Infinity,
-              online: false,
-            };
-          }
-
-          if (raw && !isNaN(humidity) && !isNaN(temperature)) {
-            sensorCache.current[key] = {
-              id: key,
-              humidity: humidity.toFixed(0),
-              temperature: temperature.toFixed(1),
+              humidity: h.toFixed(0),
+              temperature: t.toFixed(1),
               timestamp: ts,
-              age: serverTime - ts,
-              online: true,
+              age,
+              online: age <= TIMEOUT_MS,
             };
           }
         });
 
-        const updatedList = SENSOR_KEYS.map((key) => {
-          const cached = sensorCache.current[key];
-          const isOffline =
-            !cached?.timestamp || serverTime - cached.timestamp > TIMEOUT_MS;
-
-          const result = {
+        const updated = SENSOR_KEYS.map((key) => {
+          const s = cache.current[key] || {
             id: key,
-            humidity: !isOffline ? cached?.humidity || "--" : "--",
-            temperature: !isOffline ? cached?.temperature || "--" : "--",
-            timestamp: cached?.timestamp || 0,
-            age: cached?.timestamp ? serverTime - cached.timestamp : Infinity,
-            online: !isOffline,
+            humidity: "--",
+            temperature: "--",
+            timestamp: 0,
+            age: Infinity,
+            online: false,
           };
 
-          // 🛠️ DEBUG
-          console.log("DEBUG:", {
-            id: key,
-            serverTime,
-            sensorTimestamp: cached?.timestamp,
-            age: result.age,
-            online: result.online,
-          });
+          const isOffline = !s.timestamp || s.age > TIMEOUT_MS;
 
+          const result: HumidityData = {
+            ...s,
+            humidity: isOffline ? "--" : s.humidity,
+            temperature: isOffline ? "--" : s.temperature,
+            online: !isOffline,
+            age: serverTime - s.timestamp,
+          };
+
+          console.log("HUM DEBUG", key, result);
           return result;
         });
 
-        setSensors(updatedList);
+        setSensors(updated);
       } catch (e) {
-        console.error("❌ Помилка завантаження вологості:", e);
+        console.error("❌ HUM fetch error:", e);
       }
     };
 
     fetchStatus();
-    const interval = setInterval(fetchStatus, 5000);
-    return () => clearInterval(interval);
+    const int = setInterval(fetchStatus, 5000);
+    return () => clearInterval(int);
   }, []);
 
   return (
     <div className="container sensor-container p-4">
       <h2 className="text-center mt-4 mb-1">Моніторинг датчика вологості:</h2>
       <div className="row">
-        {sensors.map((sensor, index) => (
-          <div key={index} className="col-12 col-md-3">
+        {sensors.map((sensor) => (
+          <div key={sensor.id} className="col-12 col-md-3">
             {!sensor.online && (
               <div className="alert alert-danger text-center p-2 mb-2">
                 ⚠ {sensor.id} не в мережі
@@ -125,7 +109,6 @@ export function HumidityMonitor() {
                 <strong>{sensor.id}</strong>
                 <button
                   className={`status-button ${sensor.online ? "online" : "offline"}`}
-                  title={`Sensor ${sensor.online ? "Online" : "Offline"}`}
                 >
                   ● {sensor.online ? "ONLINE" : "OFFLINE"}
                 </button>
