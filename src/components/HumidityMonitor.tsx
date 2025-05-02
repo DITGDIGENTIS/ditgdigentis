@@ -44,22 +44,32 @@ export function HumidityMonitor() {
 
         SENSOR_KEYS.forEach((key) => {
           const raw = data[key];
-          if (!raw) return;
+          const ts = raw ? Number(raw.timestamp) : 0;
+          const humidity = raw ? parseFloat(String(raw.humidity)) : NaN;
+          const temperature = raw ? parseFloat(String(raw.temperature)) : NaN;
 
-          const ts = Number(raw.timestamp);
-          const humidity = parseFloat(String(raw.humidity));
-          const temperature = parseFloat(String(raw.temperature));
+          // Створюємо порожній слот, якщо його немає
+          if (!sensorCache.current[key]) {
+            sensorCache.current[key] = {
+              id: key,
+              humidity: "--",
+              temperature: "--",
+              timestamp: 0,
+              age: Infinity,
+              online: false,
+            };
+          }
 
-          if (isNaN(humidity) || isNaN(temperature)) return;
-
-          sensorCache.current[key] = {
-            id: key,
-            humidity: humidity.toFixed(0),
-            temperature: temperature.toFixed(1),
-            timestamp: ts,
-            age: serverTime - ts,
-            online: true,
-          };
+          if (raw && !isNaN(humidity) && !isNaN(temperature)) {
+            sensorCache.current[key] = {
+              id: key,
+              humidity: humidity.toFixed(0),
+              temperature: temperature.toFixed(1),
+              timestamp: ts,
+              age: serverTime - ts,
+              online: true,
+            };
+          }
         });
 
         const updatedList = SENSOR_KEYS.map((key) => {
@@ -111,11 +121,11 @@ export function HumidityMonitor() {
               </div>
               <div className="average-temp-label d-flex justify-content-between gap-3 text-white">
                 <div>
-                  <FontAwesomeIcon icon={faTint} />{" "}
+                  <FontAwesomeIcon icon={faTint} style={{ color: "#FFD700" }} />{" "}
                   <span className="average-temp-data fw-bold">{sensor.humidity} %</span>
                 </div>
                 <div>
-                  <FontAwesomeIcon icon={faTemperatureLow} />{" "}
+                  <FontAwesomeIcon icon={faTemperatureLow} style={{ color: "#FFD700" }} />{" "}
                   <span className="average-temp-data fw-bold">{sensor.temperature} °C</span>
                 </div>
               </div>
