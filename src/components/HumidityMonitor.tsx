@@ -26,7 +26,9 @@ type HumidityData = {
   humidityLevel: "low" | "normal" | "high";
 };
 
-const TIMEOUT_MS = 2 * 60 * 1000; // 2 хвилини
+// Укажи всі потрібні слоти
+const SENSOR_KEYS = ["HUM1-1", "HUM1-2"];
+const TIMEOUT_MS = 2 * 60 * 1000;
 
 export function HumidityMonitor() {
   const [sensors, setSensors] = useState<HumidityData[]>([]);
@@ -40,10 +42,11 @@ export function HumidityMonitor() {
         const serverTime = Number(response.serverTime) || Date.now();
         const data = response.sensors || {};
 
-        const updatedList: HumidityData[] = Object.entries(data).map(([id, raw]) => {
-          const ts = Number(raw.timestamp);
-          const humidityVal = parseFloat(String(raw.humidity));
-          const temperatureVal = parseFloat(String(raw.temperature));
+        const updatedList: HumidityData[] = SENSOR_KEYS.map((id) => {
+          const raw = data[id];
+          const ts = raw ? Number(raw.timestamp) : 0;
+          const humidityVal = raw ? parseFloat(String(raw.humidity)) : NaN;
+          const temperatureVal = raw ? parseFloat(String(raw.temperature)) : NaN;
           const age = !isNaN(ts) ? serverTime - ts : Infinity;
           const online = age < TIMEOUT_MS;
 
@@ -61,7 +64,7 @@ export function HumidityMonitor() {
           };
         });
 
-        setSensors(updatedList.sort((a, b) => a.id.localeCompare(b.id)));
+        setSensors(updatedList);
       } catch (e) {
         console.error("Помилка завантаження вологості:", e);
       }
