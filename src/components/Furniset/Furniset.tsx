@@ -44,8 +44,8 @@ export const Furniset: FC = () => {
           </div>
         </div>
       </div>
-      <SensorMonitor />
       <HumidityMonitor />
+      <SensorMonitor />
     </div>
   );
 };
