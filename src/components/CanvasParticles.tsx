@@ -20,8 +20,8 @@ export default function CanvasParticles() {
     const particles = Array.from({ length: PARTICLE_COUNT }, () => ({
       x: Math.random() * width,
       y: Math.random() * height,
-      vx: (Math.random() - 0.5) * 0.6,
-      vy: (Math.random() - 0.5) * 0.6,
+      vx: (Math.random() - 0.5) * 0.5,
+      vy: (Math.random() - 0.5) * 0.5,
       size: Math.random() * 2 + 1,
     }));
 
@@ -72,9 +72,8 @@ export default function CanvasParticles() {
   }, []);
 
   return (
-    <canvas
-      ref={canvasRef}
-      className="fixed top-0 left-0 w-full h-full -z-10 pointer-events-none"
-    />
+    <div className="fixed inset-0 -z-10">
+      <canvas ref={canvasRef} className="w-full h-full" />
+    </div>
   );
 }

@@ -14,10 +14,12 @@ export default function Home() {
 
   return (
     <div className="relative min-h-screen bg-white overflow-hidden">
-      {/* 🎇 Фоновые частицы */}
-      <CanvasParticles />
+      {/* 🎇 Частицы на фиксированном фоне */}
+      <div className="fixed inset-0 -z-10">
+        <CanvasParticles />
+      </div>
 
-      {/* 🌐 Основной контент поверх */}
+      {/* 🌐 Основной контент — скроллится поверх */}
       <main className="relative z-10 px-4 py-20">
         <div
           className={`max-w-3xl mx-auto bg-white/80 border border-gray-200 backdrop-blur-2xl rounded-3xl shadow-[0_0_60px_rgba(0,140,255,0.2)] px-8 py-12 md:py-16 text-center transition-all duration-1000 ease-out transform ${
@@ -51,11 +53,9 @@ export default function Home() {
           </div>
         </div>
 
-        {/* ⬇ Дополнительный контент, чтобы включить скроллинг */}
+        {/* ⬇ Прокручиваемый контент */}
         <div className="max-w-3xl mx-auto mt-20 space-y-6 text-gray-700">
-          {[...Array(30)].map((_, i) => (
-            <p key={i}>📌 Блок контента #{i + 1}: демонстрация скролла поверх частиц.</p>
-          ))}
+          
         </div>
       </main>
     </div>
