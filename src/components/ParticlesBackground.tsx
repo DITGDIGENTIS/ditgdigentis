@@ -1,21 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Particles from "@tsparticles/react";
 
 export default function ParticlesBackground() {
-  const [particleCount, setParticleCount] = useState(60);
+  const width = typeof window !== "undefined" ? window.innerWidth : 1200;
 
-  useEffect(() => {
-    const width = window.innerWidth;
-    if (width < 500) {
-      setParticleCount(20); // 📱 мобилка
-    } else if (width < 1024) {
-      setParticleCount(40); // 📲 планшет
-    } else {
-      setParticleCount(60); // 🖥️ десктоп
-    }
-  }, []);
+  const particleCount = width < 500 ? 20 : width < 1024 ? 40 : 60;
 
   return (
     <div className="fixed inset-0 z-0">
