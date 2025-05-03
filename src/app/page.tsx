@@ -8,21 +8,24 @@ export default function Home() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    setTimeout(() => setVisible(true), 100);
+    const timeout = setTimeout(() => setVisible(true), 100);
+    return () => clearTimeout(timeout);
   }, []);
 
   return (
-    <div className="relative min-h-screen bg-white overflow-hidden">
-      {/* 👇 вне main, чтобы fullScreen: true работал */}
+    <div className="relative min-h-screen bg-white">
+      {/* ✅ Фоновая анимация */}
       <ParticlesBackground />
 
-      <main className="relative z-10 min-h-screen flex items-center justify-center px-4">
+      {/* ✅ Контент поверх canvas */}
+      <main className="relative z-10 flex items-center justify-center min-h-screen px-4">
         <div
-          className={`max-w-3xl w-full bg-white/70 border border-gray-200 shadow-[0_0_40px_rgba(0,100,255,0.15)] backdrop-blur-2xl rounded-3xl px-8 py-12 md:py-16 text-center transition-all duration-1000 transform ${
+          className={`max-w-3xl w-full bg-white/80 border border-gray-200 shadow-[0_0_40px_rgba(0,100,255,0.15)] backdrop-blur-2xl rounded-3xl px-8 py-12 md:py-16 text-center transition-all duration-1000 transform ${
             visible ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-95 translate-y-6"
           }`}
         >
           <div className="flex flex-col items-center">
+            {/* ✅ Логотип */}
             <img
               src="/ditg-logo.png"
               alt="DITG Logo"
@@ -30,10 +33,16 @@ export default function Home() {
               height={120}
               className="mb-6 drop-shadow-[0_0_10px_rgba(0,100,255,0.25)]"
             />
-            <h1 className="text-4xl font-bold text-gray-900 tracking-tight">Система DITG</h1>
+
+            {/* ✅ Заголовок */}
+            <h1 className="text-4xl font-bold text-gray-900 tracking-tight">
+              Система DITG
+            </h1>
             <p className="mt-3 text-gray-600 max-w-md text-base">
               Інтерфейс майбутнього. Все під контролем — завжди.
             </p>
+
+            {/* ✅ Кнопка */}
             <Link href="/link-page" className="mt-8 group relative">
               <div className="px-8 py-4 bg-white border border-blue-300 rounded-xl text-blue-700 font-semibold text-lg shadow-[0_4px_20px_rgba(0,140,255,0.15)] group-hover:shadow-[0_8px_30px_rgba(0,140,255,0.3)] transition duration-500 transform group-hover:scale-105 group-hover:-translate-y-1">
                 Переходи в своё пространство →
