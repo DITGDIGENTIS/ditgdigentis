@@ -1,22 +1,20 @@
 "use client";
 
+import { useEffect } from "react";
 import Particles from "@tsparticles/react";
 import { loadSlim } from "@tsparticles/slim";
-import type { Engine } from "@tsparticles/engine";
-import { useCallback } from "react";
+import { tsParticles } from "@tsparticles/engine";
 
 export default function ParticlesBackground() {
-  // ✅ Обязательно подгружаем движок
-  const particlesInit = useCallback(async (engine: Engine) => {
-    await loadSlim(engine);
+  useEffect(() => {
+    loadSlim(tsParticles); // ✅ вручную грузим движок slim
   }, []);
 
   return (
     <Particles
       id="tsparticles"
-      init={particlesInit}
       options={{
-        fullScreen: { enable: true, zIndex: -1 }, // ✅ важно: на весь экран, позади
+        fullScreen: { enable: true, zIndex: -1 },
         background: { color: "#ffffff" },
         particles: {
           number: {
