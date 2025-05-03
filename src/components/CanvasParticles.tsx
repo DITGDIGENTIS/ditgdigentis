@@ -14,7 +14,7 @@ export default function CanvasParticles() {
     let width = canvas.width = window.innerWidth;
     let height = canvas.height = window.innerHeight;
 
-    const PARTICLE_COUNT = 70;
+    const PARTICLE_COUNT = 80;
     const MAX_DIST = 120;
 
     const particles = Array.from({ length: PARTICLE_COUNT }, () => ({
@@ -28,7 +28,6 @@ export default function CanvasParticles() {
     const draw = () => {
       ctx.clearRect(0, 0, width, height);
 
-      // Линии
       for (let i = 0; i < PARTICLE_COUNT; i++) {
         for (let j = i + 1; j < PARTICLE_COUNT; j++) {
           const a = particles[i];
@@ -47,7 +46,6 @@ export default function CanvasParticles() {
         }
       }
 
-      // Частицы
       for (const p of particles) {
         p.x += p.vx;
         p.y += p.vy;
@@ -75,5 +73,10 @@ export default function CanvasParticles() {
     return () => window.removeEventListener("resize", resize);
   }, []);
 
-  return <canvas ref={canvasRef} className="fixed inset-0 -z-10" />;
+  return (
+    <canvas
+      ref={canvasRef}
+      className="fixed top-0 left-0 w-full h-full z-0 pointer-events-none"
+    />
+  );
 }
