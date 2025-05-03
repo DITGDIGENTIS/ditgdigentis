@@ -1,17 +1,23 @@
-import { writeFile, readFile, access } from "fs/promises";
-import { constants } from "fs";
-import path from "path";
+// src/app/api/zones/route.ts
 import { NextResponse } from "next/server";
 
-const filePath = path.resolve("/tmp/sensor_zones.json");
+type SensorData = {
+  id: string;
+  temperature: number | string;
+  timestamp: number;
+};
 
 type SensorMap = {
-  [key: string]: {
-    id: string;
-    temperature: number | string;
-    timestamp: number;
-  };
+  [key: string]: SensorData;
 };
+
+// Храним кэш в памяти между вызовами
+let sensorZonesCache: { sensors: SensorMap; lastUpdate: number } = {
+  sensors: {},
+  lastUpdate: 0,
+};
+
+const TIMEOUT_MS = 10 * 60 * 1000; // 10 минут
 
 export async function POST(req: Request) {
   try {
@@ -27,7 +33,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Empty sensor list" }, { status: 400 });
     }
 
-    await writeFile(filePath, JSON.stringify(sensors, null, 2), "utf8");
+    sensorZonesCache = {
+      sensors,
+      lastUpdate: Date.now(),
+    };
+
     return NextResponse.json({ status: "ok", received: Object.keys(sensors).length });
   } catch (err) {
     console.error("Ошибка при записи сенсоров:", err);
@@ -36,23 +46,17 @@ export async function POST(req: Request) {
 }
 
 export async function GET() {
-  try {
-    await access(filePath, constants.F_OK);
-    const raw = await readFile(filePath, "utf8");
-    const data: SensorMap = JSON.parse(raw);
+  const now = Date.now();
 
-    const filtered = Object.fromEntries(
-      Object.entries(data).filter(([key]) => key.startsWith("SENSOR1-"))
-    );
+  // Очистим, если не обновлялось 10 минут
+  const expired = now - sensorZonesCache.lastUpdate > TIMEOUT_MS;
 
-    return NextResponse.json({
-      sensors: filtered,
-      serverTime: Date.now(),
-    });
-  } catch {
-    return NextResponse.json({
-      sensors: {},
-      serverTime: Date.now(),
-    });
-  }
+  const filteredSensors = Object.fromEntries(
+    Object.entries(sensorZonesCache.sensors || {}).filter(([key]) => key.startsWith("SENSOR1-"))
+  );
+
+  return NextResponse.json({
+    sensors: expired ? {} : filteredSensors,
+    serverTime: now,
+  });
 }

@@ -1,18 +1,23 @@
-import { writeFile, readFile, access } from "fs/promises";
-import { constants } from "fs";
-import path from "path";
+// src/app/api/humidity/route.ts
 import { NextResponse } from "next/server";
 
-const filePath = path.resolve("/tmp/sensor_humidity.json");
+type HumidityData = {
+  id: string;
+  humidity: number | string;
+  temperature?: number | string;
+  timestamp: number;
+};
 
 type HumidityMap = {
-  [key: string]: {
-    id: string;
-    humidity: number | string;
-    temperature?: number | string;
-    timestamp: number;
-  };
+  [key: string]: HumidityData;
 };
+
+let humidityCache: { sensors: HumidityMap; lastUpdate: number } = {
+  sensors: {},
+  lastUpdate: 0,
+};
+
+const TIMEOUT_MS = 10 * 60 * 1000; // 10 минут
 
 export async function POST(req: Request) {
   try {
@@ -28,7 +33,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Empty humidity list" }, { status: 400 });
     }
 
-    await writeFile(filePath, JSON.stringify(sensors, null, 2), "utf8");
+    humidityCache = {
+      sensors,
+      lastUpdate: Date.now(),
+    };
+
     return NextResponse.json({ status: "ok", received: Object.keys(sensors).length });
   } catch (err) {
     console.error("Ошибка при записи данных вологості:", err);
@@ -37,23 +46,15 @@ export async function POST(req: Request) {
 }
 
 export async function GET() {
-  try {
-    await access(filePath, constants.F_OK);
-    const raw = await readFile(filePath, "utf8");
-    const data: HumidityMap = JSON.parse(raw);
+  const now = Date.now();
+  const expired = now - humidityCache.lastUpdate > TIMEOUT_MS;
 
-    const filtered = Object.fromEntries(
-      Object.entries(data).filter(([key]) => key.startsWith("HUM1-"))
-    );
+  const filtered = Object.fromEntries(
+    Object.entries(humidityCache.sensors || {}).filter(([key]) => key.startsWith("HUM1-"))
+  );
 
-    return NextResponse.json({
-      sensors: filtered,
-      serverTime: Date.now(),
-    });
-  } catch {
-    return NextResponse.json({
-      sensors: {},
-      serverTime: Date.now(),
-    });
-  }
+  return NextResponse.json({
+    sensors: expired ? {} : filtered,
+    serverTime: now,
+  });
 }
