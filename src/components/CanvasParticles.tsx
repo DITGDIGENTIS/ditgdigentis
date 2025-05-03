@@ -8,24 +8,46 @@ export default function CanvasParticles() {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     let width = canvas.width = window.innerWidth;
     let height = canvas.height = window.innerHeight;
 
-    const particles = Array.from({ length: 60 }, () => ({
+    const PARTICLE_COUNT = 70;
+    const MAX_DIST = 120;
+
+    const particles = Array.from({ length: PARTICLE_COUNT }, () => ({
       x: Math.random() * width,
       y: Math.random() * height,
-      vx: (Math.random() - 0.5) * 0.7,
-      vy: (Math.random() - 0.5) * 0.7,
+      vx: (Math.random() - 0.5) * 0.6,
+      vy: (Math.random() - 0.5) * 0.6,
       size: Math.random() * 2 + 1,
     }));
 
-    const animate = () => {
+    const draw = () => {
       ctx.clearRect(0, 0, width, height);
 
+      // Линии
+      for (let i = 0; i < PARTICLE_COUNT; i++) {
+        for (let j = i + 1; j < PARTICLE_COUNT; j++) {
+          const a = particles[i];
+          const b = particles[j];
+          const dx = a.x - b.x;
+          const dy = a.y - b.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < MAX_DIST) {
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+            ctx.strokeStyle = `rgba(0, 191, 255, ${1 - dist / MAX_DIST})`;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+        }
+      }
+
+      // Частицы
       for (const p of particles) {
         p.x += p.vx;
         p.y += p.vy;
@@ -39,10 +61,10 @@ export default function CanvasParticles() {
         ctx.fill();
       }
 
-      requestAnimationFrame(animate);
+      requestAnimationFrame(draw);
     };
 
-    animate();
+    draw();
 
     const resize = () => {
       width = canvas.width = window.innerWidth;
@@ -53,10 +75,5 @@ export default function CanvasParticles() {
     return () => window.removeEventListener("resize", resize);
   }, []);
 
-  return (
-    <canvas
-      ref={canvasRef}
-      className="fixed inset-0 -z-10"
-    />
-  );
+  return <canvas ref={canvasRef} className="fixed inset-0 -z-10" />;
 }
