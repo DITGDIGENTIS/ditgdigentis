@@ -39,8 +39,9 @@ export function HumidityMonitor() {
         const { sensors: data, serverTime }: RawHumidityResponse = await res.json();
 
         SENSOR_KEYS.forEach((key) => {
-          const raw = data[key];
+          const raw = data?.[key];
           if (!raw) return;
+
           const ts = Number(raw.timestamp);
           const h = parseFloat(String(raw.humidity));
           const t = parseFloat(String(raw.temperature));
@@ -70,21 +71,26 @@ export function HumidityMonitor() {
 
           const isOffline = !s.timestamp || s.age > TIMEOUT_MS;
 
-          const result: HumidityData = {
+          return {
             ...s,
             humidity: isOffline ? "--" : s.humidity,
             temperature: isOffline ? "--" : s.temperature,
             online: !isOffline,
             age: serverTime - s.timestamp,
           };
-
-          console.log("HUM DEBUG", key, result);
-          return result;
         });
 
         setSensors(updated);
       } catch (e) {
         console.error("❌ HUM fetch error:", e);
+        setSensors(SENSOR_KEYS.map((id) => ({
+          id,
+          humidity: "--",
+          temperature: "--",
+          timestamp: 0,
+          age: Infinity,
+          online: false,
+        })));
       }
     };
 
@@ -116,11 +122,15 @@ export function HumidityMonitor() {
               <div className="average-temp-label d-flex justify-content-between gap-3 text-white">
                 <div>
                   <FontAwesomeIcon icon={faTint} style={{ color: "#FFD700" }} />{" "}
-                  <span className="average-temp-data fw-bold">{sensor.humidity} %</span>
+                  <span className="average-temp-data fw-bold">
+                    {sensor.humidity} %
+                  </span>
                 </div>
                 <div>
                   <FontAwesomeIcon icon={faTemperatureLow} style={{ color: "#FFD700" }} />{" "}
-                  <span className="average-temp-data fw-bold">{sensor.temperature} °C</span>
+                  <span className="average-temp-data fw-bold">
+                    {sensor.temperature} °C
+                  </span>
                 </div>
               </div>
             </div>
