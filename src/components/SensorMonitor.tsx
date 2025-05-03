@@ -94,7 +94,7 @@ export function SensorMonitor() {
                 ⚠ {sensor.id} не в мережі
               </div>
             )}
-            <div className="average-temp-block p-3 rounded shadow-sm">
+            <div className="average-temp-block  rounded shadow-sm">
               <div className="description-temp-block d-flex justify-content-between mb-2">
                 <strong>{sensor.id}</strong>
                 <button
