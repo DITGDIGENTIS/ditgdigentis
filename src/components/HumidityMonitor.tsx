@@ -23,82 +23,79 @@ type HumidityData = {
   online: boolean;
   timestamp: number;
   age: number;
-  offlineSince?: number;
-  showAlert: boolean;
 };
 
 const SENSOR_KEYS = ["HUM1-1"];
-const TIMEOUT_MS = 2 * 60 * 1000;
-const ALERT_TIMEOUT_MS = 5 * 60 * 1000;
+const TIMEOUT_MS = 10 * 60 * 1000; // 10 хв
 
 export function HumidityMonitor() {
   const [sensors, setSensors] = useState<HumidityData[]>([]);
   const cache = useRef<Record<string, HumidityData>>({});
 
   useEffect(() => {
-    const fetchStatus = async () => {
+    const fetchHumidity = async () => {
       try {
         const res = await fetch("/api/humidity", { cache: "no-store" });
         const { sensors: data, serverTime }: RawHumidityResponse = await res.json();
 
         SENSOR_KEYS.forEach((key) => {
           const raw = data?.[key];
-          const prev = cache.current[key];
-          const ts = Number(raw?.timestamp || 0);
-          const h = parseFloat(String(raw?.humidity));
-          const t = parseFloat(String(raw?.temperature));
-          const age = serverTime - ts;
-          const isOnline = raw && !isNaN(h) && !isNaN(t) && age <= TIMEOUT_MS;
+          if (!raw) return;
 
-          if (isOnline) {
+          const ts = Number(raw.timestamp);
+          const h = parseFloat(String(raw.humidity));
+          const t = parseFloat(String(raw.temperature));
+          const age = serverTime - ts;
+
+          if (!isNaN(h) && !isNaN(t)) {
             cache.current[key] = {
               id: key,
-              humidity: h.toFixed(0),
+              humidity: h.toFixed(1),
               temperature: t.toFixed(1),
               timestamp: ts,
               age,
-              online: true,
-              offlineSince: undefined,
-              showAlert: false,
-            };
-          } else {
-            const wasOffline = prev?.online === false;
-            const offlineSince = wasOffline ? prev.offlineSince : serverTime;
-            const offlineDuration = serverTime - (offlineSince ?? serverTime);
-
-            cache.current[key] = {
-              id: key,
-              humidity: "--",
-              temperature: "--",
-              timestamp: prev?.timestamp || 0,
-              age,
-              online: false,
-              offlineSince,
-              showAlert: offlineDuration > ALERT_TIMEOUT_MS,
+              online: age <= TIMEOUT_MS,
             };
           }
         });
 
-        const updated = SENSOR_KEYS.map((key) => cache.current[key]!);
+        const updated = SENSOR_KEYS.map((key) => {
+          const s = cache.current[key] || {
+            id: key,
+            humidity: "--",
+            temperature: "--",
+            timestamp: 0,
+            age: Infinity,
+            online: false,
+          };
+
+          const isOffline = !s.timestamp || s.age > TIMEOUT_MS;
+
+          return {
+            ...s,
+            humidity: isOffline ? "--" : s.humidity,
+            temperature: isOffline ? "--" : s.temperature,
+            online: !isOffline,
+            age: serverTime - s.timestamp,
+          };
+        });
+
         setSensors(updated);
       } catch (e) {
         console.error("❌ HUM fetch error:", e);
-        const fallback = SENSOR_KEYS.map((id) => ({
+        setSensors(SENSOR_KEYS.map((id) => ({
           id,
           humidity: "--",
           temperature: "--",
           timestamp: 0,
           age: Infinity,
           online: false,
-          offlineSince: Date.now(),
-          showAlert: true,
-        }));
-        setSensors(fallback);
+        })));
       }
     };
 
-    fetchStatus();
-    const int = setInterval(fetchStatus, 5000);
+    fetchHumidity();
+    const int = setInterval(fetchHumidity, 5000);
     return () => clearInterval(int);
   }, []);
 
@@ -108,9 +105,9 @@ export function HumidityMonitor() {
       <div className="row">
         {sensors.map((sensor) => (
           <div key={sensor.id} className="col-12 col-md-3">
-            {sensor.showAlert && (
+            {!sensor.online && (
               <div className="alert alert-danger text-center p-2 mb-2">
-                ⚠ {sensor.id} не в мережі понад 5 хв
+                ⚠ {sensor.id} не в мережі
               </div>
             )}
             <div className="average-temp-block p-3 rounded shadow-sm">
@@ -124,13 +121,13 @@ export function HumidityMonitor() {
               </div>
               <div className="average-temp-label d-flex justify-content-between gap-3 text-white">
                 <div>
-                  <FontAwesomeIcon icon={faTint} style={{ color: "#FFD700" }} />{" "}
+                  <FontAwesomeIcon icon={faTint} />{" "}
                   <span className="average-temp-data fw-bold">
                     {sensor.humidity} %
                   </span>
                 </div>
                 <div>
-                  <FontAwesomeIcon icon={faTemperatureLow} style={{ color: "#FFD700" }} />{" "}
+                  <FontAwesomeIcon icon={faTemperatureLow} />{" "}
                   <span className="average-temp-data fw-bold">
                     {sensor.temperature} °C
                   </span>
