@@ -41,8 +41,8 @@ export default function Home() {
             <Image
               src="/ditg-logo.png"
               alt="DITG Logo"
-              width={140}
-              height={140} // ← исправлено с 2200 на адекватное значение
+              width={180}
+              height={180} // ← исправлено с 2200 на адекватное значение
               className="mb-4"
               priority // ← если важно для LCP
             />
@@ -55,7 +55,7 @@ export default function Home() {
                 fontWeight: 600,
               }}
             >
-              Система DITG
+              Інтерфейс майбутнього
             </h1>
 
             <p
@@ -64,7 +64,7 @@ export default function Home() {
                 fontSize: "1rem",
               }}
             >
-              Інтерфейс майбутнього. Все під контролем — завжди.
+               Все під контролем — завжди.
             </p>
 
 
