@@ -28,7 +28,7 @@ export default function Home() {
 
 
       {/* 🌐 Контент поверх (со смещением от 400px вверх) */}
-      <main style={{ position: "relative", zIndex: 10, paddingTop: "140px", paddingBottom: "120px", paddingLeft: "1rem", paddingRight: "1rem" }}>
+      <main style={{ position: "relative", zIndex: 10, paddingTop: "100px", paddingBottom: "120px", paddingLeft: "1rem", paddingRight: "1rem" }}>
         <div
           className={`max-w-3xl mx-auto backdrop-blur-2xl rounded-3xl shadow-[0_0_60px_rgba(0,140,255,0.2)] bg-white/80 px-8 py-12 md:py-16 text-center transition-all duration-1000 ease-out transform ${
             visible
@@ -40,20 +40,48 @@ export default function Home() {
             <img
               src="/ditg-logo.png"
               alt="DITG Logo"
-              width={140}
-              height={140}
+              width={180}
+              height={180}
               className="mb-4"
             />
 
-            <h1 className="fs-2 fw-bold text-dark">Система DITG</h1>
-            <p className="mt-3 text-secondary fs-6">Інтерфейс майбутнього. Все під контролем — завжди.</p>
+            <h1
+              style={{
+                padding: "15px",
+                color: "#000",
+                fontSize: "1.4rem",
+                fontWeight: 600,
+              }}
+            >
+              Система DITG
+            </h1>
 
-            <Link href="/link-page" className="mt-4 d-inline-block position-relative group">
-              <div className="px-4 py-3 border border-primary rounded text-primary fw-semibold fs-5 shadow"
-                style={{ transition: "all 0.5s", backgroundColor: "white" }}>
+            <p
+              className="mt-3 text-secondary"
+              style={{
+                fontSize: "1rem",
+              }}
+            >
+              Інтерфейс майбутнього. Все під контролем — завжди.
+            </p>
+
+
+            <Link
+              href="/link-page"
+              className="mt-4 d-inline-block position-relative group text-decoration-none"
+              style={{ textDecoration: "none" }} // 👈 на всякий случай продублировано
+            >
+              <div
+                className="px-4 py-3 border border-primary rounded fw-semibold fs-5 shadow"
+                style={{
+                  transition: "all 0.5s",
+                  backgroundColor: "white",
+                }}
+              >
                 Переходи в своё пространство →
               </div>
             </Link>
+
           </div>
         </div>
 
