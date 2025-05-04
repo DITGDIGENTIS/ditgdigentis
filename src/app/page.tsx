@@ -69,20 +69,24 @@ export default function Home() {
 
 
             <Link
-              href="/link-page"
-              className="mt-4 d-inline-block position-relative group text-decoration-none"
-              style={{ textDecoration: "none" }} // 👈 на всякий случай продублировано
-            >
-              <div
-                className="px-4 py-3 border border-primary rounded fw-semibold fs-5 shadow"
-                style={{
-                  transition: "all 0.5s",
-                  backgroundColor: "white",
-                }}
+                href="/link-page"
+                className="mt-4 d-inline-block position-relative group text-decoration-none"
+                style={{ textDecoration: "none" }}
               >
-                Переходи в своё пространство →
-              </div>
-            </Link>
+                <div
+                  className="px-4 py-3 border border-primary rounded fw-semibold fs-5 shadow animate-pulse"
+                  style={{
+                    transition: "all 0.5s",
+                    backgroundColor: "white",
+                    color: "#0d6efd", // bootstrap primary
+                    fontSize: "1.25rem",
+                    fontWeight: 600,
+                  }}
+                >
+                  Перейти до свого простору →
+                </div>
+              </Link>
+
 
           </div>
         </div>
