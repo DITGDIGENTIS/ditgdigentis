@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import CanvasParticles from "@/components/CanvasParticles";
 
 export default function Home() {
@@ -37,12 +38,13 @@ export default function Home() {
           }`}
         >
           <div className="flex flex-col align-items-center">
-            <img
+            <Image
               src="/ditg-logo.png"
               alt="DITG Logo"
-              width={180}
-              height={180}
+              width={220}
+              height={220} // ← исправлено с 2200 на адекватное значение
               className="mb-4"
+              priority // ← если важно для LCP
             />
 
             <h1
