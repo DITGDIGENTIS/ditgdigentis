@@ -41,8 +41,8 @@ export default function Home() {
             <Image
               src="/ditg-logo.png"
               alt="DITG Logo"
-              width={180}
-              height={180} // ← исправлено с 2200 на адекватное значение
+              width={140}
+              height={140} // ← исправлено с 2200 на адекватное значение
               className="mb-4"
               priority // ← если важно для LCP
             />
