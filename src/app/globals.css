@@ -1,3 +1,13 @@
+html,
+body,
+#__next {
+  margin: 0;
+  padding: 0;
+  position: relative;
+  min-height: 100%;
+}
+
+
 body {
   background: linear-gradient(to bottom, #0E0E0E, #2e2e2e);
   font-family: Arial, sans-serif;
