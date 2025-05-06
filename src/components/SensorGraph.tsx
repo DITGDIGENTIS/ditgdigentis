@@ -188,12 +188,13 @@ export default function SensorGraph() {
           selected={endDate}
           onChange={(date) => setEndDate(date)}
           selectsEnd
-          startDate={startDate}
-          endDate={endDate}
+          startDate={startDate || undefined}
+          endDate={endDate || undefined}
           placeholderText="Конец"
           dateFormat="dd.MM.yyyy"
-          minDate={startDate}
+          minDate={startDate || undefined}
         />
+
       </div>
 
       <div style={{ height: "400px", backgroundColor: "#fff" }}>
