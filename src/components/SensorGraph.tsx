@@ -1,4 +1,4 @@
-"use client";
+"use client"; // ← ОБЯЗАТЕЛЬНО первой строкой
 
 import {
   Chart as ChartJS,
@@ -20,6 +20,7 @@ import DatePicker from "react-datepicker";
 import "chartjs-adapter-date-fns";
 import "react-datepicker/dist/react-datepicker.css";
 
+// регистрация компонентов Chart.js
 ChartJS.register(
   LineElement,
   PointElement,
@@ -42,7 +43,11 @@ type SensorReading = {
 
 type Period = "day" | "week" | "month" | "year";
 
-export default function SensorGraph() {
+type SensorGraphProps = {
+  sensorId?: string;
+};
+
+export default function SensorGraph({ sensorId = "HUM1-1" }: SensorGraphProps) {
   const [data, setData] = useState<SensorReading[]>([]);
   const [period, setPeriod] = useState<Period>("day");
   const [startDate, setStartDate] = useState<Date | null>(null);
@@ -54,19 +59,21 @@ export default function SensorGraph() {
         const res = await fetch("https://barco.com.ua/api/sensor.php", {
           cache: "no-store",
         });
-        const json = await res.json();
+        const json: SensorReading[] = await res.json();
 
-        const filtered = json.filter((item: SensorReading) => {
-          const time = item.timestamp;
-          if (startDate && endDate) {
-            return time >= startDate.getTime() && time <= endDate.getTime();
-          }
-          const diff = Date.now() - time;
-          if (period === "day") return diff <= 86400000;
-          if (period === "week") return diff <= 604800000;
-          if (period === "month") return diff <= 2592000000;
-          return true;
-        });
+        const filtered = json
+          .filter((item) => item.sensor_id === sensorId)
+          .filter((item) => {
+            const time = item.timestamp;
+            if (startDate && endDate) {
+              return time >= startDate.getTime() && time <= endDate.getTime();
+            }
+            const diff = Date.now() - time;
+            if (period === "day") return diff <= 86400000;
+            if (period === "week") return diff <= 604800000;
+            if (period === "month") return diff <= 2592000000;
+            return true;
+          });
 
         setData(filtered);
       } catch (err) {
@@ -75,7 +82,7 @@ export default function SensorGraph() {
     };
 
     fetchData();
-  }, [period, startDate, endDate]);
+  }, [period, startDate, endDate, sensorId]);
 
   const chartData: ChartData<"line"> = {
     labels: data.map((d) => new Date(d.timestamp)),
@@ -111,30 +118,22 @@ export default function SensorGraph() {
           tooltipFormat: "Pp",
           unit: "minute",
         },
-        ticks: {
-          color: "#333",
-        },
+        ticks: { color: "#333" },
         title: {
           display: true,
           text: "Время",
           color: "#333",
         },
-        grid: {
-          color: "#eee",
-        },
+        grid: { color: "#eee" },
       },
       y: {
-        ticks: {
-          color: "#333",
-        },
+        ticks: { color: "#333" },
         title: {
           display: true,
           text: "Значение",
           color: "#333",
         },
-        grid: {
-          color: "#eee",
-        },
+        grid: { color: "#eee" },
       },
     },
     plugins: {
@@ -151,13 +150,11 @@ export default function SensorGraph() {
       },
       legend: {
         position: "top",
-        labels: {
-          color: "#333",
-        },
+        labels: { color: "#333" },
       },
       title: {
         display: true,
-        text: "Статистика датчика",
+        text: `Статистика датчика ${sensorId}`,
         color: "#333",
       },
     },
@@ -194,10 +191,9 @@ export default function SensorGraph() {
           dateFormat="dd.MM.yyyy"
           minDate={startDate || undefined}
         />
-
       </div>
 
-      <div style={{ height: "400px", backgroundColor: "#fff" }}>
+      <div style={{ height: "400px" }}>
         <Line data={chartData} options={options} />
       </div>
 

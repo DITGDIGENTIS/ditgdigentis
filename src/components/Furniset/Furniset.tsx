@@ -7,7 +7,7 @@ import { HumidityMonitor } from "../HumidityMonitor";
 import SensorGraph from "../SensorGraph";
 
 export const Furniset: FC = () => {
-  const [time, setTime] = useState("");
+  const [time, setTime] = useState<string>("");
 
   useEffect(() => {
     const updateClock = () => {
@@ -24,17 +24,13 @@ export const Furniset: FC = () => {
   }, []);
 
   return (
-    <div className="furniset-wrapper" style={{ padding: "1rem" }}>
+    <div>
       <ServerStatus companyName="FURNISET" deviceId="server" />
 
-      <div className="container py-3">
+      <div className="container">
         <div className="row justify-content-center">
           <div className="col-auto text-center">
-            <span
-              id="clock"
-              className="fw-semibold"
-              style={{ fontSize: "2.6rem", color: "#333" }}
-            >
+            <span id="clock" className="fw-semibold" style={{ fontSize: "2.6rem" }}>
               {time}
             </span>
           </div>
@@ -46,7 +42,7 @@ export const Furniset: FC = () => {
 
       <div className="container mt-4">
         <h4 className="text-center mb-3">Графік за добу (HUM1-1)</h4>
-        <SensorGraph />
+        <SensorGraph sensorId="HUM1-1" />
       </div>
     </div>
   );
