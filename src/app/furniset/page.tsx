@@ -1,6 +1,6 @@
 // src/app/furniset/page.tsx
-import ClientWrapper from "@/components/Furniset/ClientWrapper";
+import FurnisetPageClient from "./FurnisetPageClient";
 
 export default function Page() {
-  return <ClientWrapper />;
+  return <FurnisetPageClient />;
 }

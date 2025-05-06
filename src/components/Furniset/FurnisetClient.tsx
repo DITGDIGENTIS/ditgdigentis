@@ -2,6 +2,6 @@
 
 import { Furniset } from "./Furniset";
 
-export default function ClientWrapper() {
+export default function FurnisetClient() {
   return <Furniset />;
 }
