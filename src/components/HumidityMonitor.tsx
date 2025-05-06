@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTint, faTemperatureLow } from "@fortawesome/free-solid-svg-icons";
+import { saveSensorData } from "../db/sensor-service";
 
 type RawHumidityItem = {
   id: string;
@@ -30,6 +31,7 @@ const TIMEOUT_MS = 10 * 60 * 1000; // 10 хв
 
 export function HumidityMonitor() {
   const [sensors, setSensors] = useState<HumidityData[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
   const cache = useRef<Record<string, HumidityData>>({});
 
   useEffect(() => {
@@ -99,6 +101,37 @@ export function HumidityMonitor() {
     return () => clearInterval(int);
   }, []);
 
+  const handleSendSensorData = async () => {
+    console.log(sensors, "sensors")
+    try {
+      setIsSaving(true);
+      
+      // Получаем текущие данные сенсоров
+      const onlineSensors = sensors.filter(sensor => sensor.online);
+      
+      // Отправляем данные каждого сенсора в базу
+      const savePromises = onlineSensors.map(async (sensor) => {
+        const sensorData = {
+          sensor_id: sensor.id,
+          temperature: parseFloat(sensor.temperature),
+          humidity: parseFloat(sensor.humidity), 
+          timestamp: new Date(sensor.timestamp)
+        };
+        
+        return saveSensorData(sensorData);
+      });
+      
+      // Ждем завершения всех сохранений
+      await Promise.all(savePromises);
+      
+      console.log("Данные успешно сохранены в базу");
+    } catch (error) {
+      console.error("Ошибка при сохранении данных:", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="container sensor-container p-4">
       <h2 className="text-center mt-4 mb-1">Моніторинг датчика вологості:</h2>
@@ -136,6 +169,15 @@ export function HumidityMonitor() {
             </div>
           </div>
         ))}
+      </div>
+      <div className="text-center mt-4">
+        <button 
+          type="button" 
+          className="btn btn-primary" 
+          onClick={handleSendSensorData}
+        >
+          {isSaving ? "Збереження..." : "Зберегти дані в базу"}
+        </button>
       </div>
     </div>
   );

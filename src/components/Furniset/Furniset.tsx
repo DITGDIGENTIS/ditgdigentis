@@ -1,10 +1,13 @@
 "use client";
 
 import { FC, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { ServerStatus } from "../ServerStatus";
-import { SensorMonitor } from "../SensorMonitor";
-import { HumidityMonitor } from "../HumidityMonitor";
-import SensorGraph from "../SensorGraph";
+
+// Динамический импорт компонентов, использующих браузерные API
+const SensorMonitor = dynamic(() => import("../SensorMonitor").then(mod => mod.SensorMonitor), { ssr: false });
+const HumidityMonitor = dynamic(() => import("../HumidityMonitor").then(mod => mod.HumidityMonitor), { ssr: false });
+const SensorGraph = dynamic(() => import("../SensorGraph"), { ssr: false });
 
 export const Furniset: FC = () => {
   const [time, setTime] = useState("");

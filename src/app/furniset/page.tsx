@@ -1,6 +1,5 @@
-// src/app/furniset/page.tsx
-import FurnisetPageClient from "./FurnisetPageClient";
+import { Furniset } from "@/components/Furniset/Furniset";
 
 export default function Page() {
-  return <FurnisetPageClient />;
+  return <Furniset />;
 }
