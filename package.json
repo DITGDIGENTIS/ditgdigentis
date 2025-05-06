@@ -5,14 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "test:db": "node --loader ts-node/esm src/test-db-connection.ts",
-    "db:seed": "node --loader ts-node/esm prisma/seed.ts",
-    "db:clear": "node --loader ts-node/esm prisma/clear-data.ts",
-    "test:sensor": "node --loader ts-node/esm src/db/test-sensor-service.ts",
-    "postinstall": "prisma generate"
+    "lint": "next lint"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.5.1",
