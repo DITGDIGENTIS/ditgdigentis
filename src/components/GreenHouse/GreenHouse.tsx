@@ -1,14 +1,35 @@
 "use client";
 
 import { FC, useState, useEffect } from "react";
-import { HumidityMonitor } from "../HumidityMonitor";
-import { LogoutButton } from "../LogoutButton";
-import { SensorMonitor } from "../SensorMonitor";
-import { ServerStatus } from "../ServerStatus";
-import ZonaAverageBlock from "../ZonaAverageBlock";
-import ZonaRelay from "../ZonaRelay";
-import { ZonaStatus } from "../ZonaStatus";
-import ZonaTemperature from "../ZonaTemperature";
+import dynamic from "next/dynamic";
+
+const HumidityMonitor = dynamic(
+  () => import("../HumidityMonitor").then((mod) => mod.HumidityMonitor),
+  { ssr: false }
+);
+const LogoutButton = dynamic(
+  () => import("../LogoutButton").then((mod) => mod.LogoutButton),
+  { ssr: false }
+);
+const SensorMonitor = dynamic(
+  () => import("../SensorMonitor").then((mod) => mod.SensorMonitor),
+  { ssr: false }
+);
+const ServerStatus = dynamic(
+  () => import("../ServerStatus").then((mod) => mod.ServerStatus),
+  { ssr: false }
+);
+const ZonaAverageBlock = dynamic(() => import("../ZonaAverageBlock"), {
+  ssr: false,
+});
+const ZonaRelay = dynamic(() => import("../ZonaRelay"), { ssr: false });
+const ZonaStatus = dynamic(
+  () => import("../ZonaStatus").then((mod) => mod.ZonaStatus),
+  { ssr: false }
+);
+const ZonaTemperature = dynamic(() => import("../ZonaTemperature"), {
+  ssr: false,
+});
 
 export const GreenHouse: FC = () => {
   const [time, setTime] = useState("");
