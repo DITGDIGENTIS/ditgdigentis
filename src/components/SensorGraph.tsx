@@ -54,7 +54,7 @@ export default function SensorGraphDHT21({ sensorId }: SensorGraphDHT21Props) {
   return (
     <div className="container-fluid py-4" style={{ backgroundColor: "#2b2b2b", color: "#fff", borderRadius: "5px" }}>
       <div className="row mb-3">
-        <div className="col-md-4">
+        <div className="col-4 col-md-4">
           <label className="form-label text-warning">Період:</label>
           <select className="form-select" value={zoomLevel} onChange={(e) => setZoomLevel(Number(e.target.value))}>
             <option value={3}>День</option>
@@ -63,11 +63,11 @@ export default function SensorGraphDHT21({ sensorId }: SensorGraphDHT21Props) {
             <option value={0}>Рік</option>
           </select>
         </div>
-        <div className="col-md-4">
+        <div className="col-4 col-md-4">
           <label className="form-label text-warning">Сенсор:</label>
           <input className="form-control" disabled value={sensorId} />
         </div>
-        <div className="col-md-4">
+        <div className="col-4 col-md-4">
           <label className="form-label text-warning">Дата:</label>
           <input type="date" className="form-control" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
         </div>
