@@ -1,14 +1,19 @@
+// src/components/SensorGraphDHT21.tsx
+
 "use client";
 
 import { useState } from "react";
 
-// Тип данных одного измерения
 interface DataPoint {
   time: string;
   temp: number;
   hum: number;
   date: string;
 }
+
+type SensorGraphDHT21Props = {
+  sensorId: string;
+};
 
 const sampleData: DataPoint[] = Array.from({ length: 288 }, (_, i) => {
   const hour = Math.floor(i / 12).toString().padStart(2, "0");
@@ -21,10 +26,9 @@ const sampleData: DataPoint[] = Array.from({ length: 288 }, (_, i) => {
   };
 });
 
-export default function SensorGraphDHT21() {
-  const [sensorId, setSensorId] = useState("DHT21");
+export default function SensorGraphDHT21({ sensorId }: SensorGraphDHT21Props) {
   const [selectedDate, setSelectedDate] = useState("2025-05-07");
-  const [zoomLevel, setZoomLevel] = useState(3); // 3 - день, 0 - год
+  const [zoomLevel, setZoomLevel] = useState(3);
 
   const chartHeight = 300;
   const stepX = 30;
@@ -36,12 +40,16 @@ export default function SensorGraphDHT21() {
   const normTempY = (t: number) => chartHeight - ((t - minTemp) / (maxTemp - minTemp)) * chartHeight;
   const normHumY = (h: number) => chartHeight - ((h - minHum) / (maxHum - minHum)) * chartHeight;
 
-  const data = sampleData.filter(d => d.date === selectedDate);
+  const data = sampleData.filter((d) => d.date === selectedDate);
 
-  const zoomed = zoomLevel === 3 ? data :
-                 zoomLevel === 2 ? data.filter((_, i) => i % 4 === 0) :
-                 zoomLevel === 1 ? data.filter((_, i) => i % 12 === 0) :
-                 data.filter((_, i) => i % 24 === 0);
+  const zoomed =
+    zoomLevel === 3
+      ? data
+      : zoomLevel === 2
+      ? data.filter((_, i) => i % 4 === 0)
+      : zoomLevel === 1
+      ? data.filter((_, i) => i % 12 === 0)
+      : data.filter((_, i) => i % 24 === 0);
 
   const width = zoomed.length * stepX;
 
@@ -68,21 +76,16 @@ export default function SensorGraphDHT21() {
       </div>
 
       <div className="position-relative" style={{ height: chartHeight + 50 }}>
-        {/* Левая шкала */}
         <div style={{ position: "absolute", left: 0, top: 0, bottom: 40, width: 50, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
           {[...Array(11)].map((_, i) => (
             <div key={i} style={{ fontSize: 16, color: "#ff0", textAlign: "right" }}>{maxTemp - i * 5}</div>
           ))}
         </div>
-
-        {/* Правая шкала */}
         <div style={{ position: "absolute", right: 0, top: 0, bottom: 40, width: 50, display: "flex", flexDirection: "column", justifyContent: "space-between", textAlign: "left" }}>
           {[...Array(9)].map((_, i) => (
             <div key={i} style={{ fontSize: 16, color: "#0cf" }}>{maxHum - i * 10}</div>
           ))}
         </div>
-
-        {/* SVG график */}
         <div style={{ overflowX: "auto", margin: "0 60px", borderRadius: "5px" }}>
           <svg width={width} height={chartHeight + 50}>
             {[...Array(11)].map((_, i) => {
