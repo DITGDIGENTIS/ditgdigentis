@@ -26,7 +26,7 @@ export const Furniset: FC = () => {
   }, []);
 
   return (
-    <div style={{ padding: "1rem" }}>
+    <div style={{ padding: "0rem" }}>
       <ServerStatus companyName="FURNISET" deviceId="server" />
       <div className="container py-3 text-center">
         <span id="clock" className="fw-semibold" style={{ fontSize: "2.6rem" }}>{time}</span>
@@ -34,7 +34,7 @@ export const Furniset: FC = () => {
       <HumidityMonitor />
       <SensorMonitor />
       <div className="container mt-4">
-        <h4 className="text-center mb-3">Графік за добу (HUM1-1)</h4>
+        <h4 className="text-center mb-3" style={{ fontSize: "1.4rem", color: "#fff", fontWeight: "bold" }}>Графік (HUM1-1)</h4>
         <SensorGraph sensorId="HUM1-1" />
       </div>
     </div>

@@ -1,5 +1,3 @@
-// src/components/SensorGraphDHT21.tsx
-
 "use client";
 
 import { useState } from "react";
@@ -74,7 +72,16 @@ export default function SensorGraphDHT21({ sensorId }: SensorGraphDHT21Props) {
           <input type="date" className="form-control" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
         </div>
       </div>
-
+      <div className="d-flex justify-content-center gap-4 mb-2">
+        <div className="d-flex align-items-center gap-2">
+          <div style={{ width: 20, height: 10, backgroundColor: "#0f0" }}></div>
+          <span style={{ color: "#0f0" }}>Temperature</span>
+        </div>
+        <div className="d-flex align-items-center gap-2">
+          <div style={{ width: 20, height: 10, backgroundColor: "#00f" }}></div>
+          <span style={{ color: "#00f" }}>Humidity</span>
+        </div>
+      </div>
       <div className="position-relative" style={{ height: chartHeight + 50 }}>
         <div style={{ position: "absolute", left: 0, top: 0, bottom: 40, width: 50, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
           {[...Array(11)].map((_, i) => (
@@ -86,7 +93,7 @@ export default function SensorGraphDHT21({ sensorId }: SensorGraphDHT21Props) {
             <div key={i} style={{ fontSize: 16, color: "#0cf" }}>{maxHum - i * 10}</div>
           ))}
         </div>
-        <div style={{ overflowX: "auto", margin: "0 60px", borderRadius: "5px" }}>
+        <div style={{ overflowX: "auto", margin: "0 0px", borderRadius: "5px" }}>
           <svg width={width} height={chartHeight + 50}>
             {[...Array(11)].map((_, i) => {
               const y = (i * chartHeight) / 10;
@@ -119,6 +126,27 @@ export default function SensorGraphDHT21({ sensorId }: SensorGraphDHT21Props) {
             ))}
           </svg>
         </div>
+      </div>
+
+      <div className="mt-4 table-responsive" style={{ maxHeight: "300px", overflowY: "auto" }}>
+        <table className="table table-dark table-bordered table-sm text-center">
+          <thead>
+            <tr>
+              <th>Час</th>
+              <th>Температура (°C)</th>
+              <th>Вологість (%)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {zoomed.slice(-24).map((d, i) => (
+              <tr key={i}>
+                <td>{d.time}</td>
+                <td>{d.temp.toFixed(1)}</td>
+                <td>{d.hum.toFixed(1)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

@@ -100,7 +100,7 @@ export function HumidityMonitor() {
   }, []);
 
   return (
-    <div className="container sensor-container p-4">
+    <div className="container sensor-container">
       <h2 className="text-center mt-4 mb-1">Моніторинг датчика вологості:</h2>
       <div className="row">
         {sensors.map((sensor) => (
@@ -119,16 +119,16 @@ export function HumidityMonitor() {
                   ● {sensor.online ? "ONLINE" : "OFFLINE"}
                 </button>
               </div>
-              <div className="average-temp-label d-flex justify-content-between gap-3 text-white">
+              <div className="average-temp-label d-flex justify-content-between gap-3 text-yellow">
                 <div>
                   <FontAwesomeIcon icon={faTint} />{" "}
-                  <span className="average-temp-data fw-bold">
+                  <span className="average-temp-data fw-bold" style={{ fontSize: "1.6rem", color: "#fff", fontWeight: "bold" }}>
                     {sensor.humidity} %
                   </span>
                 </div>
                 <div>
                   <FontAwesomeIcon icon={faTemperatureLow} />{" "}
-                  <span className="average-temp-data fw-bold">
+                  <span className="average-temp-data fw-bold" style={{ fontSize: "1.6rem", color: "#fff", fontWeight: "bold" }}>
                     {sensor.temperature} °C
                   </span>
                 </div>
