@@ -1,223 +1,121 @@
-"use client"; // ← ОБЯЗАТЕЛЬНО первой строкой
+"use client";
 
-import {
-  Chart as ChartJS,
-  LineElement,
-  PointElement,
-  LinearScale,
-  Title,
-  Tooltip,
-  Legend,
-  CategoryScale,
-  TimeScale,
-  ChartData,
-  ChartOptions,
-} from "chart.js";
-import zoomPlugin from "chartjs-plugin-zoom";
-import { Line } from "react-chartjs-2";
-import { useEffect, useState } from "react";
-import DatePicker from "react-datepicker";
-import "chartjs-adapter-date-fns";
-import "react-datepicker/dist/react-datepicker.css";
+import { useState } from "react";
 
-// регистрация компонентов Chart.js
-ChartJS.register(
-  LineElement,
-  PointElement,
-  LinearScale,
-  Title,
-  Tooltip,
-  Legend,
-  CategoryScale,
-  TimeScale,
-  zoomPlugin
-);
+// Тип данных одного измерения
+interface DataPoint {
+  time: string;
+  temp: number;
+  hum: number;
+  date: string;
+}
 
-type SensorReading = {
-  id: number;
-  sensor_id: string;
-  timestamp: number;
-  temperature: number;
-  humidity: number;
-};
-
-type Period = "day" | "week" | "month" | "year";
-
-type SensorGraphProps = {
-  sensorId?: string;
-};
-
-export default function SensorGraph({ sensorId = "HUM1-1" }: SensorGraphProps) {
-  const [data, setData] = useState<SensorReading[]>([]);
-  const [period, setPeriod] = useState<Period>("day");
-  const [startDate, setStartDate] = useState<Date | null>(null);
-  const [endDate, setEndDate] = useState<Date | null>(null);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await fetch("https://barco.com.ua/api/sensor.php", {
-          cache: "no-store",
-        });
-        const json: SensorReading[] = await res.json();
-
-        const filtered = json
-          .filter((item) => item.sensor_id === sensorId)
-          .filter((item) => {
-            const time = item.timestamp;
-            if (startDate && endDate) {
-              return time >= startDate.getTime() && time <= endDate.getTime();
-            }
-            const diff = Date.now() - time;
-            if (period === "day") return diff <= 86400000;
-            if (period === "week") return diff <= 604800000;
-            if (period === "month") return diff <= 2592000000;
-            return true;
-          });
-
-        setData(filtered);
-      } catch (err) {
-        console.error("Ошибка загрузки данных:", err);
-      }
-    };
-
-    fetchData();
-  }, [period, startDate, endDate, sensorId]);
-
-  const chartData: ChartData<"line"> = {
-    labels: data.map((d) => new Date(d.timestamp)),
-    datasets: [
-      {
-        label: "Humidity (%)",
-        data: data.map((d) => d.humidity),
-        borderColor: "rgba(0, 123, 255, 1)",
-        backgroundColor: "rgba(0, 123, 255, 0.1)",
-        tension: 0.3,
-      },
-      {
-        label: "Temperature (°C)",
-        data: data.map((d) => d.temperature),
-        borderColor: "rgba(40, 167, 69, 1)",
-        backgroundColor: "rgba(40, 167, 69, 0.1)",
-        tension: 0.3,
-      },
-    ],
+const sampleData: DataPoint[] = Array.from({ length: 288 }, (_, i) => {
+  const hour = Math.floor(i / 12).toString().padStart(2, "0");
+  const minute = ((i % 12) * 5).toString().padStart(2, "0");
+  return {
+    time: `${hour}:${minute}`,
+    temp: 20 + Math.sin(i / 20) * 2,
+    hum: 65 + Math.cos(i / 15) * 5,
+    date: "2025-05-07",
   };
+});
 
-  const options: ChartOptions<"line"> = {
-    responsive: true,
-    maintainAspectRatio: false,
-    interaction: {
-      mode: "nearest",
-      axis: "x",
-    },
-    scales: {
-      x: {
-        type: "time",
-        time: {
-          tooltipFormat: "Pp",
-          unit: "minute",
-        },
-        ticks: { color: "#333" },
-        title: {
-          display: true,
-          text: "Время",
-          color: "#333",
-        },
-        grid: { color: "#eee" },
-      },
-      y: {
-        ticks: { color: "#333" },
-        title: {
-          display: true,
-          text: "Значение",
-          color: "#333",
-        },
-        grid: { color: "#eee" },
-      },
-    },
-    plugins: {
-      zoom: {
-        zoom: {
-          wheel: { enabled: true },
-          pinch: { enabled: true },
-          mode: "x",
-        },
-        pan: {
-          enabled: true,
-          mode: "x",
-        },
-      },
-      legend: {
-        position: "top",
-        labels: { color: "#333" },
-      },
-      title: {
-        display: true,
-        text: `Статистика датчика ${sensorId}`,
-        color: "#333",
-      },
-    },
-  };
+export default function SensorGraphDHT21() {
+  const [sensorId, setSensorId] = useState("DHT21");
+  const [selectedDate, setSelectedDate] = useState("2025-05-07");
+  const [zoomLevel, setZoomLevel] = useState(3); // 3 - день, 0 - год
+
+  const chartHeight = 300;
+  const stepX = 30;
+  const minTemp = 0;
+  const maxTemp = 50;
+  const minHum = 20;
+  const maxHum = 100;
+
+  const normTempY = (t: number) => chartHeight - ((t - minTemp) / (maxTemp - minTemp)) * chartHeight;
+  const normHumY = (h: number) => chartHeight - ((h - minHum) / (maxHum - minHum)) * chartHeight;
+
+  const data = sampleData.filter(d => d.date === selectedDate);
+
+  const zoomed = zoomLevel === 3 ? data :
+                 zoomLevel === 2 ? data.filter((_, i) => i % 4 === 0) :
+                 zoomLevel === 1 ? data.filter((_, i) => i % 12 === 0) :
+                 data.filter((_, i) => i % 24 === 0);
+
+  const width = zoomed.length * stepX;
 
   return (
-    <div style={{ backgroundColor: "#fff", padding: "2rem", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
-      <div style={{ marginBottom: "1rem", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "1rem" }}>
-        <label style={{ fontWeight: 500, color: "#333" }}>Период:</label>
-        <select value={period} onChange={(e) => setPeriod(e.target.value as Period)}>
-          <option value="day">День</option>
-          <option value="week">Неделя</option>
-          <option value="month">Месяц</option>
-          <option value="year">Год</option>
-        </select>
-
-        <label style={{ fontWeight: 500, color: "#333", marginLeft: "1rem" }}>или выбрать даты:</label>
-        <DatePicker
-          selected={startDate}
-          onChange={(date) => setStartDate(date)}
-          selectsStart
-          startDate={startDate}
-          endDate={endDate}
-          placeholderText="Начало"
-          dateFormat="dd.MM.yyyy"
-        />
-        <DatePicker
-          selected={endDate}
-          onChange={(date) => setEndDate(date)}
-          selectsEnd
-          startDate={startDate || undefined}
-          endDate={endDate || undefined}
-          placeholderText="Конец"
-          dateFormat="dd.MM.yyyy"
-          minDate={startDate || undefined}
-        />
+    <div className="container-fluid py-4" style={{ backgroundColor: "#2b2b2b", color: "#fff", borderRadius: "5px" }}>
+      <div className="row mb-3">
+        <div className="col-md-4">
+          <label className="form-label text-warning">Період:</label>
+          <select className="form-select" value={zoomLevel} onChange={(e) => setZoomLevel(Number(e.target.value))}>
+            <option value={3}>День</option>
+            <option value={2}>Тиждень</option>
+            <option value={1}>Місяць</option>
+            <option value={0}>Рік</option>
+          </select>
+        </div>
+        <div className="col-md-4">
+          <label className="form-label text-warning">Сенсор:</label>
+          <input className="form-control" disabled value={sensorId} />
+        </div>
+        <div className="col-md-4">
+          <label className="form-label text-warning">Дата:</label>
+          <input type="date" className="form-control" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
+        </div>
       </div>
 
-      <div style={{ height: "400px" }}>
-        <Line data={chartData} options={options} />
-      </div>
+      <div className="position-relative" style={{ height: chartHeight + 50 }}>
+        {/* Левая шкала */}
+        <div style={{ position: "absolute", left: 0, top: 0, bottom: 40, width: 50, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+          {[...Array(11)].map((_, i) => (
+            <div key={i} style={{ fontSize: 16, color: "#ff0", textAlign: "right" }}>{maxTemp - i * 5}</div>
+          ))}
+        </div>
 
-      <div className="table-container" style={{ overflowX: "auto", marginTop: "2rem" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", backgroundColor: "#fff" }}>
-          <thead style={{ backgroundColor: "#f8f9fa" }}>
-            <tr>
-              <th style={{ padding: 10, border: "1px solid #dee2e6", color: "#333" }}>Time</th>
-              <th style={{ padding: 10, border: "1px solid #dee2e6", color: "#333" }}>Temperature (°C)</th>
-              <th style={{ padding: 10, border: "1px solid #dee2e6", color: "#333" }}>Humidity (%)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((d) => (
-              <tr key={d.id}>
-                <td style={{ padding: 10, border: "1px solid #f1f1f1", color: "#333" }}>
-                  {new Date(d.timestamp).toLocaleString()}
-                </td>
-                <td style={{ padding: 10, border: "1px solid #f1f1f1", color: "#333" }}>{d.temperature}</td>
-                <td style={{ padding: 10, border: "1px solid #f1f1f1", color: "#333" }}>{d.humidity}</td>
-              </tr>
+        {/* Правая шкала */}
+        <div style={{ position: "absolute", right: 0, top: 0, bottom: 40, width: 50, display: "flex", flexDirection: "column", justifyContent: "space-between", textAlign: "left" }}>
+          {[...Array(9)].map((_, i) => (
+            <div key={i} style={{ fontSize: 16, color: "#0cf" }}>{maxHum - i * 10}</div>
+          ))}
+        </div>
+
+        {/* SVG график */}
+        <div style={{ overflowX: "auto", margin: "0 60px", borderRadius: "5px" }}>
+          <svg width={width} height={chartHeight + 50}>
+            {[...Array(11)].map((_, i) => {
+              const y = (i * chartHeight) / 10;
+              return <line key={i} x1={0} y1={y} x2={width} y2={y} stroke="#444" />;
+            })}
+
+            <path
+              d={zoomed.map((d, i) => `${i === 0 ? "M" : "L"} ${i * stepX},${normTempY(d.temp)}`).join(" ")}
+              stroke="#0f0"
+              fill="none"
+              strokeWidth={2}
+            />
+            <path
+              d={zoomed.map((d, i) => `${i === 0 ? "M" : "L"} ${i * stepX},${normHumY(d.hum)}`).join(" ")}
+              stroke="#00f"
+              fill="none"
+              strokeWidth={2}
+            />
+
+            {zoomed.map((d, i) => (
+              <g key={i}>
+                <circle cx={i * stepX} cy={normTempY(d.temp)} r={3} fill="#0f0" />
+                <circle cx={i * stepX} cy={normHumY(d.hum)} r={3} fill="#00f" />
+                {zoomLevel === 3 && (
+                  <text x={i * stepX} y={chartHeight + 20} textAnchor="middle" fontSize={12} fill="#fff">
+                    {d.time}
+                  </text>
+                )}
+              </g>
             ))}
-          </tbody>
-        </table>
+          </svg>
+        </div>
       </div>
     </div>
   );
