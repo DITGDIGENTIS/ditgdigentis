@@ -29,7 +29,7 @@ const safeParseDate = (ts: any): Date => {
 
 const SENSOR_OPTIONS = ["SENSOR1-1", "SENSOR1-2", "SENSOR1-3", "SENSOR1-4"];
 const PERIOD_OPTIONS = [
-  { label: "1 година", minutes: 60 },
+  { label: "15 хв", minutes: 15 },
   { label: "1 година", minutes: 60 },
   { label: "1 день", minutes: 1440 },
 ];
