@@ -60,11 +60,9 @@ export function SensorMonitor() {
           throw new Error(`Invalid temperature value for sensor ${id}: ${sensor.temperature}`);
         }
 
+        // Используем timestamp из сенсора
         const timestamp = new Date(sensor.timestamp);
-        if (isNaN(timestamp.getTime())) {
-          throw new Error(`Invalid timestamp for sensor ${id}: ${sensor.timestamp}`);
-        }
-
+        
         return {
           sensor_id: id,
           temperature: _.round(temperature, 2),
