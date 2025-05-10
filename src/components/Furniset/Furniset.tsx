@@ -33,8 +33,8 @@ export const Furniset: FC = () => {
       </div>
       <SensorMonitor /> 
       <div className="container mt-4">
-        <h4 className="text-center mb-3" style={{ fontSize: "1.4rem", color: "#fff", fontWeight: "bold" }}>Графік (HUM1-1)</h4>
-        <SensorGraph sensorId="SENSOR" />
+        <h4 className="text-center mb-3" style={{ fontSize: "1.4rem", color: "#fff", fontWeight: "bold" }}>Графік (SENSOR)</h4>
+        <SensorGraph sensorId="HUM1-1" />
       </div>
       <HumidityMonitor />
          
