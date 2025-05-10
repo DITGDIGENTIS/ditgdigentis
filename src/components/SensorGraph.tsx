@@ -136,7 +136,7 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
 
       {viewMode === "chart" ? (
         <div style={{ overflowX: "auto", margin: "0", borderRadius: "5px" }}>
-          <svg width={width} height={chartHeight + 40}>
+          <svg width={width} height={chartHeight + 60}>
             {[...Array(11)].map((_, i) => {
               const y = (i * chartHeight) / 10;
               return (
@@ -156,6 +156,9 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
                 <circle cx={i * stepX} cy={normTempY(d.temp)} r={3} fill="#00ffff" />
                 <text x={i * stepX} y={normTempY(d.temp) - 8} fontSize={10} textAnchor="middle" fill="#ccc">
                   {d.temp.toFixed(1)}°
+                </text>
+                <text x={i * stepX} y={chartHeight + 40} fontSize={10} textAnchor="middle" fill="#999">
+                  {d.time}
                 </text>
               </g>
             ))}
