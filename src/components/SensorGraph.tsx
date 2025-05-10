@@ -29,7 +29,6 @@ const safeParseDate = (ts: any): Date => {
 
 const SENSOR_OPTIONS = ["SENSOR1-1", "SENSOR1-2", "SENSOR1-3", "SENSOR1-4"];
 const PERIOD_OPTIONS = [
-  { label: "5 хв", minutes: 5 },
   { label: "15 хв", minutes: 15 },
   { label: "1 година", minutes: 60 },
   { label: "1 день", minutes: 1440 },
@@ -166,7 +165,13 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
           </svg>
         </div>
       ) : (
-        <div className="table-responsive mt-3">
+        <div
+          className="table-responsive mt-3"
+          style={{
+            maxHeight: selectedPeriod.minutes === 1440 ? 'none' : '300px',
+            overflowY: selectedPeriod.minutes === 1440 ? 'visible' : 'auto'
+          }}
+        >
           <table className="table table-sm table-dark table-bordered text-center">
             <thead>
               <tr>
@@ -176,7 +181,7 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
               </tr>
             </thead>
             <tbody>
-              {sensorFiltered.map((d, i) => (
+              {zoomedSensor.map((d, i) => (
                 <tr key={i}>
                   <td>{d.time}</td>
                   <td>{d.temp.toFixed(1)}</td>
