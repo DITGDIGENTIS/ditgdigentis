@@ -35,37 +35,46 @@ export function SensorMonitor() {
 
   const saveToDatabase = async (sensorData: Record<string, RawSensorItem>) => {
     try {
+      console.log("Raw sensor data:", sensorData);
+
       // Фильтруем только онлайн сенсоры
       const onlineSensors = _.pickBy(sensorData, (sensor) => {
         const age = Date.now() - sensor.timestamp;
         return age <= TIMEOUT_MS;
       });
 
+      console.log("Online sensors:", onlineSensors);
+
       if (_.isEmpty(onlineSensors)) {
         console.log("No online sensors to save");
         return;
       }
 
+      // Преобразуем данные в нужный формат
+      const formattedSensors = _.map(onlineSensors, (sensor, id) => {
+        const temperature = typeof sensor.temperature === 'string' 
+          ? parseFloat(sensor.temperature) 
+          : sensor.temperature;
+
+        if (isNaN(temperature)) {
+          throw new Error(`Invalid temperature value for sensor ${id}: ${sensor.temperature}`);
+        }
+
+        return {
+          sensor_id: id,
+          temperature: _.round(temperature, 2),
+          humidity: 0,
+          timestamp: new Date(sensor.timestamp)
+        };
+      });
+
+      console.log("Formatted sensors:", formattedSensors);
+
       const sensorBatch: SensorDataBatch = {
-        sensors: _.map(onlineSensors, (sensor, id) => {
-          const temperature = typeof sensor.temperature === 'string' 
-            ? parseFloat(sensor.temperature) 
-            : sensor.temperature;
-
-          if (isNaN(temperature)) {
-            throw new Error(`Invalid temperature value for sensor ${id}: ${sensor.temperature}`);
-          }
-
-          return {
-            sensor_id: id,
-            temperature: _.round(temperature, 2),
-            humidity: 0,
-            timestamp: new Date(sensor.timestamp)
-          };
-        })
+        sensors: formattedSensors
       };
 
-      console.log("Saving sensor batch:", sensorBatch);
+      console.log("Final sensor batch:", JSON.stringify(sensorBatch, null, 2));
 
       const response = await fetch("/api/sensor-records", {
         method: "POST",
@@ -77,6 +86,7 @@ export function SensorMonitor() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error("Server error response:", errorData);
         throw new Error(
           `Failed to save sensor data: ${response.status} ${response.statusText}${
             errorData.details ? ` - ${errorData.details}` : ""
