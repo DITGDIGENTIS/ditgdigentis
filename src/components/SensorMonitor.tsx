@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faThermometerHalf } from "@fortawesome/free-solid-svg-icons";
+import _ from "lodash";
+import { SensorDataBatch } from "../services/sensor-data.service";
 
 type RawSensorItem = {
   id: string;
@@ -30,11 +32,43 @@ export function SensorMonitor() {
   const [sensors, setSensors] = useState<SensorData[]>([]);
   const cache = useRef<Record<string, SensorData>>({});
 
+  const saveToDatabase = async (sensorData: Record<string, RawSensorItem>) => {
+    try {
+      const sensorBatch: SensorDataBatch = {
+        sensors: _.map(sensorData, (sensor, id) => ({
+          sensor_id: id,
+          temperature: Number(sensor.temperature),
+          humidity: 0, // Поскольку у нас нет данных о влажности, устанавливаем 0
+          timestamp: new Date(sensor.timestamp)
+        }))
+      };
+
+      const response = await fetch("/api/sensor-records", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(sensorBatch),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save sensor data to database");
+      }
+
+      console.log("Successfully saved sensor data to database");
+    } catch (error) {
+      console.error("Error saving sensor data:", error);
+    }
+  };
+
   useEffect(() => {
     const fetchStatus = async () => {
       try {
         const res = await fetch("/api/sensors", { cache: "no-store" });
         const { sensors: data, serverTime }: RawSensorResponse = await res.json();
+
+        // Сохраняем данные в базу
+        await saveToDatabase(data);
 
         SENSOR_KEYS.forEach((key) => {
           const raw = data[key];
@@ -68,13 +102,12 @@ export function SensorMonitor() {
             age: serverTime - s.timestamp,
           };
 
-          console.log("TEMP DEBUG", key, result);
           return result;
         });
 
         setSensors(updated);
       } catch (err) {
-        console.error("TEMP ERROR", err);
+        console.error("Error fetching sensor status:", err);
       }
     };
 
@@ -94,7 +127,7 @@ export function SensorMonitor() {
                 ⚠ {sensor.id} не в мережі
               </div>
             )}
-            <div className="average-temp-block  rounded shadow-sm">
+            <div className="average-temp-block rounded shadow-sm">
               <div className="description-temp-block d-flex justify-content-between mb-2">
                 <strong>{sensor.id}</strong>
                 <button
