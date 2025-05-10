@@ -30,18 +30,42 @@ const TIMEOUT_MS = 5 * 60 * 1000;
 
 export function SensorMonitor() {
   const [sensors, setSensors] = useState<SensorData[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const cache = useRef<Record<string, SensorData>>({});
 
   const saveToDatabase = async (sensorData: Record<string, RawSensorItem>) => {
     try {
+      // Фильтруем только онлайн сенсоры
+      const onlineSensors = _.pickBy(sensorData, (sensor) => {
+        const age = Date.now() - sensor.timestamp;
+        return age <= TIMEOUT_MS;
+      });
+
+      if (_.isEmpty(onlineSensors)) {
+        console.log("No online sensors to save");
+        return;
+      }
+
       const sensorBatch: SensorDataBatch = {
-        sensors: _.map(sensorData, (sensor, id) => ({
-          sensor_id: id,
-          temperature: Number(sensor.temperature),
-          humidity: 0, // Поскольку у нас нет данных о влажности, устанавливаем 0
-          timestamp: new Date(sensor.timestamp)
-        }))
+        sensors: _.map(onlineSensors, (sensor, id) => {
+          const temperature = typeof sensor.temperature === 'string' 
+            ? parseFloat(sensor.temperature) 
+            : sensor.temperature;
+
+          if (isNaN(temperature)) {
+            throw new Error(`Invalid temperature value for sensor ${id}: ${sensor.temperature}`);
+          }
+
+          return {
+            sensor_id: id,
+            temperature: _.round(temperature, 2),
+            humidity: 0,
+            timestamp: new Date(sensor.timestamp)
+          };
+        })
       };
+
+      console.log("Saving sensor batch:", sensorBatch);
 
       const response = await fetch("/api/sensor-records", {
         method: "POST",
@@ -52,12 +76,21 @@ export function SensorMonitor() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to save sensor data to database");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          `Failed to save sensor data: ${response.status} ${response.statusText}${
+            errorData.details ? ` - ${errorData.details}` : ""
+          }`
+        );
       }
 
-      console.log("Successfully saved sensor data to database");
+      const result = await response.json();
+      console.log("Successfully saved sensor data:", result);
+      setError(null);
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
       console.error("Error saving sensor data:", error);
+      setError(errorMessage);
     }
   };
 
@@ -65,7 +98,12 @@ export function SensorMonitor() {
     const fetchStatus = async () => {
       try {
         const res = await fetch("/api/sensors", { cache: "no-store" });
+        if (!res.ok) {
+          throw new Error(`Failed to fetch sensors: ${res.status} ${res.statusText}`);
+        }
+
         const { sensors: data, serverTime }: RawSensorResponse = await res.json();
+        console.log("Received sensor data:", data);
 
         // Сохраняем данные в базу
         await saveToDatabase(data);
@@ -95,19 +133,20 @@ export function SensorMonitor() {
 
           const isOffline = !s.timestamp || s.age > TIMEOUT_MS;
 
-          const result: SensorData = {
+          return {
             ...s,
             temp: isOffline ? "--" : s.temp,
             online: !isOffline,
             age: serverTime - s.timestamp,
           };
-
-          return result;
         });
 
         setSensors(updated);
+        setError(null);
       } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Unknown error occurred";
         console.error("Error fetching sensor status:", err);
+        setError(errorMessage);
       }
     };
 
@@ -119,6 +158,13 @@ export function SensorMonitor() {
   return (
     <div className="container sensor-container p-2">
       <h2 className="text-center mt-4 mb-1">Моніторинг датчиків температури:</h2>
+      
+      {error && (
+        <div className="alert alert-danger text-center mb-3" role="alert">
+          ⚠ Ошибка: {error}
+        </div>
+      )}
+
       <div className="row">
         {sensors.map((sensor) => (
           <div key={sensor.id} className="col-6 col-md-3">
