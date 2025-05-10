@@ -88,11 +88,11 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
     const now = Date.now();
     const rangeAgo = now - selectedPeriod.minutes * 60 * 1000;
     const inRange = arr.filter(d => d.timestamp >= rangeAgo && d.timestamp <= now);
-    return _.orderBy(inRange, ['timestamp'], ['asc']).filter((_, i) => i % 2 === 0);
+    return _.orderBy(inRange, ['timestamp'], ['asc']).filter((_, i) => i % 3 === 0);
   };
 
   const chartHeight = 300;
-  const stepX = 40;
+  const stepX = 60;
   const maxTemp = 50;
   const normTempY = (t: number) => chartHeight - (t / maxTemp) * chartHeight;
 
@@ -154,10 +154,10 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
             {zoomedSensor.map((d, i) => (
               <g key={i}>
                 <circle cx={i * stepX} cy={normTempY(d.temp)} r={4} fill="#00ffff" />
-                <text x={i * stepX} y={normTempY(d.temp) - 8} fontSize={11} textAnchor="middle" fill="#ccc">
+                <text x={i * stepX} y={normTempY(d.temp) - 10} fontSize={11} textAnchor="middle" fill="#ccc">
                   {d.temp.toFixed(1)}°
                 </text>
-                <text x={i * stepX} y={chartHeight + 50} fontSize={11} textAnchor="middle" fill="#999">
+                <text x={i * stepX} y={chartHeight + 55} fontSize={12} textAnchor="middle" fill="#999">
                   {d.time}
                 </text>
               </g>
