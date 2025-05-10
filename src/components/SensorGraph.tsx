@@ -35,7 +35,10 @@ const PERIOD_OPTIONS = [
 ];
 
 const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
-  const [selectedDate, setSelectedDate] = useState("2025-05-07");
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const today = new Date();
+    return today.toISOString().split("T")[0];
+  });
   const [zoomLevel, setZoomLevel] = useState(3);
   const [sensorData, setSensorData] = useState<SensorDataPoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -105,6 +108,12 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
         <h5 className="text-warning mb-0">Температура {selectedSensor}</h5>
         <div className="d-flex flex-wrap gap-2 align-items-center">
+          <input
+            type="date"
+            className="form-control"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+          />
           <select className="form-select" value={selectedSensor} onChange={(e) => setSelectedSensor(e.target.value)}>
             {SENSOR_OPTIONS.map((s) => (
               <option key={s} value={s}>{s}</option>
