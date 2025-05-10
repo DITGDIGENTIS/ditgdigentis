@@ -20,6 +20,16 @@ export type SensorAverages = {
 export const validateSensorData = (data: SensorDataPoint): boolean => {
   if (!data || typeof data !== "object") return false;
 
+  const isValidTimestamp = (timestamp: Date | string | undefined): boolean => {
+    if (timestamp === undefined) return true;
+    if (timestamp instanceof Date) return true;
+    if (typeof timestamp === 'string') {
+      const date = new Date(timestamp);
+      return !isNaN(date.getTime());
+    }
+    return false;
+  };
+
   return (
     typeof data.sensor_id === "string" &&
     data.sensor_id.length > 0 &&
@@ -27,7 +37,7 @@ export const validateSensorData = (data: SensorDataPoint): boolean => {
     !isNaN(data.temperature) &&
     typeof data.humidity === "number" &&
     !isNaN(data.humidity) &&
-    (data.timestamp === undefined || data.timestamp instanceof Date)
+    isValidTimestamp(data.timestamp)
   );
 };
 
