@@ -77,7 +77,7 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
             hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
           }),
           temp: reading.temperature,
-          hum: 0,
+          hum: reading.humidity ?? 0,
           date: date.toLocaleDateString('uk-UA'),
           timestamp: date.getTime()
         };
@@ -113,8 +113,13 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
   const maxTemp = 50;
   const normTempY = (t: number) => chartHeight - (t / maxTemp) * chartHeight;
 
-  const sensorFiltered = formatSensorData(sensorData.filter(d => d.sensor_id === selectedSensor));
-  const zoomedSensor = filterByZoom(sensorFiltered);
+  // 🔍 Унікальні значення: одне на хвилину з унікальною температурою
+  const sensorFiltered = _.uniqBy(
+    formatSensorData(sensorData.filter(d => d.sensor_id === selectedSensor)),
+    d => `${Math.floor(d.timestamp / 60000)}-${d.temp}`
+  );
+
+  const zoomedSensor = filterByZoom(sensorFiltered).slice(-200); // обмеження
   const width = zoomedSensor.length * stepX;
 
   return (
