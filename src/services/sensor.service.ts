@@ -2,7 +2,13 @@ import { PrismaClient } from "../../generated/prisma";
 import _ from "lodash";
 import { SensorDataPoint, sortByTimestamp } from "./sensor-data.service";
 
-export const createSensorService = () => {
+export interface SensorService {
+  createRecords(data: SensorDataPoint[]): Promise<void>;
+  getAllReadings(): Promise<SensorDataPoint[]>;
+  deleteSensorRecords(sensorId: string): Promise<number>;
+}
+
+export function createSensorService(): SensorService {
   const prisma = new PrismaClient();
 
   const createRecords = async (data: SensorDataPoint[]): Promise<void> => {
@@ -90,8 +96,18 @@ export const createSensorService = () => {
     }
   };
 
+  const deleteSensorRecords = async (sensorId: string): Promise<number> => {
+    const result = await prisma.sensorReading.deleteMany({
+      where: {
+        sensor_id: sensorId,
+      },
+    });
+    return result.count;
+  };
+
   return {
     createRecords,
     getAllReadings,
+    deleteSensorRecords,
   };
-};
+}
