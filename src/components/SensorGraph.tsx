@@ -87,12 +87,10 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
     );
 
   const filterByZoom = (arr: DataPoint[]) => {
-    const dayStart = new Date(selectedDate);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
-    const rangeStart = new Date(dayEnd.getTime() - selectedPeriod.minutes * 60 * 1000);
+    const end = lastUpdate;
+    const start = new Date(end.getTime() - selectedPeriod.minutes * 60 * 1000);
     return _.orderBy(
-      arr.filter(d => d.timestamp >= rangeStart.getTime() && d.timestamp <= dayEnd.getTime()),
+      arr.filter(d => d.timestamp >= start.getTime() && d.timestamp <= end.getTime()),
       ['timestamp'],
       ['asc']
     );
