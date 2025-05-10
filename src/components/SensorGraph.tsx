@@ -30,7 +30,6 @@ const safeParseDate = (ts: any): Date => {
 const SENSOR_OPTIONS = ["SENSOR1-1", "SENSOR1-2", "SENSOR1-3", "SENSOR1-4"];
 const PERIOD_OPTIONS = [
   { label: "1 година", minutes: 60 },
-  { label: "1 година", minutes: 60 },
   { label: "1 день", minutes: 1440 },
 ];
 
@@ -88,9 +87,13 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
     );
 
   const filterByZoom = (arr: DataPoint[]) => {
-    const now = Date.now();
-    const rangeAgo = now - selectedPeriod.minutes * 60 * 1000;
-    const inRange = arr.filter(d => d.timestamp >= rangeAgo && d.timestamp <= now);
+    const selectedDayStart = new Date(selectedDate);
+    selectedDayStart.setHours(0, 0, 0, 0);
+    const rangeStart = selectedPeriod.minutes === 1440
+      ? selectedDayStart
+      : new Date(selectedDayStart.getTime() + (24 - selectedPeriod.minutes / 60) * 60 * 60 * 1000);
+    const rangeEnd = new Date(selectedDayStart.getTime() + 24 * 60 * 60 * 1000);
+    const inRange = arr.filter(d => d.timestamp >= rangeStart.getTime() && d.timestamp <= rangeEnd.getTime());
     return _.orderBy(inRange, ['timestamp'], ['asc']).filter((_, i) => i % 3 === 0);
   };
 
