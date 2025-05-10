@@ -30,6 +30,7 @@ const safeParseDate = (ts: any): Date => {
 const SENSOR_OPTIONS = ["SENSOR1-1", "SENSOR1-2", "SENSOR1-3", "SENSOR1-4"];
 const PERIOD_OPTIONS = [
   { label: "1 година", minutes: 60 },
+  { label: "1 година", minutes: 60 },
   { label: "1 день", minutes: 1440 },
 ];
 
@@ -193,8 +194,8 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
               </tr>
             </thead>
             <tbody>
-              {zoomedSensor.map((d, i) => (
-                <tr key={i}>
+              {_.orderBy(zoomedSensor, ['timestamp'], ['desc']).map((d, i) => (
+                <tr key={i} className={i === 0 ? 'table-primary' : ''}>
                   <td>{d.time}</td>
                   <td>{d.temp.toFixed(1)}</td>
                   <td>{d.date}</td>
