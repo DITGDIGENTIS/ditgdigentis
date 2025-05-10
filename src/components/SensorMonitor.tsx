@@ -60,15 +60,36 @@ export function SensorMonitor() {
           throw new Error(`Invalid temperature value for sensor ${id}: ${sensor.temperature}`);
         }
 
+        const timestamp = new Date(sensor.timestamp);
+        if (isNaN(timestamp.getTime())) {
+          throw new Error(`Invalid timestamp for sensor ${id}: ${sensor.timestamp}`);
+        }
+
         return {
           sensor_id: id,
           temperature: _.round(temperature, 2),
           humidity: 0,
-          timestamp: new Date(sensor.timestamp)
+          timestamp
         };
       });
 
       console.log("Formatted sensors:", formattedSensors);
+
+      // Проверяем каждый сенсор перед отправкой
+      formattedSensors.forEach((sensor, index) => {
+        if (!sensor.sensor_id || typeof sensor.sensor_id !== 'string') {
+          throw new Error(`Invalid sensor_id at index ${index}`);
+        }
+        if (typeof sensor.temperature !== 'number' || isNaN(sensor.temperature)) {
+          throw new Error(`Invalid temperature at index ${index}`);
+        }
+        if (typeof sensor.humidity !== 'number' || isNaN(sensor.humidity)) {
+          throw new Error(`Invalid humidity at index ${index}`);
+        }
+        if (!(sensor.timestamp instanceof Date) || isNaN(sensor.timestamp.getTime())) {
+          throw new Error(`Invalid timestamp at index ${index}`);
+        }
+      });
 
       const sensorBatch: SensorDataBatch = {
         sensors: formattedSensors
