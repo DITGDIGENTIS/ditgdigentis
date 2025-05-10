@@ -60,8 +60,8 @@ export function SensorMonitor() {
           throw new Error(`Invalid temperature value for sensor ${id}: ${sensor.temperature}`);
         }
 
-        // Используем timestamp из сенсора
-        const timestamp = new Date(sensor.timestamp);
+        // Преобразуем timestamp из миллисекунд в Date
+        const timestamp = new Date(Number(sensor.timestamp));
         
         return {
           sensor_id: id,
