@@ -24,6 +24,18 @@ const sampleData: DataPoint[] = Array.from({ length: 288 }, (_, i) => {
   };
 });
 
+// ✅ Фиктивные данные для DS18B20
+const sensor1Data: DataPoint[] = Array.from({ length: 288 }, (_, i) => {
+  const hour = Math.floor(i / 12).toString().padStart(2, "0");
+  const minute = ((i % 12) * 5).toString().padStart(2, "0");
+  return {
+    time: `${hour}:${minute}`,
+    temp: 19 + Math.sin(i / 30) * 2,
+    hum: 0,
+    date: "2025-05-07",
+  };
+});
+
 export default function SensorGraphDHT21({ sensorId }: SensorGraphDHT21Props) {
   const [selectedDate, setSelectedDate] = useState("2025-05-07");
   const [zoomLevel, setZoomLevel] = useState(3);
@@ -39,15 +51,17 @@ export default function SensorGraphDHT21({ sensorId }: SensorGraphDHT21Props) {
   const normHumY = (h: number) => chartHeight - ((h - minHum) / (maxHum - minHum)) * chartHeight;
 
   const data = sampleData.filter((d) => d.date === selectedDate);
+  const sensor1 = sensor1Data.filter((d) => d.date === selectedDate);
 
-  const zoomed =
-    zoomLevel === 3
-      ? data
-      : zoomLevel === 2
-      ? data.filter((_, i) => i % 4 === 0)
-      : zoomLevel === 1
-      ? data.filter((_, i) => i % 12 === 0)
-      : data.filter((_, i) => i % 24 === 0);
+  const filterByZoom = (arr: DataPoint[]) => {
+    if (zoomLevel === 3) return arr;
+    if (zoomLevel === 2) return arr.filter((_, i) => i % 4 === 0);
+    if (zoomLevel === 1) return arr.filter((_, i) => i % 12 === 0);
+    return arr.filter((_, i) => i % 24 === 0);
+  };
+
+  const zoomed = filterByZoom(data);
+  const zoomedSensor1 = filterByZoom(sensor1);
 
   const width = zoomed.length * stepX;
 
@@ -72,6 +86,7 @@ export default function SensorGraphDHT21({ sensorId }: SensorGraphDHT21Props) {
           <input type="date" className="form-control" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
         </div>
       </div>
+
       <div className="d-flex justify-content-center gap-4 mb-2">
         <div className="d-flex align-items-center gap-2">
           <div style={{ width: 20, height: 10, backgroundColor: "#0f0" }}></div>
@@ -82,6 +97,7 @@ export default function SensorGraphDHT21({ sensorId }: SensorGraphDHT21Props) {
           <span style={{ color: "#00f" }}>Humidity</span>
         </div>
       </div>
+
       <div className="position-relative" style={{ height: chartHeight + 50 }}>
         <div style={{ position: "absolute", left: 0, top: 0, bottom: 40, width: 50, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
           {[...Array(11)].map((_, i) => (
@@ -128,6 +144,7 @@ export default function SensorGraphDHT21({ sensorId }: SensorGraphDHT21Props) {
         </div>
       </div>
 
+      {/* Основная таблица DHT21 */}
       <div className="mt-4 table-responsive" style={{ maxHeight: "300px", overflowY: "auto" }}>
         <table className="table table-dark table-bordered table-sm text-center">
           <thead>
@@ -147,6 +164,29 @@ export default function SensorGraphDHT21({ sensorId }: SensorGraphDHT21Props) {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Новая таблица SENSOR1 (DS18B20) */}
+      <div className="mt-5">
+        <h6 className="text-info mb-3">Дані з температурного сенсора SENSOR1 (DS18B20)</h6>
+        <div className="table-responsive" style={{ maxHeight: "300px", overflowY: "auto" }}>
+          <table className="table table-bordered table-sm table-dark text-center">
+            <thead>
+              <tr>
+                <th>Час</th>
+                <th>Температура (°C)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {zoomedSensor1.slice(-24).map((d, i) => (
+                <tr key={i}>
+                  <td>{d.time}</td>
+                  <td>{d.temp.toFixed(1)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
