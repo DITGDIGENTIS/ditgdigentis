@@ -70,13 +70,13 @@ export default function SensorGraphDHT21({ sensorId }: SensorGraphDHT21Props) {
   const stepX = 30;
   const minTemp = 0;
   const maxTemp = 50;
-  const minHum = 20;
+  // const minHum = 20;
   const maxHum = 100;
 
   const normTempY = (t: number) =>
     chartHeight - ((t - minTemp) / (maxTemp - minTemp)) * chartHeight;
-  const normHumY = (h: number) =>
-    chartHeight - ((h - minHum) / (maxHum - minHum)) * chartHeight;
+  // const normHumY = (h: number) =>
+  //   chartHeight - ((h - minHum) / (maxHum - minHum)) * chartHeight;
 
   const data = sampleData.filter((d) => d.date === selectedDate);
 
@@ -195,12 +195,12 @@ export default function SensorGraphDHT21({ sensorId }: SensorGraphDHT21Props) {
       <div className="d-flex justify-content-between align-items-center mb-3">
         <div className="d-flex gap-4">
           <div className="d-flex align-items-center gap-2">
-            <div style={{ width: 20, height: 10, backgroundColor: "#0f0" }}></div>
-            <span style={{ color: "#0f0" }}>Temperature</span>
+            <div style={{ width: 20, height: 10, backgroundColor: "#ff4444" }}></div>
+            <span style={{ color: "#ff4444" }}>Sensor 1</span>
           </div>
           <div className="d-flex align-items-center gap-2">
-            <div style={{ width: 20, height: 10, backgroundColor: "#00f" }}></div>
-            <span style={{ color: "#00f" }}>Humidity</span>
+            <div style={{ width: 20, height: 10, backgroundColor: "#44ff44" }}></div>
+            <span style={{ color: "#44ff44" }}>Sensor 2</span>
           </div>
         </div>
         <div className="text-warning">
@@ -265,38 +265,41 @@ export default function SensorGraphDHT21({ sensorId }: SensorGraphDHT21Props) {
               );
             })}
 
+            {/* Sensor 1 Path */}
             <path
-              d={zoomed
+              d={zoomedSensor1
                 .map(
                   (d, i) =>
                     `${i === 0 ? "M" : "L"} ${i * stepX},${normTempY(d.temp)}`
                 )
                 .join(" ")}
-              stroke="#0f0"
-              fill="none"
-              strokeWidth={2}
-            />
-            <path
-              d={zoomed
-                .map(
-                  (d, i) =>
-                    `${i === 0 ? "M" : "L"} ${i * stepX},${normHumY(d.hum)}`
-                )
-                .join(" ")}
-              stroke="#00f"
+              stroke="#ff4444"
               fill="none"
               strokeWidth={2}
             />
 
-            {zoomed.map((d, i) => (
-              <g key={i}>
+            {/* Sensor 2 Path */}
+            <path
+              d={zoomedSensor2
+                .map(
+                  (d, i) =>
+                    `${i === 0 ? "M" : "L"} ${i * stepX},${normTempY(d.temp)}`
+                )
+                .join(" ")}
+              stroke="#44ff44"
+              fill="none"
+              strokeWidth={2}
+            />
+
+            {/* Sensor 1 Points */}
+            {zoomedSensor1.map((d, i) => (
+              <g key={`sensor1-${i}`}>
                 <circle
                   cx={i * stepX}
                   cy={normTempY(d.temp)}
                   r={3}
-                  fill="#0f0"
+                  fill="#ff4444"
                 />
-                <circle cx={i * stepX} cy={normHumY(d.hum)} r={3} fill="#00f" />
                 {zoomLevel === 3 && (
                   <text
                     x={i * stepX}
@@ -308,6 +311,18 @@ export default function SensorGraphDHT21({ sensorId }: SensorGraphDHT21Props) {
                     {d.time}
                   </text>
                 )}
+              </g>
+            ))}
+
+            {/* Sensor 2 Points */}
+            {zoomedSensor2.map((d, i) => (
+              <g key={`sensor2-${i}`}>
+                <circle
+                  cx={i * stepX}
+                  cy={normTempY(d.temp)}
+                  r={3}
+                  fill="#44ff44"
+                />
               </g>
             ))}
           </svg>
