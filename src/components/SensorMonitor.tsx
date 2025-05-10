@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faThermometerHalf } from "@fortawesome/free-solid-svg-icons";
 import _ from "lodash";
-import { SensorDataBatch } from "../services/sensor-data.service";
+import { SensorDataBatch, SensorDataPoint } from "../services/sensor-data.service";
 
 type RawSensorItem = {
   id: string;
@@ -51,7 +51,7 @@ export function SensorMonitor() {
       }
 
       // Преобразуем данные в нужный формат
-      const formattedSensors = _.map(onlineSensors, (sensor, id) => {
+      const formattedSensors: SensorDataPoint[] = _.map(onlineSensors, (sensor, id) => {
         const temperature = typeof sensor.temperature === 'string' 
           ? parseFloat(sensor.temperature) 
           : sensor.temperature;
