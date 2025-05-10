@@ -107,7 +107,45 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
 
   return (
     <div className="container-fluid py-4" style={{ backgroundColor: "#2b2b2b", color: "#fff", borderRadius: "5px" }}>
-      {/* UI controls and chart code (similar to original) */}
+      <h5 className="text-warning mb-3">Графік температури DS18B20</h5>
+      <div className="text-warning mb-2">Останнє оновлення: {lastUpdate.toLocaleTimeString()}</div>
+
+      <div style={{ overflowX: "auto", margin: "0", borderRadius: "5px" }}>
+        <svg width={width} height={chartHeight + 40}>
+          {[...Array(11)].map((_, i) => {
+            const y = (i * chartHeight) / 10;
+            return (
+              <line key={i} x1={0} y1={y} x2={width} y2={y} stroke="#444" />
+            );
+          })}
+
+          {/* Sensor 1 Path */}
+          <path
+            d={data1.map((d, i) => `${i === 0 ? "M" : "L"} ${i * stepX},${normTempY(d.temp)}`).join(" ")}
+            stroke="#ff4444"
+            fill="none"
+            strokeWidth={2}
+          />
+
+          {/* Sensor 2 Path */}
+          <path
+            d={data2.map((d, i) => `${i === 0 ? "M" : "L"} ${i * stepX},${normTempY(d.temp)}`).join(" ")}
+            stroke="#44ff44"
+            fill="none"
+            strokeWidth={2}
+          />
+
+          {/* Sensor 1 Points */}
+          {data1.map((d, i) => (
+            <circle key={`s1-${i}`} cx={i * stepX} cy={normTempY(d.temp)} r={3} fill="#ff4444" />
+          ))}
+
+          {/* Sensor 2 Points */}
+          {data2.map((d, i) => (
+            <circle key={`s2-${i}`} cx={i * stepX} cy={normTempY(d.temp)} r={3} fill="#44ff44" />
+          ))}
+        </svg>
+      </div>
     </div>
   );
 };
