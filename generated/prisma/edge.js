@@ -134,6 +134,10 @@ const config = {
         "fromEnvVar": null,
         "value": "darwin-arm64",
         "native": true
+      },
+      {
+        "fromEnvVar": null,
+        "value": "rhel-openssl-3.0.x"
       }
     ],
     "previewFeatures": [],
@@ -160,8 +164,8 @@ const config = {
       }
     }
   },
-  "inlineSchema": "// This is your Prisma schema file,\n// learn more about it in the docs: https://pris.ly/d/prisma-schema\n\ngenerator client {\n  provider = \"prisma-client-js\"\n  output   = \"../generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\nmodel SensorReading {\n  id          Int      @id @default(autoincrement())\n  sensor_id   String\n  timestamp   DateTime @default(now())\n  temperature Float\n  humidity    Float\n}\n",
-  "inlineSchemaHash": "b31abedd0da685a79ee8a61627fcb3f01b88909551e53caf410c154cf5bc72e8",
+  "inlineSchema": "// This is your Prisma schema file,\n// learn more about it in the docs: https://pris.ly/d/prisma-schema\n\ngenerator client {\n  provider      = \"prisma-client-js\"\n  binaryTargets = [\"native\", \"rhel-openssl-3.0.x\"]\n  output        = \"../generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\nmodel SensorReading {\n  id          Int      @id @default(autoincrement())\n  sensor_id   String\n  timestamp   DateTime @default(now())\n  temperature Float\n  humidity    Float\n}\n",
+  "inlineSchemaHash": "f9f83af2c6f3b6b025392c8b61d418f4656f7e7afc27e9bd4773f4ec8a2cf20e",
   "copyEngine": true
 }
 config.dirname = '/'
