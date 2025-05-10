@@ -9,6 +9,7 @@ interface DataPoint {
   temp: number;
   hum: number;
   date: string;
+  timestamp: number;
 }
 
 type SensorGraphDS18B20Props = {
@@ -26,13 +27,22 @@ const safeParseDate = (ts: any): Date => {
   return new Date();
 };
 
+const SENSOR_OPTIONS = ["SENSOR1-1", "SENSOR1-2", "SENSOR1-3", "SENSOR1-4"];
+const PERIOD_OPTIONS = [
+  { label: "15 хв", minutes: 15 },
+  { label: "1 година", minutes: 60 },
+  { label: "1 день", minutes: 1440 },
+];
+
 const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
   const [selectedDate, setSelectedDate] = useState("2025-05-07");
   const [zoomLevel, setZoomLevel] = useState(3);
   const [sensorData, setSensorData] = useState<SensorDataPoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
-  const [isDeleting, setIsDeleting] = useState<{ [key: string]: boolean }>({});
+  const [selectedSensor, setSelectedSensor] = useState<string>("SENSOR1-1");
+  const [viewMode, setViewMode] = useState<"chart" | "table">("chart");
+  const [selectedPeriod, setSelectedPeriod] = useState(PERIOD_OPTIONS[0]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -56,7 +66,7 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
     return () => clearInterval(interval);
   }, []);
 
-  const formatSensorData = (data: SensorDataPoint[]) =>
+  const formatSensorData = (data: SensorDataPoint[]): DataPoint[] =>
     _.orderBy(
       data.map((reading) => {
         const date = safeParseDate(reading.timestamp);
@@ -75,10 +85,10 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
     );
 
   const filterByZoom = (arr: DataPoint[]) => {
-    if (zoomLevel === 3) return arr;
-    if (zoomLevel === 2) return arr.filter((_, i) => i % 4 === 0);
-    if (zoomLevel === 1) return arr.filter((_, i) => i % 12 === 0);
-    return arr.filter((_, i) => i % 24 === 0);
+    const now = Date.now();
+    const rangeAgo = now - selectedPeriod.minutes * 60 * 1000;
+    const inRange = arr.filter(d => d.timestamp >= rangeAgo && d.timestamp <= now);
+    return _.orderBy(inRange, ['timestamp'], ['asc']);
   };
 
   const chartHeight = 300;
@@ -86,66 +96,93 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
   const maxTemp = 50;
   const normTempY = (t: number) => chartHeight - (t / maxTemp) * chartHeight;
 
-  const data1 = filterByZoom(formatSensorData(sensorData.filter(d => d.sensor_id === "SENSOR1-1")));
-  const data2 = filterByZoom(formatSensorData(sensorData.filter(d => d.sensor_id === "SENSOR1-2")));
-
-  const width = Math.max(data1.length, data2.length) * stepX;
-
-  const handleDelete = async (sensorId: string) => {
-    if (!confirm(`Ви впевнені, що хочете видалити всі дані для сенсора ${sensorId}?`)) return;
-    try {
-      setIsDeleting(prev => ({ ...prev, [sensorId]: true }));
-      const response = await fetch(`/api/sensor-records/delete?sensorId=${sensorId}`, { method: 'DELETE' });
-      if (!response.ok) throw new Error('Failed to delete records');
-      setSensorData(prev => prev.filter(d => d.sensor_id !== sensorId));
-    } catch (error) {
-      alert('Помилка при видаленні даних');
-    } finally {
-      setIsDeleting(prev => ({ ...prev, [sensorId]: false }));
-    }
-  };
+  const sensorFiltered = formatSensorData(sensorData.filter(d => d.sensor_id === selectedSensor));
+  const zoomedSensor = filterByZoom(sensorFiltered);
+  const width = zoomedSensor.length * stepX;
 
   return (
     <div className="container-fluid py-4" style={{ backgroundColor: "#2b2b2b", color: "#fff", borderRadius: "5px" }}>
-      <h5 className="text-warning mb-3">Графік температури DS18B20</h5>
-      <div className="text-warning mb-2">Останнє оновлення: {lastUpdate.toLocaleTimeString()}</div>
-
-      <div style={{ overflowX: "auto", margin: "0", borderRadius: "5px" }}>
-        <svg width={width} height={chartHeight + 40}>
-          {[...Array(11)].map((_, i) => {
-            const y = (i * chartHeight) / 10;
-            return (
-              <line key={i} x1={0} y1={y} x2={width} y2={y} stroke="#444" />
-            );
-          })}
-
-          {/* Sensor 1 Path */}
-          <path
-            d={data1.map((d, i) => `${i === 0 ? "M" : "L"} ${i * stepX},${normTempY(d.temp)}`).join(" ")}
-            stroke="#ff4444"
-            fill="none"
-            strokeWidth={2}
-          />
-
-          {/* Sensor 2 Path */}
-          <path
-            d={data2.map((d, i) => `${i === 0 ? "M" : "L"} ${i * stepX},${normTempY(d.temp)}`).join(" ")}
-            stroke="#44ff44"
-            fill="none"
-            strokeWidth={2}
-          />
-
-          {/* Sensor 1 Points */}
-          {data1.map((d, i) => (
-            <circle key={`s1-${i}`} cx={i * stepX} cy={normTempY(d.temp)} r={3} fill="#ff4444" />
-          ))}
-
-          {/* Sensor 2 Points */}
-          {data2.map((d, i) => (
-            <circle key={`s2-${i}`} cx={i * stepX} cy={normTempY(d.temp)} r={3} fill="#44ff44" />
-          ))}
-        </svg>
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+        <h5 className="text-warning mb-0">Температура {selectedSensor}</h5>
+        <div className="d-flex flex-wrap gap-2 align-items-center">
+          <select className="form-select" value={selectedSensor} onChange={(e) => setSelectedSensor(e.target.value)}>
+            {SENSOR_OPTIONS.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+          <select
+            className="form-select"
+            value={selectedPeriod.label}
+            onChange={(e) => setSelectedPeriod(PERIOD_OPTIONS.find(p => p.label === e.target.value) || PERIOD_OPTIONS[0])}
+          >
+            {PERIOD_OPTIONS.map(p => (
+              <option key={p.label} value={p.label}>{p.label}</option>
+            ))}
+          </select>
+          <div className="btn-group">
+            <button
+              className={`btn btn-sm ${viewMode === 'chart' ? 'btn-warning' : 'btn-outline-warning'}`}
+              onClick={() => setViewMode("chart")}
+            >Графік</button>
+            <button
+              className={`btn btn-sm ${viewMode === 'table' ? 'btn-warning' : 'btn-outline-warning'}`}
+              onClick={() => setViewMode("table")}
+            >Таблиця</button>
+          </div>
+        </div>
       </div>
+
+      <div className="text-warning mb-3">Останнє оновлення: {lastUpdate.toLocaleTimeString()}</div>
+
+      {viewMode === "chart" ? (
+        <div style={{ overflowX: "auto", margin: "0", borderRadius: "5px" }}>
+          <svg width={width} height={chartHeight + 40}>
+            {[...Array(11)].map((_, i) => {
+              const y = (i * chartHeight) / 10;
+              return (
+                <line key={i} x1={0} y1={y} x2={width} y2={y} stroke="#444" />
+              );
+            })}
+
+            <path
+              d={zoomedSensor.map((d, i) => `${i === 0 ? "M" : "L"} ${i * stepX},${normTempY(d.temp)}`).join(" ")}
+              stroke="#44c0ff"
+              fill="none"
+              strokeWidth={2}
+            />
+
+            {zoomedSensor.map((d, i) => (
+              <g key={i}>
+                <circle cx={i * stepX} cy={normTempY(d.temp)} r={3} fill="#00ffff" />
+                <text x={i * stepX} y={normTempY(d.temp) - 8} fontSize={10} textAnchor="middle" fill="#ccc">
+                  {d.temp.toFixed(1)}°
+                </text>
+              </g>
+            ))}
+          </svg>
+        </div>
+      ) : (
+        <div className="table-responsive mt-3">
+          <table className="table table-sm table-dark table-bordered text-center">
+            <thead>
+              <tr>
+                <th>Час</th>
+                <th>Температура (°C)</th>
+                <th>Дата</th>
+              </tr>
+            </thead>
+            <tbody>
+              {zoomedSensor.map((d, i) => (
+                <tr key={i}>
+                  <td>{d.time}</td>
+                  <td>{d.temp.toFixed(1)}</td>
+                  <td>{d.date}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 };
