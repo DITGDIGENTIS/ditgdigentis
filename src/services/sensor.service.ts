@@ -12,10 +12,6 @@ export const createSensorService = () => {
       await prisma.$connect();
       console.log("Database connection successful");
 
-      console.log("Deleting existing records...");
-      await prisma.sensorReading.deleteMany();
-      console.log("Existing records deleted");
-
       console.log("Creating new records...");
       const createdRecords = await Promise.all(
         _.map(data, async (sensor) => {
