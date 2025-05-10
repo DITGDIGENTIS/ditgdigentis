@@ -39,7 +39,6 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
     const today = new Date();
     return today.toISOString().split("T")[0];
   });
-  const [zoomLevel, setZoomLevel] = useState(3);
   const [sensorData, setSensorData] = useState<SensorDataPoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
@@ -88,14 +87,15 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
     );
 
   const filterByZoom = (arr: DataPoint[]) => {
-    const selectedDayStart = new Date(selectedDate);
-    selectedDayStart.setHours(0, 0, 0, 0);
-    const rangeStart = selectedPeriod.minutes === 1440
-      ? selectedDayStart
-      : new Date(selectedDayStart.getTime() + (24 - selectedPeriod.minutes / 60) * 60 * 60 * 1000);
-    const rangeEnd = new Date(selectedDayStart.getTime() + 24 * 60 * 60 * 1000);
-    const inRange = arr.filter(d => d.timestamp >= rangeStart.getTime() && d.timestamp <= rangeEnd.getTime());
-    return _.orderBy(inRange, ['timestamp'], ['asc']).filter((_, i) => i % 3 === 0);
+    const dayStart = new Date(selectedDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+    const rangeStart = new Date(dayEnd.getTime() - selectedPeriod.minutes * 60 * 1000);
+    return _.orderBy(
+      arr.filter(d => d.timestamp >= rangeStart.getTime() && d.timestamp <= dayEnd.getTime()),
+      ['timestamp'],
+      ['asc']
+    );
   };
 
   const chartHeight = 300;
@@ -147,7 +147,9 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
 
       <div className="text-warning mb-3">Останнє оновлення: {lastUpdate.toLocaleTimeString()}</div>
 
-      {viewMode === "chart" ? (
+      {zoomedSensor.length === 0 ? (
+        <div className="text-center text-muted my-5">⛔ Немає даних для цього періоду</div>
+      ) : viewMode === "chart" ? (
         <div style={{ overflowX: "auto", margin: "0", borderRadius: "5px" }}>
           <svg width={width} height={chartHeight + 60}>
             {[...Array(11)].map((_, i) => {
@@ -156,14 +158,12 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
                 <line key={i} x1={0} y1={y} x2={width} y2={y} stroke="#444" />
               );
             })}
-
             <path
               d={zoomedSensor.map((d, i) => `${i === 0 ? "M" : "L"} ${i * stepX},${normTempY(d.temp)}`).join(" ")}
               stroke="#44c0ff"
               fill="none"
               strokeWidth={2}
             />
-
             {zoomedSensor.map((d, i) => (
               <g key={i}>
                 <circle cx={i * stepX} cy={normTempY(d.temp)} r={4} fill="#00ffff" />
