@@ -1,75 +1,72 @@
+// File: src/app/api/sensors/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import { createSensorService } from "@/services/sensor.service";
 import {
-  SensorDataPoint,
   SensorDataBatch,
+  SensorDataPoint,
   createSensorData,
   validateBatch,
 } from "@/services/sensor-data.service";
 
-type SensorData = {
+// Тип данных, приходящих с Raspberry Pi
+interface IncomingSensorData {
   id: string;
   temperature: number;
   humidity: number;
   timestamp: number;
-};
+}
 
-type SensorMap = {
-  [key: string]: SensorData;
-};
+interface IncomingPayload {
+  sensors: Record<string, IncomingSensorData>;
+}
 
-let sensorZonesCache: { sensors: SensorMap; lastUpdate: number } = {
+const CACHE_TIMEOUT = 10 * 60 * 1000;
+
+let sensorCache: {
+  sensors: Record<string, IncomingSensorData>;
+  lastUpdate: number;
+} = {
   sensors: {},
   lastUpdate: 0,
 };
 
-const TIMEOUT_MS = 10 * 60 * 1000;
-
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const body: IncomingPayload = await req.json();
 
-    if (!body || typeof body !== "object" || !("sensors" in body)) {
-      return NextResponse.json({ error: "Invalid payload structure" }, { status: 400 });
+    if (!body || !body.sensors || Object.keys(body.sensors).length === 0) {
+      return NextResponse.json({ error: "Invalid or empty payload" }, { status: 400 });
     }
 
-    const sensors: SensorMap = body.sensors;
-
-    if (!sensors || Object.keys(sensors).length === 0) {
-      return NextResponse.json({ error: "Empty sensor list" }, { status: 400 });
-    }
-
-    // 🧠 Обновляем кэш
-    sensorZonesCache = {
-      sensors,
+    // Обновляем кеш
+    sensorCache = {
+      sensors: body.sensors,
       lastUpdate: Date.now(),
     };
 
-    // 🔄 Преобразуем в SensorDataPoint[]
-    const sensorArray: SensorDataBatch = {
-      sensors: Object.values(sensors).map((item) => ({
-        sensor_id: item.id,
-        temperature: item.temperature,
-        humidity: item.humidity,
-        timestamp: new Date(item.timestamp),
+    // Преобразуем в батч
+    const batch: SensorDataBatch = {
+      sensors: Object.values(body.sensors).map((s) => ({
+        sensor_id: s.id,
+        temperature: s.temperature,
+        humidity: s.humidity,
+        timestamp: new Date(s.timestamp),
       })),
     };
 
-    if (!validateBatch(sensorArray)) {
+    if (!validateBatch(batch)) {
       return NextResponse.json({ error: "Invalid sensor data" }, { status: 422 });
     }
 
-    const parsedData: SensorDataPoint[] = createSensorData(sensorArray);
+    const parsed: SensorDataPoint[] = createSensorData(batch);
+    const service = createSensorService();
 
-    const sensorService = createSensorService();
-    await sensorService.createRecords(parsedData);
+    await service.createRecords(parsed);
 
-    return NextResponse.json({
-      status: "ok",
-      saved: parsedData.length,
-    });
+    return NextResponse.json({ success: true, saved: parsed.length });
   } catch (err) {
-    console.error("POST /api/zones error:", err);
+    console.error("POST /api/sensors error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
@@ -77,16 +74,13 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   const now = Date.now();
 
-  const expired = now - sensorZonesCache.lastUpdate > TIMEOUT_MS;
-
-  const filteredSensors = Object.fromEntries(
-    Object.entries(sensorZonesCache.sensors || {}).filter(([key]) =>
-      key.startsWith("SENSOR1-")
-    )
+  const expired = now - sensorCache.lastUpdate > CACHE_TIMEOUT;
+  const filtered = Object.fromEntries(
+    Object.entries(sensorCache.sensors || {}).filter(([key]) => key.startsWith("SENSOR1-"))
   );
 
   return NextResponse.json({
-    sensors: expired ? {} : filteredSensors,
+    sensors: expired ? {} : filtered,
     serverTime: now,
   });
 }
