@@ -201,7 +201,7 @@ export default function SensorGraphDS18B20() {
               {Object.entries(sensorGraphs).flatMap(([sensorId, data]) =>
                 _.orderBy(data, ['timestamp'], ['desc']).map((d, i) => (
                   <tr key={`${sensorId}-${i}`} className={i === 0 ? 'table-primary' : ''}>
-                    <td>{sensorId}</td>
+                    <td style={{ color: SENSOR_COLORS[sensorId] }}>{sensorId}</td>
                     <td>{d.time}</td>
                     <td>{isNaN(d.temp) ? '--' : d.temp.toFixed(1)}</td>
                     <td>{d.date}</td>
