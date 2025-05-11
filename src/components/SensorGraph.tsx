@@ -1,8 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import _ from "lodash";
-import { SensorDataPoint } from "../services/sensor-data.service";
+
+interface SensorDataPoint {
+  sensor_id: string;
+  temperature: number;
+  humidity: number;
+  timestamp: number | string;
+}
 
 interface DataPoint {
   time: string;
@@ -12,27 +18,28 @@ interface DataPoint {
   timestamp: number;
 }
 
-type SensorGraphDS18B20Props = {
-  sensorId: string;
-};
-
-const safeParseDate = (ts: any): Date => {
-  try {
-    if (ts instanceof Date) return ts;
-    if (typeof ts === "string" || typeof ts === "number") {
-      const d = new Date(ts);
-      if (!isNaN(d.getTime())) return d;
-    }
-  } catch {}
-  return new Date();
-};
-
 const SENSOR_OPTIONS = ["SENSOR1-1", "SENSOR1-2", "SENSOR1-3", "SENSOR1-4"];
 const PERIOD_OPTIONS = [
   { label: "15 хв", minutes: 15 },
   { label: "1 година", minutes: 60 },
   { label: "1 день", minutes: 1440 },
 ];
+
+const SENSOR_COLORS: Record<string, string> = {
+  "SENSOR1-1": "#00ffff",
+  "SENSOR1-2": "#ffcc00",
+  "SENSOR1-3": "#ff44aa",
+  "SENSOR1-4": "#88ff00",
+};
+
+const safeParseDate = (ts: any): Date => {
+  try {
+    if (ts instanceof Date) return ts;
+    const parsed = new Date(Number(ts));
+    if (!isNaN(parsed.getTime())) return parsed;
+  } catch {}
+  return new Date();
+};
 
 const fillMissingIntervals = (data: DataPoint[], periodMins: number): DataPoint[] => {
   const msStep = 5 * 60 * 1000;
@@ -41,7 +48,7 @@ const fillMissingIntervals = (data: DataPoint[], periodMins: number): DataPoint[
   const start = end - periodMins * 60 * 1000;
 
   const pointsBySlot = new Map<number, DataPoint>();
-  data.forEach(d => {
+  data.forEach((d) => {
     const rounded = Math.floor(d.timestamp / msStep) * msStep;
     pointsBySlot.set(rounded, d);
   });
@@ -64,30 +71,19 @@ const fillMissingIntervals = (data: DataPoint[], periodMins: number): DataPoint[
   return result;
 };
 
-const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split("T")[0]);
+export default function SensorGraphDS18B20() {
   const [sensorData, setSensorData] = useState<SensorDataPoint[]>([]);
-  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
-  const [selectedSensor, setSelectedSensor] = useState("SENSOR1-1");
   const [viewMode, setViewMode] = useState<"chart" | "table">("chart");
-  const [selectedPeriod, setSelectedPeriod] = useState(PERIOD_OPTIONS[0]);
+  const [selectedPeriod, setSelectedPeriod] = useState(PERIOD_OPTIONS[1]);
 
   useEffect(() => {
     const fetchData = async () => {
-      try {
-        const response = await fetch("/api/sensor-readings");
-        if (!response.ok) throw new Error("Failed to fetch");
-        const readings = await response.json();
-        if (Array.isArray(readings)) {
-          setSensorData(readings);
-          setLastUpdate(new Date());
-        }
-      } catch (err) {
-        console.error(err);
-      }
+      const res = await fetch("/api/sensor-records", { cache: "no-store" });
+      const json = await res.json();
+      setSensorData(Array.isArray(json) ? json : []);
     };
     fetchData();
-    const interval = setInterval(fetchData, 5000);
+    const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -104,14 +100,14 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
         };
       }),
       ["timestamp"],
-      ["desc"]
+      ["asc"]
     );
 
   const filterByZoom = (arr: DataPoint[]) => {
     const now = Date.now();
-    const rangeEnd = selectedPeriod.minutes === 1440 ? new Date().setHours(23, 59, 59, 999) : now;
-    const rangeStart = rangeEnd - selectedPeriod.minutes * 60 * 1000;
-    return _.orderBy(arr.filter(d => d.timestamp >= rangeStart && d.timestamp <= rangeEnd), ["timestamp"], ["asc"]);
+    const end = selectedPeriod.minutes === 1440 ? new Date().setHours(23, 59, 59, 999) : now;
+    const start = end - selectedPeriod.minutes * 60 * 1000;
+    return arr.filter((d) => d.timestamp >= start && d.timestamp <= end);
   };
 
   const chartHeight = 300;
@@ -119,77 +115,58 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
   const maxTemp = 50;
   const normTempY = (t: number) => chartHeight - (t / maxTemp) * chartHeight;
 
-  const sensorFiltered = formatSensorData(sensorData.filter((d) => d.sensor_id === selectedSensor));
-  const zoomedSensor = fillMissingIntervals(filterByZoom(sensorFiltered), selectedPeriod.minutes);
-  const width = zoomedSensor.length * stepX;
+  const sensorGraphs: Record<string, DataPoint[]> = {};
+  SENSOR_OPTIONS.forEach(sensorId => {
+    const exists = sensorData.some(d => d.sensor_id === sensorId);
+    if (!exists) return;
+    const formatted = formatSensorData(sensorData.filter(d => d.sensor_id === sensorId));
+    const zoomed = fillMissingIntervals(filterByZoom(formatted), selectedPeriod.minutes);
+    if (zoomed.length > 0) sensorGraphs[sensorId] = zoomed;
+  });
+
+  const width = sensorGraphs[Object.keys(sensorGraphs)[0]]?.length * stepX || 1000;
 
   return (
-    <div className="container-fluid py-4" style={{ backgroundColor: "#2b2b2b", color: "#fff", borderRadius: "5px" }}>
-      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
-        <h5 className="text-warning mb-0">Температура {selectedSensor}</h5>
-        <div className="d-flex flex-wrap gap-2 align-items-center">
-          <input type="date" className="form-control" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
-          <select className="form-select" value={selectedSensor} onChange={(e) => setSelectedSensor(e.target.value)}>
-            {SENSOR_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
-          <select className="form-select" value={selectedPeriod.label} onChange={(e) => setSelectedPeriod(PERIOD_OPTIONS.find(p => p.label === e.target.value) || PERIOD_OPTIONS[0])}>
-            {PERIOD_OPTIONS.map((p) => <option key={p.label} value={p.label}>{p.label}</option>)}
-          </select>
-          <div className="btn-group">
-            <button className={`btn btn-sm ${viewMode === 'chart' ? 'btn-warning' : 'btn-outline-warning'}`} onClick={() => setViewMode("chart")}>Графік</button>
-            <button className={`btn btn-sm ${viewMode === 'table' ? 'btn-warning' : 'btn-outline-warning'}`} onClick={() => setViewMode("table")}>Таблиця</button>
-          </div>
-        </div>
+    <div className="p-3 text-white" style={{ background: "#222" }}>
+      <h5 className="text-warning">Графік температури для активних сенсорів</h5>
+      <div className="d-flex gap-3 align-items-center mb-3">
+        <select className="form-select w-auto" value={selectedPeriod.label} onChange={(e) => setSelectedPeriod(PERIOD_OPTIONS.find(p => p.label === e.target.value) || PERIOD_OPTIONS[0])}>
+          {PERIOD_OPTIONS.map((p) => <option key={p.label} value={p.label}>{p.label}</option>)}
+        </select>
+        <span className="text-muted">Виводяться лише активні SENSOR1-1 та SENSOR1-2</span>
       </div>
-      <div className="text-warning mb-3">Останнє оновлення: {lastUpdate.toLocaleTimeString()}</div>
 
-      {zoomedSensor.length === 0 ? (
-        <div className="text-center text-muted my-5">⛔ Немає даних для цього періоду</div>
-      ) : viewMode === "chart" ? (
-        <div style={{ overflowX: "auto", borderRadius: "5px" }}>
-          <svg width={width} height={chartHeight + 60}>
+      <div className="mb-2 d-flex gap-3 flex-wrap">
+        {Object.keys(sensorGraphs).map((id) => (
+          <span key={id} className="d-flex align-items-center gap-2">
+            <span style={{ width: 12, height: 12, backgroundColor: SENSOR_COLORS[id], display: "inline-block" }}></span>
+            <span>{id}</span>
+          </span>
+        ))}
+      </div>
+
+      {viewMode === "chart" && (
+        <div style={{ overflowX: "auto" }}>
+          <svg width={width} height={chartHeight + 40}>
             {[...Array(11)].map((_, i) => {
               const y = (i * chartHeight) / 10;
-              return <line key={i} x1={0} y1={y} x2={width} y2={y} stroke="#444" />;
+              return <line key={i} x1={0} y1={y} x2={width} y2={y} stroke="#333" strokeDasharray="2,2" />;
             })}
-            <path
-              d={zoomedSensor.map((d, i) => isNaN(d.temp) ? "" : `${i === 0 ? "M" : "L"} ${i * stepX},${normTempY(d.temp)}`).join(" ")}
-              stroke="#44c0ff"
-              fill="none"
-              strokeWidth={2}
-            />
-            {zoomedSensor.map((d, i) => (
-              <g key={i}>
-                {!isNaN(d.temp) && <circle cx={i * stepX} cy={normTempY(d.temp)} r={4} fill="#00ffff" />}
-                <text x={i * stepX} y={chartHeight + 55} fontSize={12} textAnchor="middle" fill="#999">{d.time}</text>
-              </g>
+            {Object.entries(sensorGraphs).map(([sensorId, data]) => (
+              <path
+                key={sensorId}
+                d={data.map((d, i) => isNaN(d.temp) ? "" : `${i === 0 ? "M" : "L"} ${i * stepX},${normTempY(d.temp)}`).join(" ")}
+                stroke={SENSOR_COLORS[sensorId]}
+                fill="none"
+                strokeWidth={2}
+              />
+            ))}
+            {Object.entries(sensorGraphs)[0]?.[1]?.map((d, i) => (
+              <text key={i} x={i * stepX} y={chartHeight + 35} fontSize={10} textAnchor="middle" fill="#aaa">{d.time}</text>
             ))}
           </svg>
-        </div>
-      ) : (
-        <div className="table-responsive mt-3" style={{ maxHeight: selectedPeriod.minutes === 1440 ? 'none' : '300px', overflowY: selectedPeriod.minutes === 1440 ? 'visible' : 'auto' }}>
-          <table className="table table-sm table-dark table-bordered text-center">
-            <thead>
-              <tr>
-                <th>Час</th>
-                <th>Температура (°C)</th>
-                <th>Дата</th>
-              </tr>
-            </thead>
-            <tbody>
-              {_.orderBy(zoomedSensor, ['timestamp'], ['desc']).map((d, i) => (
-                <tr key={i} className={i === 0 ? 'table-primary' : ''}>
-                  <td>{d.time}</td>
-                  <td>{isNaN(d.temp) ? '--' : d.temp.toFixed(1)}</td>
-                  <td>{d.date}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       )}
     </div>
   );
-};
-
-export default SensorGraphDS18B20;
+}
