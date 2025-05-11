@@ -50,8 +50,8 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch('/api/sensor-readings');
-        if (!response.ok) throw new Error('Failed to fetch sensor data');
+        const response = await fetch("/api/sensor-readings");
+        if (!response.ok) throw new Error("Failed to fetch sensor data");
         const readings = await response.json();
         if (!Array.isArray(readings)) return;
         setSensorData(readings);
@@ -73,39 +73,48 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
       data.map((reading) => {
         const date = safeParseDate(reading.timestamp);
         return {
-          time: date.toLocaleTimeString('uk-UA', {
-            hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+          time: date.toLocaleTimeString("uk-UA", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
           }),
           temp: reading.temperature,
           hum: reading.humidity ?? 0,
-          date: date.toLocaleDateString('uk-UA'),
-          timestamp: date.getTime()
+          date: date.toLocaleDateString("uk-UA"),
+          timestamp: date.getTime(),
         };
       }),
-      ['timestamp'],
-      ['desc']
+      ["timestamp"],
+      ["desc"]
     );
 
+  const filterBy5MinInterval = (arr: DataPoint[]): DataPoint[] => {
+    const roundedMap = new Map<number, DataPoint>();
+    arr.forEach((d) => {
+      const rounded = Math.floor(d.timestamp / 300000) * 300000;
+      if (!roundedMap.has(rounded)) {
+        roundedMap.set(rounded, d);
+      }
+    });
+    return _.orderBy(Array.from(roundedMap.values()), ["timestamp"], ["asc"]);
+  };
+
   const filterByZoom = (arr: DataPoint[]) => {
-    if (selectedPeriod.minutes === 1440) {
-      const dayStart = new Date(selectedDate);
-      dayStart.setHours(0, 0, 0, 0);
-      const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
-      return _.orderBy(
-        arr.filter(d => d.timestamp >= dayStart.getTime() && d.timestamp <= dayEnd.getTime()),
-        ['timestamp'],
-        ['asc']
-      );
-    } else {
-      const latest = arr.length > 0 ? arr[0].timestamp : Date.now();
-      const rangeEnd = new Date(latest);
-      const rangeStart = new Date(rangeEnd.getTime() - selectedPeriod.minutes * 60 * 1000);
-      return _.orderBy(
-        arr.filter(d => d.timestamp >= rangeStart.getTime() && d.timestamp <= rangeEnd.getTime()),
-        ['timestamp'],
-        ['asc']
-      );
-    }
+    const dayStart = new Date(selectedDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+
+    const rangeEnd = selectedPeriod.minutes === 1440
+      ? dayEnd
+      : new Date(Date.now());
+
+    const rangeStart = new Date(rangeEnd.getTime() - selectedPeriod.minutes * 60 * 1000);
+
+    return _.orderBy(
+      arr.filter((d) => d.timestamp >= rangeStart.getTime() && d.timestamp <= rangeEnd.getTime()),
+      ["timestamp"],
+      ["asc"]
+    );
   };
 
   const chartHeight = 300;
@@ -113,13 +122,11 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
   const maxTemp = 50;
   const normTempY = (t: number) => chartHeight - (t / maxTemp) * chartHeight;
 
-  // 🔍 Унікальні значення: одне на хвилину з унікальною температурою
-  const sensorFiltered = _.uniqBy(
-    formatSensorData(sensorData.filter(d => d.sensor_id === selectedSensor)),
-    d => `${Math.floor(d.timestamp / 60000)}-${d.temp}`
+  const sensorFiltered = filterBy5MinInterval(
+    formatSensorData(sensorData.filter((d) => d.sensor_id === selectedSensor))
   );
 
-  const zoomedSensor = filterByZoom(sensorFiltered).slice(-200); // обмеження
+  const zoomedSensor = filterByZoom(sensorFiltered);
   const width = zoomedSensor.length * stepX;
 
   return (
@@ -141,21 +148,15 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
           <select
             className="form-select"
             value={selectedPeriod.label}
-            onChange={(e) => setSelectedPeriod(PERIOD_OPTIONS.find(p => p.label === e.target.value) || PERIOD_OPTIONS[0])}
+            onChange={(e) => setSelectedPeriod(PERIOD_OPTIONS.find((p) => p.label === e.target.value) || PERIOD_OPTIONS[0])}
           >
-            {PERIOD_OPTIONS.map(p => (
+            {PERIOD_OPTIONS.map((p) => (
               <option key={p.label} value={p.label}>{p.label}</option>
             ))}
           </select>
           <div className="btn-group">
-            <button
-              className={`btn btn-sm ${viewMode === 'chart' ? 'btn-warning' : 'btn-outline-warning'}`}
-              onClick={() => setViewMode("chart")}
-            >Графік</button>
-            <button
-              className={`btn btn-sm ${viewMode === 'table' ? 'btn-warning' : 'btn-outline-warning'}`}
-              onClick={() => setViewMode("table")}
-            >Таблиця</button>
+            <button className={`btn btn-sm ${viewMode === 'chart' ? 'btn-warning' : 'btn-outline-warning'}`} onClick={() => setViewMode("chart")}>Графік</button>
+            <button className={`btn btn-sm ${viewMode === 'table' ? 'btn-warning' : 'btn-outline-warning'}`} onClick={() => setViewMode("table")}>Таблиця</button>
           </div>
         </div>
       </div>
@@ -169,9 +170,7 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
           <svg width={width} height={chartHeight + 60}>
             {[...Array(11)].map((_, i) => {
               const y = (i * chartHeight) / 10;
-              return (
-                <line key={i} x1={0} y1={y} x2={width} y2={y} stroke="#444" />
-              );
+              return <line key={i} x1={0} y1={y} x2={width} y2={y} stroke="#444" />;
             })}
             <path
               d={zoomedSensor.map((d, i) => `${i === 0 ? "M" : "L"} ${i * stepX},${normTempY(d.temp)}`).join(" ")}
@@ -193,13 +192,7 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
           </svg>
         </div>
       ) : (
-        <div
-          className="table-responsive mt-3"
-          style={{
-            maxHeight: selectedPeriod.minutes === 1440 ? 'none' : '300px',
-            overflowY: selectedPeriod.minutes === 1440 ? 'visible' : 'auto'
-          }}
-        >
+        <div className="table-responsive mt-3" style={{ maxHeight: selectedPeriod.minutes === 1440 ? 'none' : '300px', overflowY: selectedPeriod.minutes === 1440 ? 'visible' : 'auto' }}>
           <table className="table table-sm table-dark table-bordered text-center">
             <thead>
               <tr>
