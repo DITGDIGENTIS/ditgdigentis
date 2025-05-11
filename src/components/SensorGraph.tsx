@@ -167,21 +167,37 @@ export default function SensorGraphDS18B20() {
         <div className="text-center text-muted my-5">⛔ Немає даних для цього періоду</div>
       ) : viewMode === "chart" ? (
         <div style={{ overflowX: "auto", borderRadius: "5px" }}>
-          <svg width={width} height={chartHeight + 60}>
-            {[...Array(11)].map((_, i) => {
-              const y = (i * chartHeight) / 10;
-              return <line key={i} x1={0} y1={y} x2={width} y2={y} stroke="#444" />;
+          <svg width={width + 40} height={chartHeight + 60}>
+            {[...Array(6)].map((_, i) => {
+              const y = (i * chartHeight) / 5;
+              const label = (maxTemp - (i * maxTemp) / 5).toFixed(0);
+              return (
+                <g key={i}>
+                  <line x1={40} y1={y} x2={width + 40} y2={y} stroke="#444" />
+                  <text x={35} y={y + 4} fontSize={10} textAnchor="end" fill="#999">{label}°</text>
+                </g>
+              );
             })}
+            {Object.entries(sensorGraphs).map(([sensorId, data]) =>
+              data.map((d, i) => (
+                !isNaN(d.temp) && (
+                  <g key={`${sensorId}-${i}`}>
+                    <circle cx={40 + i * stepX} cy={normTempY(d.temp)} r={3} fill={SENSOR_COLORS[sensorId]} />
+                    <text x={40 + i * stepX} y={normTempY(d.temp) - 8} fontSize={10} textAnchor="middle" fill={SENSOR_COLORS[sensorId]}>{d.temp.toFixed(1)}°</text>
+                  </g>
+                )
+              ))
+            )}
             {Object.entries(sensorGraphs).map(([sensorId, data]) => {
               const pathData = data
-                .map((d, i) => ({ x: i * stepX, y: normTempY(d.temp), temp: d.temp }))
+                .map((d, i) => ({ x: 40 + i * stepX, y: normTempY(d.temp), temp: d.temp }))
                 .filter(d => !isNaN(d.temp))
                 .map((d, i) => `${i === 0 ? "M" : "L"} ${d.x},${d.y}`)
                 .join(" ");
               return <path key={sensorId} d={pathData} stroke={SENSOR_COLORS[sensorId] || "#fff"} fill="none" strokeWidth={2} />;
             })}
             {Object.entries(sensorGraphs)[0]?.[1]?.map((d, i) => (
-              <text key={i} x={i * stepX} y={chartHeight + 55} fontSize={12} textAnchor="middle" fill="#999">{d.time}</text>
+              <text key={i} x={40 + i * stepX} y={chartHeight + 55} fontSize={12} textAnchor="middle" fill="#999">{d.time}</text>
             ))}
           </svg>
         </div>
