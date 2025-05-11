@@ -40,7 +40,8 @@ const safeParseDate = (ts: any): Date => {
 const fillMissingIntervals = (data: DataPoint[], periodMins: number): DataPoint[] => {
   if (data.length === 0) return [];
   const msStep = 5 * 60 * 1000;
-  const end = data[data.length - 1].timestamp;
+  const now = Date.now();
+  const end = Math.floor(now / msStep) * msStep;
   const start = end - periodMins * 60 * 1000;
 
   const pointsBySlot = new Map<number, DataPoint>();
@@ -77,19 +78,16 @@ export default function SensorGraphDS18B20() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch("/api/sensor-readings");
-        if (!response.ok) throw new Error("Failed to fetch");
-        const readings = await response.json();
-        if (Array.isArray(readings)) {
-          setSensorData(readings);
-          setLastUpdate(new Date());
-        }
+        const response = await fetch("/api/sensor-records", { cache: "no-store" });
+        const { readings } = await response.json();
+        setSensorData(readings || []);
+        setLastUpdate(new Date());
       } catch (err) {
         console.error(err);
       }
     };
     fetchData();
-    const interval = setInterval(fetchData, 5000);
+    const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
   }, []);
 

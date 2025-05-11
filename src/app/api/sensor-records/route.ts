@@ -34,6 +34,8 @@ export async function POST(req: NextRequest) {
     }
 
     const processedData = createSensorData(body);
+    console.log("✅ Saving sensors:", processedData.map(s => s.sensor_id).join(", "));
+
     const sensorService = createSensorService();
     await sensorService.createRecords(processedData);
 
@@ -52,7 +54,18 @@ export async function GET() {
   try {
     const sensorService = createSensorService();
     const readings = await sensorService.getAllReadings();
-    return NextResponse.json({ readings });
+
+    const now = Date.now();
+    const fiveMinAgo = now - 5 * 60 * 1000;
+
+    const recent = readings.filter(r => {
+      const ts = new Date(r.timestamp).getTime();
+      return !isNaN(ts) && ts >= fiveMinAgo;
+    });
+
+    console.log(`📡 GET /api/sensor-records: ${recent.length} fresh records returned`);
+
+    return NextResponse.json({ readings: recent });
   } catch (error: unknown) {
     const apiError = error as ApiError;
     console.error("GET /api/sensor-records error:", apiError);
