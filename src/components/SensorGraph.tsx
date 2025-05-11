@@ -152,23 +152,34 @@ export default function SensorGraphDS18B20() {
       <div className="text-warning mb-3">Останнє оновлення: {lastUpdate.toLocaleTimeString()}</div>
 
       {viewMode === "chart" ? (
-        <div className="d-flex" style={{ overflowX: "auto" }}>
-          <svg width={width + 60} height={chartHeight + 60}>
+        <div className="d-flex position-relative" style={{ overflowX: "auto" }}>
+          {/* Легенда шкали фіксирована */}
+          <div style={{ minWidth: "60px", position: "sticky", left: 0, zIndex: 2, backgroundColor: "#2b2b2b" }}>
+            <svg width={60} height={chartHeight + 60}>
+              {[...Array(6)].map((_, i) => {
+                const y = (i * chartHeight) / 5;
+                const label = (maxTemp - (i * maxTemp) / 5).toFixed(0);
+                return (
+                  <g key={i}>
+                    <text x={55} y={y + 4} fontSize={10} textAnchor="end" fill="#999">{label}°</text>
+                  </g>
+                );
+              })}
+            </svg>
+          </div>
+
+          {/* Сам график */}
+          <svg width={width} height={chartHeight + 60}>
             {[...Array(6)].map((_, i) => {
               const y = (i * chartHeight) / 5;
-              const label = (maxTemp - (i * maxTemp) / 5).toFixed(0);
-              return (
-                <g key={i}>
-                  <line x1={60} y1={y} x2={width + 60} y2={y} stroke="#444" />
-                  <text x={55} y={y + 4} fontSize={10} textAnchor="end" fill="#999">{label}°</text>
-                </g>
-              );
+              return <line key={i} x1={0} y1={y} x2={width} y2={y} stroke="#444" />;
             })}
+
             {Object.entries(sensorGraphs).map(([sensorId, data]) => (
               <path
                 key={sensorId}
-                d={data.map((d, i) => `${i === 0 ? "M" : "L"} ${60 + i * stepX},${normTempY(d.temp)}`).join(" ")}
-                stroke={SENSOR_COLORS[sensorId] || "#fff"}
+                d={data.map((d, i) => `${i === 0 ? "M" : "L"} ${i * stepX},${normTempY(d.temp)}`).join(" ")}
+                stroke={SENSOR_COLORS[sensorId]}
                 fill="none"
                 strokeWidth={2}
                 strokeLinejoin="round"
@@ -176,7 +187,7 @@ export default function SensorGraphDS18B20() {
               />
             ))}
             {Object.entries(sensorGraphs)[0]?.[1]?.map((d, i) => (
-              <text key={i} x={60 + i * stepX} y={chartHeight + 55} fontSize={12} textAnchor="middle" fill="#999">{d.time}</text>
+              <text key={i} x={i * stepX} y={chartHeight + 55} fontSize={12} textAnchor="middle" fill="#999" style={{ whiteSpace: "nowrap" }}>{d.time}</text>
             ))}
           </svg>
         </div>
