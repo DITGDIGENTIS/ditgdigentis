@@ -1,5 +1,3 @@
-// "use client";
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -30,10 +28,8 @@ const SENSOR_COLORS: Record<string, string> = {
 const safeParseDate = (ts: any): Date => {
   try {
     if (ts instanceof Date) return ts;
-    if (typeof ts === "string" || typeof ts === "number") {
-      const d = new Date(ts);
-      if (!isNaN(d.getTime())) return d;
-    }
+    const parsed = new Date(Number(ts));
+    if (!isNaN(parsed.getTime())) return parsed;
   } catch {}
   return new Date();
 };
@@ -55,24 +51,20 @@ const fillMissingIntervals = (data: DataPoint[], periodMins: number): DataPoint[
   let lastHum = NaN;
 
   for (let t = start; t <= end; t += msStep) {
-    const existing = pointsBySlot.get(t);
     const date = new Date(t);
-
-    if (existing && !isNaN(existing.temp)) {
-      lastTemp = existing.temp;
-      lastHum = existing.hum;
-      result.push(existing);
-    } else {
-      result.push({
-        timestamp: t,
-        temp: isNaN(lastTemp) ? NaN : lastTemp,
-        hum: isNaN(lastHum) ? NaN : lastHum,
-        time: date.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit", hour12: false }),
-        date: date.toLocaleDateString("uk-UA"),
-      });
+    const d = pointsBySlot.get(t);
+    if (d && !isNaN(d.temp)) {
+      lastTemp = d.temp;
+      lastHum = d.hum;
     }
+    result.push({
+      timestamp: t,
+      temp: lastTemp,
+      hum: lastHum,
+      time: date.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit", hour12: false }),
+      date: date.toLocaleDateString("uk-UA"),
+    });
   }
-
   return result;
 };
 
@@ -132,24 +124,10 @@ export default function SensorGraphDS18B20() {
     const filtered = sensorData.filter(d => d.sensor_id === sensorId);
     const formatted = formatSensorData(filtered);
     const zoomed = fillMissingIntervals(filterByZoom(formatted), selectedPeriod.minutes);
-    if (zoomed.length > 0) sensorGraphs[sensorId] = zoomed;
+    sensorGraphs[sensorId] = zoomed;
   });
 
   const width = Object.values(sensorGraphs)[0]?.length * stepX || 1000;
-
-  const buildPathWithGaps = (data: DataPoint[], xOffset: number) => {
-    let d = "";
-    data.forEach((point, i) => {
-      const x = xOffset + i * stepX;
-      const y = normTempY(point.temp);
-      if (!isNaN(point.temp)) {
-        d += d === "" || d.endsWith("Z") ? `M ${x},${y}` : ` L ${x},${y}`;
-      } else {
-        d += " Z";
-      }
-    });
-    return d;
-  };
 
   return (
     <div className="container-fluid py-4" style={{ backgroundColor: "#2b2b2b", color: "#fff", borderRadius: "5px" }}>
@@ -183,9 +161,7 @@ export default function SensorGraphDS18B20() {
 
       <div className="text-warning mb-3">Останнє оновлення: {lastUpdate.toLocaleTimeString()}</div>
 
-      {Object.keys(sensorGraphs).length === 0 ? (
-        <div className="text-center text-muted my-5">⛔ Немає даних для цього періоду</div>
-      ) : viewMode === "chart" ? (
+      {viewMode === "chart" ? (
         <div style={{ overflowX: "auto", borderRadius: "5px" }}>
           <svg width={width + 40} height={chartHeight + 60}>
             {[...Array(6)].map((_, i) => {
@@ -201,7 +177,7 @@ export default function SensorGraphDS18B20() {
             {Object.entries(sensorGraphs).map(([sensorId, data]) => (
               <path
                 key={sensorId}
-                d={buildPathWithGaps(data, 40)}
+                d={data.map((d, i) => `${i === 0 ? "M" : "L"} ${40 + i * stepX},${normTempY(d.temp)}`).join(" ")}
                 stroke={SENSOR_COLORS[sensorId] || "#fff"}
                 fill="none"
                 strokeWidth={2}
