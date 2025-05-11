@@ -1,4 +1,4 @@
-// ✅ Стабільний route.ts для POST /api/sensors та GET кешованих
+// ✅ Стабільний route.ts для POST /api/sensors та GET кешованих (з фіксацією кожні 5 хв)
 
 import { NextRequest, NextResponse } from "next/server";
 import { createSensorService } from "@/services/sensor.service";
@@ -30,6 +30,11 @@ let sensorCache: {
   lastUpdate: 0,
 };
 
+const roundToNearest5Min = (timestamp: number): Date => {
+  const ms = 1000 * 60 * 5;
+  return new Date(Math.round(timestamp / ms) * ms);
+};
+
 export async function POST(req: NextRequest) {
   try {
     const body: IncomingPayload = await req.json();
@@ -47,7 +52,7 @@ export async function POST(req: NextRequest) {
         sensor_id: s.id,
         temperature: s.temperature,
         humidity: s.humidity,
-        timestamp: new Date(s.timestamp),
+        timestamp: roundToNearest5Min(s.timestamp),
       })),
     };
 
