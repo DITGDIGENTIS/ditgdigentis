@@ -1,3 +1,5 @@
+// "use client";
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -43,29 +45,34 @@ const fillMissingIntervals = (data: DataPoint[], periodMins: number): DataPoint[
   const start = end - periodMins * 60 * 1000;
 
   const pointsBySlot = new Map<number, DataPoint>();
-  let lastValid: DataPoint | null = null;
-
-  data.forEach((d) => {
+  data.forEach(d => {
     const rounded = Math.floor(d.timestamp / msStep) * msStep;
     pointsBySlot.set(rounded, d);
   });
 
   const result: DataPoint[] = [];
+  let lastTemp = NaN;
+  let lastHum = NaN;
+
   for (let t = start; t <= end; t += msStep) {
-    if (pointsBySlot.has(t)) {
-      lastValid = pointsBySlot.get(t)!;
-      result.push(lastValid);
+    const existing = pointsBySlot.get(t);
+    const date = new Date(t);
+
+    if (existing && !isNaN(existing.temp)) {
+      lastTemp = existing.temp;
+      lastHum = existing.hum;
+      result.push(existing);
     } else {
-      const date = new Date(t);
       result.push({
         timestamp: t,
-        temp: lastValid?.temp ?? NaN,
-        hum: lastValid?.hum ?? NaN,
+        temp: isNaN(lastTemp) ? NaN : lastTemp,
+        hum: isNaN(lastHum) ? NaN : lastHum,
         time: date.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit", hour12: false }),
         date: date.toLocaleDateString("uk-UA"),
       });
     }
   }
+
   return result;
 };
 
@@ -112,7 +119,7 @@ export default function SensorGraphDS18B20() {
     const now = Date.now();
     const rangeEnd = selectedPeriod.minutes === 1440 ? new Date().setHours(23, 59, 59, 999) : now;
     const rangeStart = rangeEnd - selectedPeriod.minutes * 60 * 1000;
-    return arr.filter((d) => d.timestamp >= rangeStart && d.timestamp <= rangeEnd);
+    return arr.filter(d => d.timestamp >= rangeStart && d.timestamp <= rangeEnd);
   };
 
   const chartHeight = 300;
@@ -121,8 +128,8 @@ export default function SensorGraphDS18B20() {
   const normTempY = (t: number) => chartHeight - (t / maxTemp) * chartHeight;
 
   const sensorGraphs: Record<string, DataPoint[]> = {};
-  selectedSensors.forEach((sensorId) => {
-    const filtered = sensorData.filter((d) => d.sensor_id === sensorId);
+  selectedSensors.forEach(sensorId => {
+    const filtered = sensorData.filter(d => d.sensor_id === sensorId);
     const formatted = formatSensorData(filtered);
     const zoomed = fillMissingIntervals(filterByZoom(formatted), selectedPeriod.minutes);
     if (zoomed.length > 0) sensorGraphs[sensorId] = zoomed;
