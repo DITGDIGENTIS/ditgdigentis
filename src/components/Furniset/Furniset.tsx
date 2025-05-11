@@ -4,10 +4,18 @@ import { FC, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { ServerStatus } from "../ServerStatus";
 
-// Динамический импорт компонентов, использующих браузерные API
 const SensorMonitor = dynamic(() => import("../SensorMonitor").then(mod => mod.SensorMonitor), { ssr: false });
 const HumidityMonitor = dynamic(() => import("../HumidityMonitor").then(mod => mod.HumidityMonitor), { ssr: false });
-const SensorGraph = dynamic(() => import("../SensorGraph"), { ssr: false });
+
+// ✅ Типизируем пропсы для SensorGraph
+interface SensorGraphProps {
+  sensorId: string;
+}
+
+const SensorGraph = dynamic<SensorGraphProps>(
+  () => import("../SensorGraph").then(mod => mod.default),
+  { ssr: false }
+);
 
 export const Furniset: FC = () => {
   const [time, setTime] = useState("");
@@ -31,13 +39,14 @@ export const Furniset: FC = () => {
       <div className="container py-3 text-center">
         <span id="clock" className="fw-semibold" style={{ fontSize: "2.6rem" }}>{time}</span>
       </div>
-      <SensorMonitor /> 
+      <SensorMonitor />
       <div className="container mt-4">
-        <h4 className="text-center mb-3" style={{ fontSize: "1.4rem", color: "#fff", fontWeight: "bold" }}>Графік (SENSOR)</h4>
+        <h4 className="text-center mb-3" style={{ fontSize: "1.4rem", color: "#fff", fontWeight: "bold" }}>
+          Графік (SENSOR)
+        </h4>
         <SensorGraph sensorId="HUM1-1" />
       </div>
       <HumidityMonitor />
-         
     </div>
   );
 };
