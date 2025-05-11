@@ -56,8 +56,8 @@ const fillStableIntervals = (data: DataPoint[], periodMins: number): DataPoint[]
     }
     result.push({
       timestamp: t,
-      temp: isNaN(lastTemp) ? NaN : lastTemp,
-      hum: isNaN(lastHum) ? NaN : lastHum,
+      temp: isNaN(lastTemp) ? 0 : lastTemp,
+      hum: isNaN(lastHum) ? 0 : lastHum,
       time: date.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit", hour12: false }),
       date: date.toLocaleDateString("uk-UA"),
     });
@@ -105,7 +105,7 @@ export default function SensorGraphDS18B20() {
     );
 
   const chartHeight = 300;
-  const stepX = 50;
+  const stepX = 60;
   const maxTemp = 50;
   const normTempY = (t: number) => chartHeight - (t / maxTemp) * chartHeight;
 
@@ -152,49 +152,36 @@ export default function SensorGraphDS18B20() {
       <div className="text-warning mb-3">Останнє оновлення: {lastUpdate.toLocaleTimeString()}</div>
 
       {viewMode === "chart" ? (
-        <div style={{ display: "flex", overflowX: "auto", borderRadius: "5px" }}>
-          <div style={{ minWidth: 40, paddingRight: 4 }}>
+        <div className="d-flex" style={{ overflowX: "auto" }}>
+          <svg width={width + 60} height={chartHeight + 60}>
             {[...Array(6)].map((_, i) => {
               const y = (i * chartHeight) / 5;
               const label = (maxTemp - (i * maxTemp) / 5).toFixed(0);
               return (
-                <div key={i} style={{ position: "absolute", top: y, left: 0, width: 40, textAlign: "right", color: "#999", fontSize: 10 }}>{label}°</div>
+                <g key={i}>
+                  <line x1={60} y1={y} x2={width + 60} y2={y} stroke="#444" />
+                  <text x={55} y={y + 4} fontSize={10} textAnchor="end" fill="#999">{label}°</text>
+                </g>
               );
             })}
-          </div>
-          <svg width={width} height={chartHeight + 60}>
-            {[...Array(6)].map((_, i) => {
-              const y = (i * chartHeight) / 5;
-              return <line key={i} x1={0} y1={y} x2={width} y2={y} stroke="#444" />;
-            })}
             {Object.entries(sensorGraphs).map(([sensorId, data]) => (
-              <g key={sensorId}>
-                <path
-                  d={data.map((d, i) => `${i === 0 ? "M" : "L"} ${i * stepX},${normTempY(d.temp)}`).join(" ")}
-                  stroke={SENSOR_COLORS[sensorId] || "#fff"}
-                  fill="none"
-                  strokeWidth={2}
-                  strokeLinejoin="round"
-                  strokeLinecap="round"
-                />
-                {data.map((d, i) => (
-                  <circle
-                    key={`${sensorId}-point-${i}`}
-                    cx={i * stepX}
-                    cy={normTempY(d.temp)}
-                    r={3}
-                    fill={SENSOR_COLORS[sensorId]}
-                  />
-                ))}
-              </g>
+              <path
+                key={sensorId}
+                d={data.map((d, i) => `${i === 0 ? "M" : "L"} ${60 + i * stepX},${normTempY(d.temp)}`).join(" ")}
+                stroke={SENSOR_COLORS[sensorId] || "#fff"}
+                fill="none"
+                strokeWidth={2}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
             ))}
             {Object.entries(sensorGraphs)[0]?.[1]?.map((d, i) => (
-              <text key={i} x={i * stepX} y={chartHeight + 55} fontSize={12} textAnchor="middle" fill="#999">{d.time}</text>
+              <text key={i} x={60 + i * stepX} y={chartHeight + 55} fontSize={12} textAnchor="middle" fill="#999">{d.time}</text>
             ))}
           </svg>
         </div>
       ) : (
-        <div className="table-responsive mt-3" style={{ maxHeight: selectedPeriod.minutes === 1440 ? 'none' : '300px', overflowY: selectedPeriod.minutes === 1440 ? 'visible' : 'auto' }}>
+        <div className="table-responsive mt-3" style={{ maxHeight: selectedPeriod.minutes === 1440 ? 'none' : '300px', overflowY: 'auto' }}>
           <table className="table table-sm table-dark table-bordered text-center">
             <thead>
               <tr>
