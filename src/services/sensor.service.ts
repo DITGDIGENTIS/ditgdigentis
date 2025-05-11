@@ -22,6 +22,18 @@ export function createSensorService(): SensorService {
 
       const result = await Promise.all(
         data.map(async (sensor) => {
+          const exists = await prisma.sensorReading.findFirst({
+            where: {
+              sensor_id: sensor.sensor_id,
+              timestamp: sensor.timestamp,
+            },
+          });
+
+          if (exists) {
+            console.log(`[createRecords] Skipped existing: ${sensor.sensor_id} @ ${sensor.timestamp?.toISOString()}`);
+            return null;
+          }
+
           try {
             return await prisma.sensorReading.create({
               data: {
@@ -38,7 +50,7 @@ export function createSensorService(): SensorService {
         })
       );
 
-      console.log(`[createRecords] Inserted ${result.filter(Boolean).length} records`);
+      console.log(`[createRecords] Inserted ${result.filter(Boolean).length} new records`);
     } catch (err) {
       console.error("[createRecords] Unexpected error:", err);
       throw err;

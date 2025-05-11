@@ -1,5 +1,3 @@
-// ✅ Стабільний route.ts для POST /api/sensors та GET кешованих (з фіксацією кожні 5 хв)
-
 import { NextRequest, NextResponse } from "next/server";
 import { createSensorService } from "@/services/sensor.service";
 import {
@@ -32,7 +30,7 @@ let sensorCache: {
 
 const roundToNearest5Min = (timestamp: number): Date => {
   const ms = 1000 * 60 * 5;
-  return new Date(Math.floor(timestamp / ms) * ms);
+  return new Date(Math.round(timestamp / ms) * ms);
 };
 
 export async function POST(req: NextRequest) {
