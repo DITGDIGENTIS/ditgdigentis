@@ -1,4 +1,4 @@
-// File: src/app/api/sensors/route.ts
+// ✅ Стабільний route.ts для POST /api/sensors та GET кешованих
 
 import { NextRequest, NextResponse } from "next/server";
 import { createSensorService } from "@/services/sensor.service";
@@ -9,7 +9,6 @@ import {
   validateBatch,
 } from "@/services/sensor-data.service";
 
-// Тип данных, приходящих с Raspberry Pi
 interface IncomingSensorData {
   id: string;
   temperature: number;
@@ -34,18 +33,15 @@ let sensorCache: {
 export async function POST(req: NextRequest) {
   try {
     const body: IncomingPayload = await req.json();
-
-    if (!body || !body.sensors || Object.keys(body.sensors).length === 0) {
+    if (!body?.sensors || Object.keys(body.sensors).length === 0) {
       return NextResponse.json({ error: "Invalid or empty payload" }, { status: 400 });
     }
 
-    // Обновляем кеш
     sensorCache = {
       sensors: body.sensors,
       lastUpdate: Date.now(),
     };
 
-    // Преобразуем в батч
     const batch: SensorDataBatch = {
       sensors: Object.values(body.sensors).map((s) => ({
         sensor_id: s.id,
@@ -61,7 +57,6 @@ export async function POST(req: NextRequest) {
 
     const parsed: SensorDataPoint[] = createSensorData(batch);
     const service = createSensorService();
-
     await service.createRecords(parsed);
 
     return NextResponse.json({ success: true, saved: parsed.length });
@@ -73,14 +68,9 @@ export async function POST(req: NextRequest) {
 
 export async function GET() {
   const now = Date.now();
-
   const expired = now - sensorCache.lastUpdate > CACHE_TIMEOUT;
   const filtered = Object.fromEntries(
-    Object.entries(sensorCache.sensors || {}).filter(([key]) => key.startsWith("SENSOR1-"))
+    Object.entries(sensorCache.sensors).filter(([key]) => key.startsWith("SENSOR1-"))
   );
-
-  return NextResponse.json({
-    sensors: expired ? {} : filtered,
-    serverTime: now,
-  });
+  return NextResponse.json({ sensors: expired ? {} : filtered, serverTime: now });
 }
