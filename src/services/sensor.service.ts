@@ -22,15 +22,19 @@ export function createSensorService(): SensorService {
 
       const result = await Promise.all(
         data.map(async (sensor) => {
+          const sensorTimestamp = sensor.timestamp instanceof Date
+            ? sensor.timestamp
+            : new Date(sensor.timestamp!);
+
           const exists = await prisma.sensorReading.findFirst({
             where: {
               sensor_id: sensor.sensor_id,
-              timestamp: sensor.timestamp,
+              timestamp: sensorTimestamp,
             },
           });
 
           if (exists) {
-            console.log(`[createRecords] Skipped existing: ${sensor.sensor_id} @ ${sensor.timestamp?.toISOString()}`);
+            console.log(`[createRecords] Skipped existing: ${sensor.sensor_id} @ ${sensorTimestamp.toISOString()}`);
             return null;
           }
 
@@ -40,7 +44,7 @@ export function createSensorService(): SensorService {
                 sensor_id: sensor.sensor_id,
                 temperature: sensor.temperature,
                 humidity: sensor.humidity,
-                timestamp: sensor.timestamp || new Date(),
+                timestamp: sensorTimestamp,
               },
             });
           } catch (err) {

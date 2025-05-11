@@ -36,7 +36,8 @@ const PERIOD_OPTIONS = [
 
 const fillMissingIntervals = (data: DataPoint[], periodMins: number): DataPoint[] => {
   const msStep = 5 * 60 * 1000;
-  const end = Date.now();
+  const now = Date.now();
+  const end = Math.floor(now / msStep) * msStep;
   const start = end - periodMins * 60 * 1000;
 
   const pointsBySlot = new Map<number, DataPoint>();

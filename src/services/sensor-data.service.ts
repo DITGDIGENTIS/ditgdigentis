@@ -4,11 +4,11 @@ export type SensorDataPoint = {
   sensor_id: string;
   temperature: number;
   humidity: number;
-  timestamp?: Date;
+  timestamp: Date;
 };
 
 export type SensorDataBatch = {
-  sensors: SensorDataPoint[];
+  sensors: Partial<SensorDataPoint>[];
 };
 
 export type SensorAverages = {
@@ -16,18 +16,14 @@ export type SensorAverages = {
   avgHumidity: number;
 };
 
-// Валидация данных
-export const validateSensorData = (data: SensorDataPoint): boolean => {
+// ✅ Валидация данных
+export const validateSensorData = (data: Partial<SensorDataPoint>): boolean => {
   if (!data || typeof data !== "object") return false;
 
-  const isValidTimestamp = (timestamp: Date | string | undefined): boolean => {
-    if (timestamp === undefined) return true;
-    if (timestamp instanceof Date) return true;
-    if (typeof timestamp === 'string') {
-      const date = new Date(timestamp);
-      return !isNaN(date.getTime());
-    }
-    return false;
+  const isValidTimestamp = (timestamp: any): boolean => {
+    if (!timestamp) return true;
+    const d = new Date(timestamp);
+    return !isNaN(d.getTime());
   };
 
   return (
@@ -41,66 +37,61 @@ export const validateSensorData = (data: SensorDataPoint): boolean => {
   );
 };
 
-export const validateBatch = (batch: SensorDataBatch): boolean => {
-  if (!batch || typeof batch !== "object") return false;
-  if (!Array.isArray(batch.sensors)) return false;
-  if (batch.sensors.length === 0) return false;
+export const validateBatch = (batch: SensorDataBatch): boolean =>
+  Array.isArray(batch?.sensors) &&
+  batch.sensors.length > 0 &&
+  batch.sensors.every(validateSensorData);
 
-  return batch.sensors.every(validateSensorData);
-};
-
-// Создание данных сенсоров
+// ✅ Надійне створення сенсорних даних
 export const createSensorData = (data: SensorDataBatch): SensorDataPoint[] => {
   if (!validateBatch(data)) {
     throw new Error("Invalid sensor data format");
   }
 
-  return _.map(data.sensors, (sensor) => ({
-    sensor_id: String(sensor.sensor_id),
-    temperature: Number(_.round(sensor.temperature, 2)),
-    humidity: Number(_.round(sensor.humidity, 2)),
-    timestamp: sensor.timestamp || new Date(),
-  }));
+  return data.sensors.map((sensor) => {
+    const date =
+      sensor.timestamp instanceof Date
+        ? sensor.timestamp
+        : new Date(sensor.timestamp || Date.now());
+
+    return {
+      sensor_id: String(sensor.sensor_id),
+      temperature: Number(_.round(sensor.temperature ?? 0, 2)),
+      humidity: Number(_.round(sensor.humidity ?? 0, 2)),
+      timestamp: date,
+    };
+  });
 };
 
-// Группировка и агрегация
+// 📊 Группировка
 export const groupBySensorId = (
   data: SensorDataPoint[]
-): Record<string, SensorDataPoint[]> => _.groupBy(data, "sensor_id");
+): Record<string, SensorDataPoint[]> =>
+  _.groupBy(data, "sensor_id");
 
+// 📈 Получение последних
 export const getLatestReadings = (
   data: SensorDataPoint[]
 ): Record<string, SensorDataPoint> =>
-  _.flow([
-    groupBySensorId,
-    (grouped) =>
-      _.mapValues(grouped, (readings) => {
-        const latest = _.maxBy(readings, "timestamp");
-        if (!latest) throw new Error("No readings found");
-        return latest;
-      }),
-  ])(data);
+  _.mapValues(groupBySensorId(data), (group) =>
+    _.maxBy(group, "timestamp")!
+  );
 
-// Фильтрация
+// ⏳ Фильтрация по времени
 export const filterByTimeRange = _.curry(
-  (
-    startTime: Date,
-    endTime: Date,
-    data: SensorDataPoint[]
-  ): SensorDataPoint[] =>
-    _.filter(data, (reading) => {
-      const timestamp = reading.timestamp || new Date();
-      return timestamp >= startTime && timestamp <= endTime;
-    })
+  (startTime: Date, endTime: Date, data: SensorDataPoint[]): SensorDataPoint[] =>
+    data.filter(
+      (reading) => reading.timestamp >= startTime && reading.timestamp <= endTime
+    )
 );
 
-// Расчет средних значений
+// 📐 Средние значения
 export const calculateAverages = (data: SensorDataPoint[]): SensorAverages => ({
   avgTemperature: _.round(_.meanBy(data, "temperature"), 2),
   avgHumidity: _.round(_.meanBy(data, "humidity"), 2),
 });
 
-// Композиция функций для получения статистики
+// 📊 Статистика
 export const getSensorStatistics = _.flow([
   createSensorData,
   (data) => ({
@@ -110,7 +101,7 @@ export const getSensorStatistics = _.flow([
   }),
 ]);
 
-// Утилиты для работы с данными
+// 🔁 Утилити
 export const formatSensorData = _.curry(
   (precision: number, data: SensorDataPoint): SensorDataPoint => ({
     ...data,
