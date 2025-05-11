@@ -1,3 +1,5 @@
+// "use client";
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -80,7 +82,7 @@ export default function SensorGraphDS18B20() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch("/api/sensor-records", { cache: "no-store" });
+        const response = await fetch(`/api/sensor-records?${Date.now()}`, { cache: "no-store" });
         const { readings } = await response.json();
         setSensorData(readings || []);
         setLastUpdate(new Date());
@@ -131,6 +133,20 @@ export default function SensorGraphDS18B20() {
 
   const width = Object.values(sensorGraphs)[0]?.length * stepX || 1000;
 
+  const buildPathWithGaps = (data: DataPoint[], xOffset: number) => {
+    let d = "";
+    data.forEach((point, i) => {
+      const x = xOffset + i * stepX;
+      const y = normTempY(point.temp);
+      if (!isNaN(point.temp)) {
+        d += d === "" || d.endsWith("Z") ? `M ${x},${y}` : ` L ${x},${y}`;
+      } else {
+        d += " Z";
+      }
+    });
+    return d;
+  };
+
   return (
     <div className="container-fluid py-4" style={{ backgroundColor: "#2b2b2b", color: "#fff", borderRadius: "5px" }}>
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
@@ -178,24 +194,15 @@ export default function SensorGraphDS18B20() {
                 </g>
               );
             })}
-            {Object.entries(sensorGraphs).map(([sensorId, data]) =>
-              data.map((d, i) => (
-                !isNaN(d.temp) && (
-                  <g key={`${sensorId}-${i}`}>
-                    <circle cx={40 + i * stepX} cy={normTempY(d.temp)} r={3} fill={SENSOR_COLORS[sensorId]} />
-                    <text x={40 + i * stepX} y={normTempY(d.temp) - 8} fontSize={10} textAnchor="middle" fill={SENSOR_COLORS[sensorId]}>{d.temp.toFixed(1)}°</text>
-                  </g>
-                )
-              ))
-            )}
-            {Object.entries(sensorGraphs).map(([sensorId, data]) => {
-              const pathData = data
-                .map((d, i) => ({ x: 40 + i * stepX, y: normTempY(d.temp), temp: d.temp }))
-                .filter(d => !isNaN(d.temp))
-                .map((d, i) => `${i === 0 ? "M" : "L"} ${d.x},${d.y}`)
-                .join(" ");
-              return <path key={sensorId} d={pathData} stroke={SENSOR_COLORS[sensorId] || "#fff"} fill="none" strokeWidth={2} />;
-            })}
+            {Object.entries(sensorGraphs).map(([sensorId, data]) => (
+              <path
+                key={sensorId}
+                d={buildPathWithGaps(data, 40)}
+                stroke={SENSOR_COLORS[sensorId] || "#fff"}
+                fill="none"
+                strokeWidth={2}
+              />
+            ))}
             {Object.entries(sensorGraphs)[0]?.[1]?.map((d, i) => (
               <text key={i} x={40 + i * stepX} y={chartHeight + 55} fontSize={12} textAnchor="middle" fill="#999">{d.time}</text>
             ))}
