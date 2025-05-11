@@ -28,39 +28,36 @@ const SENSOR_COLORS: Record<string, string> = {
 const safeParseDate = (ts: any): Date => {
   try {
     if (ts instanceof Date) return ts;
-    const parsed = new Date(Number(ts));
-    if (!isNaN(parsed.getTime())) return parsed;
+    const d = new Date(Number(ts));
+    if (!isNaN(d.getTime())) return d;
   } catch {}
   return new Date();
 };
 
-const fillMissingIntervals = (data: DataPoint[], periodMins: number): DataPoint[] => {
+const fillStableIntervals = (data: DataPoint[], periodMins: number): DataPoint[] => {
   const msStep = 5 * 60 * 1000;
   const now = Date.now();
   const end = Math.floor(now / msStep) * msStep;
   const start = end - periodMins * 60 * 1000;
-
-  const pointsBySlot = new Map<number, DataPoint>();
-  data.forEach(d => {
-    const rounded = Math.floor(d.timestamp / msStep) * msStep;
-    pointsBySlot.set(rounded, d);
+  const slots = new Map<number, DataPoint>();
+  data.forEach((d) => {
+    const slot = Math.floor(d.timestamp / msStep) * msStep;
+    slots.set(slot, d);
   });
-
   const result: DataPoint[] = [];
   let lastTemp = NaN;
   let lastHum = NaN;
-
   for (let t = start; t <= end; t += msStep) {
+    const slot = slots.get(t);
     const date = new Date(t);
-    const d = pointsBySlot.get(t);
-    if (d && !isNaN(d.temp)) {
-      lastTemp = d.temp;
-      lastHum = d.hum;
+    if (slot && !isNaN(slot.temp)) {
+      lastTemp = slot.temp;
+      lastHum = slot.hum;
     }
     result.push({
       timestamp: t,
-      temp: lastTemp,
-      hum: lastHum,
+      temp: isNaN(lastTemp) ? 0 : lastTemp,
+      hum: isNaN(lastHum) ? 0 : lastHum,
       time: date.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit", hour12: false }),
       date: date.toLocaleDateString("uk-UA"),
     });
@@ -107,13 +104,6 @@ export default function SensorGraphDS18B20() {
       ["asc"]
     );
 
-  const filterByZoom = (arr: DataPoint[]) => {
-    const now = Date.now();
-    const rangeEnd = selectedPeriod.minutes === 1440 ? new Date().setHours(23, 59, 59, 999) : now;
-    const rangeStart = rangeEnd - selectedPeriod.minutes * 60 * 1000;
-    return arr.filter(d => d.timestamp >= rangeStart && d.timestamp <= rangeEnd);
-  };
-
   const chartHeight = 300;
   const stepX = 60;
   const maxTemp = 50;
@@ -123,8 +113,8 @@ export default function SensorGraphDS18B20() {
   selectedSensors.forEach(sensorId => {
     const filtered = sensorData.filter(d => d.sensor_id === sensorId);
     const formatted = formatSensorData(filtered);
-    const zoomed = fillMissingIntervals(filterByZoom(formatted), selectedPeriod.minutes);
-    sensorGraphs[sensorId] = zoomed;
+    const zoomed = fillStableIntervals(formatted, selectedPeriod.minutes);
+    if (zoomed.length > 0) sensorGraphs[sensorId] = zoomed;
   });
 
   const width = Object.values(sensorGraphs)[0]?.length * stepX || 1000;
@@ -181,6 +171,8 @@ export default function SensorGraphDS18B20() {
                 stroke={SENSOR_COLORS[sensorId] || "#fff"}
                 fill="none"
                 strokeWidth={2}
+                strokeLinejoin="round"
+                strokeLinecap="round"
               />
             ))}
             {Object.entries(sensorGraphs)[0]?.[1]?.map((d, i) => (
