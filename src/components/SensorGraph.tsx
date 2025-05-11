@@ -56,8 +56,8 @@ const fillStableIntervals = (data: DataPoint[], periodMins: number): DataPoint[]
     }
     result.push({
       timestamp: t,
-      temp: isNaN(lastTemp) ? 0 : lastTemp,
-      hum: isNaN(lastHum) ? 0 : lastHum,
+      temp: isNaN(lastTemp) ? NaN : lastTemp,
+      hum: isNaN(lastHum) ? NaN : lastHum,
       time: date.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit", hour12: false }),
       date: date.toLocaleDateString("uk-UA"),
     });
@@ -105,7 +105,7 @@ export default function SensorGraphDS18B20() {
     );
 
   const chartHeight = 300;
-  const stepX = 60;
+  const stepX = 50;
   const maxTemp = 50;
   const normTempY = (t: number) => chartHeight - (t / maxTemp) * chartHeight;
 
@@ -152,31 +152,44 @@ export default function SensorGraphDS18B20() {
       <div className="text-warning mb-3">Останнє оновлення: {lastUpdate.toLocaleTimeString()}</div>
 
       {viewMode === "chart" ? (
-        <div style={{ overflowX: "auto", borderRadius: "5px" }}>
-          <svg width={width + 40} height={chartHeight + 60}>
+        <div style={{ display: "flex", overflowX: "auto", borderRadius: "5px" }}>
+          <div style={{ minWidth: 40, paddingRight: 4 }}>
             {[...Array(6)].map((_, i) => {
               const y = (i * chartHeight) / 5;
               const label = (maxTemp - (i * maxTemp) / 5).toFixed(0);
               return (
-                <g key={i}>
-                  <line x1={40} y1={y} x2={width + 40} y2={y} stroke="#444" />
-                  <text x={35} y={y + 4} fontSize={10} textAnchor="end" fill="#999">{label}°</text>
-                </g>
+                <div key={i} style={{ position: "absolute", top: y, left: 0, width: 40, textAlign: "right", color: "#999", fontSize: 10 }}>{label}°</div>
               );
             })}
+          </div>
+          <svg width={width} height={chartHeight + 60}>
+            {[...Array(6)].map((_, i) => {
+              const y = (i * chartHeight) / 5;
+              return <line key={i} x1={0} y1={y} x2={width} y2={y} stroke="#444" />;
+            })}
             {Object.entries(sensorGraphs).map(([sensorId, data]) => (
-              <path
-                key={sensorId}
-                d={data.map((d, i) => `${i === 0 ? "M" : "L"} ${40 + i * stepX},${normTempY(d.temp)}`).join(" ")}
-                stroke={SENSOR_COLORS[sensorId] || "#fff"}
-                fill="none"
-                strokeWidth={2}
-                strokeLinejoin="round"
-                strokeLinecap="round"
-              />
+              <g key={sensorId}>
+                <path
+                  d={data.map((d, i) => `${i === 0 ? "M" : "L"} ${i * stepX},${normTempY(d.temp)}`).join(" ")}
+                  stroke={SENSOR_COLORS[sensorId] || "#fff"}
+                  fill="none"
+                  strokeWidth={2}
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                />
+                {data.map((d, i) => (
+                  <circle
+                    key={`${sensorId}-point-${i}`}
+                    cx={i * stepX}
+                    cy={normTempY(d.temp)}
+                    r={3}
+                    fill={SENSOR_COLORS[sensorId]}
+                  />
+                ))}
+              </g>
             ))}
             {Object.entries(sensorGraphs)[0]?.[1]?.map((d, i) => (
-              <text key={i} x={40 + i * stepX} y={chartHeight + 55} fontSize={12} textAnchor="middle" fill="#999">{d.time}</text>
+              <text key={i} x={i * stepX} y={chartHeight + 55} fontSize={12} textAnchor="middle" fill="#999">{d.time}</text>
             ))}
           </svg>
         </div>
