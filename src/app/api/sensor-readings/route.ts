@@ -4,18 +4,24 @@ import { createSensorService } from "@/services/sensor.service";
 export async function GET() {
   try {
     console.log("API: Starting to fetch sensor readings");
+
     const sensorService = createSensorService();
     console.log("API: Sensor service created");
-    
+
     const readings = await sensorService.getAllReadings();
-    console.log("API: Readings fetched:", readings);
-    
-    if (!readings || readings.length === 0) {
-      console.log("API: No readings found");
+    console.log("API: Readings fetched:", readings.length, "entries");
+
+    if (!Array.isArray(readings) || readings.length === 0) {
+      console.warn("API: No sensor readings found");
       return NextResponse.json([]);
     }
-    
-    return NextResponse.json(readings);
+
+    // Вернем отсортированные по времени данные (опционально)
+    const sorted = readings.sort(
+      (a, b) => new Date(a.timestamp!).getTime() - new Date(b.timestamp!).getTime()
+    );
+
+    return NextResponse.json(sorted);
   } catch (error) {
     console.error("API: Error fetching sensor readings:", error);
     return NextResponse.json(
@@ -23,4 +29,4 @@ export async function GET() {
       { status: 500 }
     );
   }
-} 
+}
