@@ -25,13 +25,6 @@ const PERIOD_OPTIONS = [
   { label: "1 день", minutes: 1440 },
 ];
 
-const SENSOR_COLORS: Record<string, string> = {
-  "SENSOR1-1": "#00ffff",
-  "SENSOR1-2": "#ffcc00",
-  "SENSOR1-3": "#ff44aa",
-  "SENSOR1-4": "#88ff00",
-};
-
 const safeParseDate = (ts: any): Date => {
   try {
     if (ts instanceof Date) return ts;
@@ -73,8 +66,10 @@ const fillMissingIntervals = (data: DataPoint[], periodMins: number): DataPoint[
 
 export default function SensorGraphDS18B20() {
   const [sensorData, setSensorData] = useState<SensorDataPoint[]>([]);
+  const [selectedSensors, setSelectedSensors] = useState<string[]>(["SENSOR1-1"]);
   const [viewMode, setViewMode] = useState<"chart" | "table">("chart");
   const [selectedPeriod, setSelectedPeriod] = useState(PERIOD_OPTIONS[1]);
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -115,58 +110,119 @@ export default function SensorGraphDS18B20() {
   const maxTemp = 50;
   const normTempY = (t: number) => chartHeight - (t / maxTemp) * chartHeight;
 
-  const sensorGraphs: Record<string, DataPoint[]> = {};
-  SENSOR_OPTIONS.forEach(sensorId => {
-    const exists = sensorData.some(d => d.sensor_id === sensorId);
-    if (!exists) return;
-    const formatted = formatSensorData(sensorData.filter(d => d.sensor_id === sensorId));
-    const zoomed = fillMissingIntervals(filterByZoom(formatted), selectedPeriod.minutes);
-    if (zoomed.length > 0) sensorGraphs[sensorId] = zoomed;
-  });
-
-  const width = sensorGraphs[Object.keys(sensorGraphs)[0]]?.length * stepX || 1000;
+  const downloadCSV = () => {
+    const header = "Sensor,Time,Temperature,Humidity,Date";
+    const rows = selectedSensors.flatMap(sensorId => {
+      const filtered = sensorData.filter((d) => d.sensor_id === sensorId);
+      const formatted = formatSensorData(filtered);
+      const zoomed = fillMissingIntervals(filterByZoom(formatted), selectedPeriod.minutes);
+      return zoomed.map((d) => `${sensorId},${d.time},${d.temp},${d.hum},${d.date}`);
+    });
+    const csv = [header, ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "sensor_data.csv";
+    a.click();
+  };
 
   return (
     <div className="p-3 text-white" style={{ background: "#222" }}>
-      <h5 className="text-warning">Графік температури для активних сенсорів</h5>
-      <div className="d-flex gap-3 align-items-center mb-3">
-        <select className="form-select w-auto" value={selectedPeriod.label} onChange={(e) => setSelectedPeriod(PERIOD_OPTIONS.find(p => p.label === e.target.value) || PERIOD_OPTIONS[0])}>
+      <h5 className="text-warning">Графіки температури</h5>
+      <div className="d-flex flex-wrap gap-2 mb-3">
+        <select className="form-select" value={selectedPeriod.label} onChange={(e) => setSelectedPeriod(PERIOD_OPTIONS.find(p => p.label === e.target.value) || PERIOD_OPTIONS[0])}>
           {PERIOD_OPTIONS.map((p) => <option key={p.label} value={p.label}>{p.label}</option>)}
         </select>
-        <span className="text-muted">Виводяться лише активні SENSOR1-1 та SENSOR1-2</span>
-      </div>
-
-      <div className="mb-2 d-flex gap-3 flex-wrap">
-        {Object.keys(sensorGraphs).map((id) => (
-          <span key={id} className="d-flex align-items-center gap-2">
-            <span style={{ width: 12, height: 12, backgroundColor: SENSOR_COLORS[id], display: "inline-block" }}></span>
-            <span>{id}</span>
-          </span>
-        ))}
-      </div>
-
-      {viewMode === "chart" && (
-        <div style={{ overflowX: "auto" }}>
-          <svg width={width} height={chartHeight + 40}>
-            {[...Array(11)].map((_, i) => {
-              const y = (i * chartHeight) / 10;
-              return <line key={i} x1={0} y1={y} x2={width} y2={y} stroke="#333" strokeDasharray="2,2" />;
-            })}
-            {Object.entries(sensorGraphs).map(([sensorId, data]) => (
-              <path
-                key={sensorId}
-                d={data.map((d, i) => isNaN(d.temp) ? "" : `${i === 0 ? "M" : "L"} ${i * stepX},${normTempY(d.temp)}`).join(" ")}
-                stroke={SENSOR_COLORS[sensorId]}
-                fill="none"
-                strokeWidth={2}
+        <div className="d-flex gap-2 flex-wrap">
+          {SENSOR_OPTIONS.map((id) => (
+            <label key={id} className="form-check-label">
+              <input
+                type="checkbox"
+                className="form-check-input me-1"
+                checked={selectedSensors.includes(id)}
+                onChange={() => setSelectedSensors((prev) =>
+                  prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+                )}
               />
-            ))}
-            {Object.entries(sensorGraphs)[0]?.[1]?.map((d, i) => (
-              <text key={i} x={i * stepX} y={chartHeight + 35} fontSize={10} textAnchor="middle" fill="#aaa">{d.time}</text>
-            ))}
-          </svg>
+              {id}
+            </label>
+          ))}
         </div>
-      )}
+        <div className="btn-group ms-auto">
+          <button className="btn btn-outline-light btn-sm" onClick={downloadCSV}>⬇ CSV</button>
+          <button className={`btn btn-sm ${viewMode === 'chart' ? 'btn-warning' : 'btn-outline-warning'}`} onClick={() => setViewMode("chart")}>Графік</button>
+          <button className={`btn btn-sm ${viewMode === 'table' ? 'btn-warning' : 'btn-outline-warning'}`} onClick={() => setViewMode("table")}>Таблиця</button>
+        </div>
+      </div>
+
+      <div className="position-relative">
+        {viewMode === "chart" && hoverIndex !== null && (
+          <div className="position-absolute bg-secondary text-white px-2 py-1" style={{ top: 0, left: hoverIndex * stepX }}>
+            {selectedSensors.map(sensorId => {
+              const filtered = sensorData.filter((d) => d.sensor_id === sensorId);
+              const formatted = formatSensorData(filtered);
+              const zoomed = fillMissingIntervals(filterByZoom(formatted), selectedPeriod.minutes);
+              const point = zoomed[hoverIndex];
+              return <div key={sensorId}>{sensorId}: {point?.temp?.toFixed(1) ?? '--'}°C</div>;
+            })}
+          </div>
+        )}
+      </div>
+
+      <div>
+        {selectedSensors.map((sensorId) => {
+          const filtered = sensorData.filter((d) => d.sensor_id === sensorId);
+          const formatted = formatSensorData(filtered);
+          const zoomed = fillMissingIntervals(filterByZoom(formatted), selectedPeriod.minutes);
+          const width = zoomed.length * stepX;
+
+          return (
+            <div key={sensorId} className="mb-5">
+              <h6 className="text-info">{sensorId}</h6>
+              {viewMode === "chart" ? (
+                <div style={{ overflowX: "auto" }}>
+                  <svg width={width} height={chartHeight + 40}>
+                    <path
+                      d={zoomed.map((d, i) => isNaN(d.temp) ? "" : `${i === 0 ? "M" : "L"} ${i * stepX},${normTempY(d.temp)}`).join(" ")}
+                      stroke="#00ffff"
+                      fill="none"
+                      strokeWidth={2}
+                    />
+                    {zoomed.map((d, i) => (
+                      <g key={i} onMouseEnter={() => setHoverIndex(i)} onMouseLeave={() => setHoverIndex(null)}>
+                        {!isNaN(d.temp) && <circle cx={i * stepX} cy={normTempY(d.temp)} r={3} fill="#00ffff" />}
+                        <text x={i * stepX} y={chartHeight + 35} fontSize={10} textAnchor="middle" fill="#aaa">{d.time}</text>
+                      </g>
+                    ))}
+                  </svg>
+                </div>
+              ) : (
+                <div className="table-responsive">
+                  <table className="table table-dark table-sm text-center">
+                    <thead>
+                      <tr>
+                        <th>Час</th>
+                        <th>Температура (°C)</th>
+                        <th>Дата</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {_.orderBy(zoomed, ['timestamp'], ['desc']).map((d, i) => (
+                        <tr key={i} className={i === 0 ? "table-primary" : ""}>
+                          <td>{d.time}</td>
+                          <td>{isNaN(d.temp) ? "--" : d.temp.toFixed(1)}</td>
+                          <td>{d.date}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
