@@ -47,7 +47,9 @@ const fillMissingIntervals = (data: DataPoint[], periodMins: number): DataPoint[
   const pointsBySlot = new Map<number, DataPoint>();
   data.forEach(d => {
     const rounded = Math.floor(d.timestamp / msStep) * msStep;
-    pointsBySlot.set(rounded, d);
+    if (!pointsBySlot.has(rounded)) {
+      pointsBySlot.set(rounded, d);
+    }
   });
 
   const result: DataPoint[] = [];
@@ -170,15 +172,14 @@ export default function SensorGraphDS18B20() {
               const y = (i * chartHeight) / 10;
               return <line key={i} x1={0} y1={y} x2={width} y2={y} stroke="#444" />;
             })}
-            {Object.entries(sensorGraphs).map(([sensorId, data]) => (
-              <path
-                key={sensorId}
-                d={data.map((d, i) => isNaN(d.temp) ? "" : `${i === 0 ? "M" : "L"} ${i * stepX},${normTempY(d.temp)}`).join(" ")}
-                stroke={SENSOR_COLORS[sensorId] || "#fff"}
-                fill="none"
-                strokeWidth={2}
-              />
-            ))}
+            {Object.entries(sensorGraphs).map(([sensorId, data]) => {
+              const pathData = data
+                .map((d, i) => ({ x: i * stepX, y: normTempY(d.temp), temp: d.temp }))
+                .filter(d => !isNaN(d.temp))
+                .map((d, i) => `${i === 0 ? "M" : "L"} ${d.x},${d.y}`)
+                .join(" ");
+              return <path key={sensorId} d={pathData} stroke={SENSOR_COLORS[sensorId] || "#fff"} fill="none" strokeWidth={2} />;
+            })}
             {Object.entries(sensorGraphs)[0]?.[1]?.map((d, i) => (
               <text key={i} x={i * stepX} y={chartHeight + 55} fontSize={12} textAnchor="middle" fill="#999">{d.time}</text>
             ))}
