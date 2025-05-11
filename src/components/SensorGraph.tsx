@@ -34,35 +34,58 @@ const PERIOD_OPTIONS = [
   { label: "1 день", minutes: 1440 },
 ];
 
-const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
-  const [selectedDate, setSelectedDate] = useState(() => {
-    const today = new Date();
-    return today.toISOString().split("T")[0];
+const fillMissingIntervals = (data: DataPoint[], periodMins: number): DataPoint[] => {
+  if (data.length === 0) return [];
+  const msStep = 5 * 60 * 1000;
+  const end = data[data.length - 1].timestamp;
+  const start = end - periodMins * 60 * 1000;
+
+  const pointsBySlot = new Map<number, DataPoint>();
+  data.forEach(d => {
+    const rounded = Math.floor(d.timestamp / msStep) * msStep;
+    pointsBySlot.set(rounded, d);
   });
+
+  const result: DataPoint[] = [];
+  for (let t = start; t <= end; t += msStep) {
+    if (pointsBySlot.has(t)) {
+      result.push(pointsBySlot.get(t)!);
+    } else {
+      const date = new Date(t);
+      result.push({
+        timestamp: t,
+        temp: NaN,
+        hum: NaN,
+        time: date.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit", hour12: false }),
+        date: date.toLocaleDateString("uk-UA"),
+      });
+    }
+  }
+  return result;
+};
+
+const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [sensorData, setSensorData] = useState<SensorDataPoint[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
-  const [selectedSensor, setSelectedSensor] = useState<string>("SENSOR1-1");
+  const [selectedSensor, setSelectedSensor] = useState("SENSOR1-1");
   const [viewMode, setViewMode] = useState<"chart" | "table">("chart");
   const [selectedPeriod, setSelectedPeriod] = useState(PERIOD_OPTIONS[0]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setIsLoading(true);
         const response = await fetch("/api/sensor-readings");
-        if (!response.ok) throw new Error("Failed to fetch sensor data");
+        if (!response.ok) throw new Error("Failed to fetch");
         const readings = await response.json();
-        if (!Array.isArray(readings)) return;
-        setSensorData(readings);
-        setLastUpdate(new Date());
-      } catch (error) {
-        console.error("Component: Error fetching sensor data:", error);
-      } finally {
-        setIsLoading(false);
+        if (Array.isArray(readings)) {
+          setSensorData(readings);
+          setLastUpdate(new Date());
+        }
+      } catch (err) {
+        console.error(err);
       }
     };
-
     fetchData();
     const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
@@ -73,11 +96,7 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
       data.map((reading) => {
         const date = safeParseDate(reading.timestamp);
         return {
-          time: date.toLocaleTimeString("uk-UA", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          }),
+          time: date.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit", hour12: false }),
           temp: reading.temperature,
           hum: reading.humidity ?? 0,
           date: date.toLocaleDateString("uk-UA"),
@@ -88,33 +107,11 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
       ["desc"]
     );
 
-  const filterBy5MinInterval = (arr: DataPoint[]): DataPoint[] => {
-    const roundedMap = new Map<number, DataPoint>();
-    arr.forEach((d) => {
-      const rounded = Math.floor(d.timestamp / 300000) * 300000;
-      if (!roundedMap.has(rounded)) {
-        roundedMap.set(rounded, d);
-      }
-    });
-    return _.orderBy(Array.from(roundedMap.values()), ["timestamp"], ["asc"]);
-  };
-
   const filterByZoom = (arr: DataPoint[]) => {
-    const dayStart = new Date(selectedDate);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
-
-    const rangeEnd = selectedPeriod.minutes === 1440
-      ? dayEnd
-      : new Date(Date.now());
-
-    const rangeStart = new Date(rangeEnd.getTime() - selectedPeriod.minutes * 60 * 1000);
-
-    return _.orderBy(
-      arr.filter((d) => d.timestamp >= rangeStart.getTime() && d.timestamp <= rangeEnd.getTime()),
-      ["timestamp"],
-      ["asc"]
-    );
+    const now = Date.now();
+    const rangeEnd = selectedPeriod.minutes === 1440 ? new Date().setHours(23, 59, 59, 999) : now;
+    const rangeStart = rangeEnd - selectedPeriod.minutes * 60 * 1000;
+    return _.orderBy(arr.filter(d => d.timestamp >= rangeStart && d.timestamp <= rangeEnd), ["timestamp"], ["asc"]);
   };
 
   const chartHeight = 300;
@@ -122,11 +119,8 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
   const maxTemp = 50;
   const normTempY = (t: number) => chartHeight - (t / maxTemp) * chartHeight;
 
-  const sensorFiltered = filterBy5MinInterval(
-    formatSensorData(sensorData.filter((d) => d.sensor_id === selectedSensor))
-  );
-
-  const zoomedSensor = filterByZoom(sensorFiltered);
+  const sensorFiltered = formatSensorData(sensorData.filter((d) => d.sensor_id === selectedSensor));
+  const zoomedSensor = fillMissingIntervals(filterByZoom(sensorFiltered), selectedPeriod.minutes);
   const width = zoomedSensor.length * stepX;
 
   return (
@@ -134,25 +128,12 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
         <h5 className="text-warning mb-0">Температура {selectedSensor}</h5>
         <div className="d-flex flex-wrap gap-2 align-items-center">
-          <input
-            type="date"
-            className="form-control"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-          />
+          <input type="date" className="form-control" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
           <select className="form-select" value={selectedSensor} onChange={(e) => setSelectedSensor(e.target.value)}>
-            {SENSOR_OPTIONS.map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
+            {SENSOR_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
-          <select
-            className="form-select"
-            value={selectedPeriod.label}
-            onChange={(e) => setSelectedPeriod(PERIOD_OPTIONS.find((p) => p.label === e.target.value) || PERIOD_OPTIONS[0])}
-          >
-            {PERIOD_OPTIONS.map((p) => (
-              <option key={p.label} value={p.label}>{p.label}</option>
-            ))}
+          <select className="form-select" value={selectedPeriod.label} onChange={(e) => setSelectedPeriod(PERIOD_OPTIONS.find(p => p.label === e.target.value) || PERIOD_OPTIONS[0])}>
+            {PERIOD_OPTIONS.map((p) => <option key={p.label} value={p.label}>{p.label}</option>)}
           </select>
           <div className="btn-group">
             <button className={`btn btn-sm ${viewMode === 'chart' ? 'btn-warning' : 'btn-outline-warning'}`} onClick={() => setViewMode("chart")}>Графік</button>
@@ -160,33 +141,27 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
           </div>
         </div>
       </div>
-
       <div className="text-warning mb-3">Останнє оновлення: {lastUpdate.toLocaleTimeString()}</div>
 
       {zoomedSensor.length === 0 ? (
         <div className="text-center text-muted my-5">⛔ Немає даних для цього періоду</div>
       ) : viewMode === "chart" ? (
-        <div style={{ overflowX: "auto", margin: "0", borderRadius: "5px" }}>
+        <div style={{ overflowX: "auto", borderRadius: "5px" }}>
           <svg width={width} height={chartHeight + 60}>
             {[...Array(11)].map((_, i) => {
               const y = (i * chartHeight) / 10;
               return <line key={i} x1={0} y1={y} x2={width} y2={y} stroke="#444" />;
             })}
             <path
-              d={zoomedSensor.map((d, i) => `${i === 0 ? "M" : "L"} ${i * stepX},${normTempY(d.temp)}`).join(" ")}
+              d={zoomedSensor.map((d, i) => isNaN(d.temp) ? "" : `${i === 0 ? "M" : "L"} ${i * stepX},${normTempY(d.temp)}`).join(" ")}
               stroke="#44c0ff"
               fill="none"
               strokeWidth={2}
             />
             {zoomedSensor.map((d, i) => (
               <g key={i}>
-                <circle cx={i * stepX} cy={normTempY(d.temp)} r={4} fill="#00ffff" />
-                <text x={i * stepX} y={normTempY(d.temp) - 10} fontSize={11} textAnchor="middle" fill="#ccc">
-                  {d.temp.toFixed(1)}°
-                </text>
-                <text x={i * stepX} y={chartHeight + 55} fontSize={12} textAnchor="middle" fill="#999">
-                  {d.time}
-                </text>
+                {!isNaN(d.temp) && <circle cx={i * stepX} cy={normTempY(d.temp)} r={4} fill="#00ffff" />}
+                <text x={i * stepX} y={chartHeight + 55} fontSize={12} textAnchor="middle" fill="#999">{d.time}</text>
               </g>
             ))}
           </svg>
@@ -205,7 +180,7 @@ const SensorGraphDS18B20 = ({ sensorId }: SensorGraphDS18B20Props) => {
               {_.orderBy(zoomedSensor, ['timestamp'], ['desc']).map((d, i) => (
                 <tr key={i} className={i === 0 ? 'table-primary' : ''}>
                   <td>{d.time}</td>
-                  <td>{d.temp.toFixed(1)}</td>
+                  <td>{isNaN(d.temp) ? '--' : d.temp.toFixed(1)}</td>
                   <td>{d.date}</td>
                 </tr>
               ))}

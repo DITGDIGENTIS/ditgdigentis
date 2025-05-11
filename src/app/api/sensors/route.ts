@@ -32,7 +32,7 @@ let sensorCache: {
 
 const roundToNearest5Min = (timestamp: number): Date => {
   const ms = 1000 * 60 * 5;
-  return new Date(Math.round(timestamp / ms) * ms);
+  return new Date(Math.floor(timestamp / ms) * ms);
 };
 
 export async function POST(req: NextRequest) {
