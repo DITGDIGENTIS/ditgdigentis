@@ -67,8 +67,11 @@ export default function SensorGraphDS18B20() {
       };
     });
 
-    const rangeEnd = new Date();
-    const rangeStart = new Date(rangeEnd.getTime() - selectedPeriod.minutes * 60000);
+    const selectedDay = new Date(selectedDate);
+    selectedDay.setHours(0, 0, 0, 0);
+
+    const rangeStart = new Date(selectedDay.getTime());
+    const rangeEnd = new Date(rangeStart.getTime() + selectedPeriod.minutes * 60000);
 
     const timeSlots: number[] = [];
     for (let t = rangeStart.getTime(); t <= rangeEnd.getTime(); t += 300000) {
@@ -118,7 +121,6 @@ export default function SensorGraphDS18B20() {
         <h5 className="text-warning mb-0">Графік температури</h5>
         <div className="d-flex gap-2 flex-wrap">
           <input type="date" className="form-control" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
-
           <div className="d-flex flex-wrap align-items-center gap-2">
             {SENSOR_OPTIONS.map((sensor) => (
               <label key={sensor} className="form-check-label text-light me-2">
@@ -137,7 +139,6 @@ export default function SensorGraphDS18B20() {
               </label>
             ))}
           </div>
-
           <select className="form-select" value={selectedPeriod.label} onChange={(e) => setSelectedPeriod(PERIOD_OPTIONS.find(p => p.label === e.target.value) || PERIOD_OPTIONS[0])}>
             {PERIOD_OPTIONS.map((p) => <option key={p.label} value={p.label}>{p.label}</option>)}
           </select>
@@ -177,24 +178,8 @@ export default function SensorGraphDS18B20() {
                     d ? (
                       <g key={i}>
                         <circle cx={i * stepX} cy={normTempY(d.temp)} r={3} fill={COLORS[sIdx % COLORS.length]} />
-                        <text
-                          x={i * stepX}
-                          y={normTempY(d.temp) - 10}
-                          fontSize={11}
-                          fill="#ccc"
-                          textAnchor="middle"
-                        >
-                          {d.temp.toFixed(1)}°
-                        </text>
-                        <text
-                          x={i * stepX}
-                          y={chartHeight + 70}
-                          fontSize={10}
-                          fill="#999"
-                          textAnchor="middle"
-                        >
-                          {d.time}
-                        </text>
+                        <text x={i * stepX} y={normTempY(d.temp) - 10} fontSize={11} fill="#ccc" textAnchor="middle">{d.temp.toFixed(1)}°</text>
+                        <text x={i * stepX} y={chartHeight + 70} fontSize={10} fill="#999" textAnchor="middle">{d.time}</text>
                       </g>
                     ) : null
                   ))}
