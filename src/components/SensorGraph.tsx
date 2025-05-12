@@ -28,7 +28,7 @@ export default function SensorGraphDS18B20() {
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [sensorData, setSensorData] = useState<SensorDataPoint[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState(PERIOD_OPTIONS[0]);
-  const [selectedSensors, setSelectedSensors] = useState<string[]>(["SENSOR1-1", "SENSOR1-2", "SENSOR1-3", "SENSOR1-4"]);
+  const [selectedSensors, setSelectedSensors] = useState<string[]>([...SENSOR_OPTIONS]);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -47,11 +47,6 @@ export default function SensorGraphDS18B20() {
     const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
   }, []);
-
-  const handleSensorChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const options = Array.from(e.target.selectedOptions).map((o) => o.value);
-    setSelectedSensors(options.includes("ALL") ? SENSOR_OPTIONS : options);
-  };
 
   const chartHeight = 300;
   const maxTemp = 100;
@@ -94,10 +89,26 @@ export default function SensorGraphDS18B20() {
         <h5 className="text-warning mb-0">Графік температури</h5>
         <div className="d-flex gap-2 flex-wrap">
           <input type="date" className="form-control" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
-          <select className="form-select" multiple value={selectedSensors} onChange={handleSensorChange} style={{ minWidth: 180 }}>
-            <option value="ALL">Всі</option>
-            {SENSOR_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
+
+          <div className="d-flex flex-wrap align-items-center gap-2">
+            {SENSOR_OPTIONS.map((sensor) => (
+              <label key={sensor} className="form-check-label text-light me-2">
+                <input
+                  type="checkbox"
+                  className="form-check-input me-1"
+                  checked={selectedSensors.includes(sensor)}
+                  onChange={(e) => {
+                    const updated = e.target.checked
+                      ? [...selectedSensors, sensor]
+                      : selectedSensors.filter((s) => s !== sensor);
+                    setSelectedSensors(updated);
+                  }}
+                />
+                {sensor}
+              </label>
+            ))}
+          </div>
+
           <select className="form-select" value={selectedPeriod.label} onChange={(e) => setSelectedPeriod(PERIOD_OPTIONS.find(p => p.label === e.target.value) || PERIOD_OPTIONS[0])}>
             {PERIOD_OPTIONS.map((p) => <option key={p.label} value={p.label}>{p.label}</option>)}
           </select>
@@ -119,14 +130,6 @@ export default function SensorGraphDS18B20() {
               );
             })}
           </svg>
-          <div className="d-flex flex-wrap gap-3 mt-3 ps-2">
-            {visibleSensors.map((sensorId, sIdx) => (
-              <div key={sensorId} className="d-flex align-items-center gap-2">
-                <span style={{ width: 12, height: 12, backgroundColor: COLORS[sIdx % COLORS.length], display: 'inline-block', borderRadius: '50%' }}></span>
-                <span style={{ color: '#ccc', fontSize: 14 }}>{sensorId}</span>
-              </div>
-            ))}
-          </div>
         </div>
         <div ref={containerRef} style={{ overflowX: "auto", marginLeft: yAxisWidth, width: "100%" }}>
           <svg width={width} height={chartHeight + 80}>
@@ -167,14 +170,6 @@ export default function SensorGraphDS18B20() {
               );
             })}
           </svg>
-          <div className="d-flex flex-wrap gap-3 mt-3 ps-2">
-            {visibleSensors.map((sensorId, sIdx) => (
-              <div key={sensorId} className="d-flex align-items-center gap-2">
-                <span style={{ width: 12, height: 12, backgroundColor: COLORS[sIdx % COLORS.length], display: 'inline-block', borderRadius: '50%' }}></span>
-                <span style={{ color: '#ccc', fontSize: 14 }}>{sensorId}</span>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     </div>
