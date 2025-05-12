@@ -66,13 +66,23 @@ export default function SensorGraphDS18B20() {
         sensor_id: d.sensor_id,
       };
     });
+
     const rangeEnd = new Date();
     const rangeStart = new Date(rangeEnd.getTime() - selectedPeriod.minutes * 60000);
-    return _.orderBy(
-      _.uniqBy(mapped.filter((d) => d.timestamp >= rangeStart.getTime() && d.timestamp <= rangeEnd.getTime()), (d) => `${d.sensor_id}-${d.timestamp}`),
-      ["timestamp"],
-      ["asc"]
+
+    const filtered = mapped.filter((d) =>
+      d.timestamp >= rangeStart.getTime() && d.timestamp <= rangeEnd.getTime()
     );
+
+    const groupedBySlot = _.groupBy(filtered, (d) =>
+      `${d.sensor_id}-${Math.floor(d.timestamp / 300000) * 300000}`
+    );
+
+    const result = Object.values(groupedBySlot).map((group) =>
+      _.maxBy(group, (d) => d.timestamp)!
+    );
+
+    return _.orderBy(result, ["timestamp"], ["asc"]);
   };
 
   const data = formatData();
