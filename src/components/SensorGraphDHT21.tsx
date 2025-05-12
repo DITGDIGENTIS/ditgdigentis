@@ -3,11 +3,11 @@
 import { useState, useEffect, useRef } from "react";
 import _ from "lodash";
 
-type SensorPoint = {
+interface SensorPoint {
   timestamp: number;
   humidity: number;
   temperature: number;
-};
+}
 
 const PERIOD_OPTIONS = [
   { label: "1 година", minutes: 60 },
@@ -50,8 +50,9 @@ export default function SensorGraphDHT21() {
     return () => clearInterval(int);
   }, [selectedPeriod]);
 
-  const width = Math.max(600, data.length * 80);
+  const width = Math.max(800, data.length * 60);
   const height = 300;
+  const padding = 50;
   const stepX = width / Math.max(1, data.length - 1);
   const maxTemp = 100;
   const maxHum = 100;
@@ -74,70 +75,76 @@ export default function SensorGraphDHT21() {
   };
 
   return (
-    <div className="container py-4">
+    <div className="container py-4 position-relative">
       <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
         <h5>Графік DHT21: температура і вологість</h5>
         <select
           className="form-select w-auto"
           value={selectedPeriod.label}
-          onChange={(e) => setSelectedPeriod(PERIOD_OPTIONS.find((p) => p.label === e.target.value) || PERIOD_OPTIONS[0])}
+          onChange={(e) =>
+            setSelectedPeriod(PERIOD_OPTIONS.find((p) => p.label === e.target.value) || PERIOD_OPTIONS[0])
+          }
         >
           {PERIOD_OPTIONS.map((p) => (
-            <option key={p.label} value={p.label}>
-              {p.label}
-            </option>
+            <option key={p.label} value={p.label}>{p.label}</option>
           ))}
         </select>
-        <button className="btn btn-outline-primary btn-sm" onClick={downloadCSV}>
-          Завантажити CSV
-        </button>
+        <button className="btn btn-outline-primary btn-sm" onClick={downloadCSV}>Завантажити CSV</button>
         <span className="text-secondary">Оновлено: {lastUpdate.toLocaleTimeString()}</span>
       </div>
 
-      <div ref={containerRef} style={{ overflowX: "auto" }}>
-        <svg width={width + 120} height={height + 80}>
-          {/* Шкала температури зліва */}
-          {[...Array(11)].map((_, i) => {
-            const y = (height / 10) * i;
-            const temp = 100 - i * 10;
-            return (
-              <text key={i} x={5} y={y + 4} fontSize={12} fill="#aaa">
-                {temp}°
-              </text>
-            );
-          })}
+      <div className="d-flex" style={{ position: "relative" }}>
+        <div style={{ position: "absolute", left: 0, top: 0, height: height + 60, width: padding, zIndex: 2, background: "#2b2b2b" }}>
+          <svg width={padding} height={height + 60}>
+            {[...Array(11)].map((_, i) => {
+              const y = (i * height) / 10;
+              const val = maxTemp - (i * maxTemp) / 10;
+              return (
+                <text key={i} x={5} y={y + 4} fontSize={11} fill="#aaa">{val}°</text>
+              );
+            })}
+          </svg>
+        </div>
 
-          {/* Шкала вологості справа */}
-          {[...Array(11)].map((_, i) => {
-            const y = (height / 10) * i;
-            const hum = 100 - i * 10;
-            return (
-              <text key={i} x={width + 40} y={y + 4} fontSize={12} fill="#aaa">
-                {hum}%
-              </text>
-            );
-          })}
+        <div ref={containerRef} style={{ overflowX: "auto", marginLeft: padding, marginRight: padding, width: "100%" }}>
+          <svg width={width} height={height + 60}>
+            {[...Array(11)].map((_, i) => {
+              const y = (i * height) / 10;
+              return <line key={i} x1={0} y1={y} x2={width} y2={y} stroke="#333" />;
+            })}
 
-          {/* Лінії по графіку */}
-          {[...Array(11)].map((_, i) => {
-            const y = (height / 10) * i;
-            return <line key={i} x1={30} y1={y} x2={width + 30} y2={y} stroke="#333" />;
-          })}
+            <path d={data.map((d, i) => `${i === 0 ? "M" : "L"} ${i * stepX},${normY(d.humidity, maxHum)}`).join(" ")} stroke="#44c0ff" fill="none" strokeWidth={2} />
+            <path d={data.map((d, i) => `${i === 0 ? "M" : "L"} ${i * stepX},${normY(d.temperature, maxTemp)}`).join(" ")} stroke="#66ff66" fill="none" strokeWidth={2} />
 
-          {/* Лінії та точки графіка */}
-          <path d={data.map((d, i) => `${i === 0 ? "M" : "L"} ${i * stepX + 30},${normY(d.humidity, maxHum)}`).join(" ")} stroke="#44c0ff" fill="none" strokeWidth={2} />
-          <path d={data.map((d, i) => `${i === 0 ? "M" : "L"} ${i * stepX + 30},${normY(d.temperature, maxTemp)}`).join(" ")} stroke="#66ff66" fill="none" strokeWidth={2} />
+            {data.map((d, i) => (
+              <g key={i}>
+                <circle cx={i * stepX} cy={normY(d.humidity, maxHum)} r={3} fill="#44c0ff" />
+                <circle cx={i * stepX} cy={normY(d.temperature, maxTemp)} r={3} fill="#66ff66" />
+                <text x={i * stepX} y={normY(d.temperature, maxTemp) - 12} fontSize={10} fill="#66ff66" textAnchor="middle">
+                  {d.temperature.toFixed(1)}°
+                </text>
+                <text x={i * stepX} y={normY(d.humidity, maxHum) + 14} fontSize={10} fill="#44c0ff" textAnchor="middle">
+                  {d.humidity.toFixed(1)}%
+                </text>
+                <text x={i * stepX} y={height + 50} fontSize={9} fill="#aaa" textAnchor="middle">
+                  {formatTime(d.timestamp)}
+                </text>
+              </g>
+            ))}
+          </svg>
+        </div>
 
-          {data.map((d, i) => (
-            <g key={i}>
-              <circle cx={i * stepX + 30} cy={normY(d.humidity, maxHum)} r={3} fill="#44c0ff" />
-              <circle cx={i * stepX + 30} cy={normY(d.temperature, maxTemp)} r={3} fill="#66ff66" />
-              <text x={i * stepX + 30} y={height + 25} fontSize={10} fill="#999" textAnchor="middle">
-                {formatTime(d.timestamp)}
-              </text>
-            </g>
-          ))}
-        </svg>
+        <div style={{ position: "absolute", right: 0, top: 0, height: height + 60, width: padding, zIndex: 2, background: "#2b2b2b" }}>
+          <svg width={padding} height={height + 60}>
+            {[...Array(11)].map((_, i) => {
+              const y = (i * height) / 10;
+              const val = maxHum - (i * maxHum) / 10;
+              return (
+                <text key={i} x={5} y={y + 4} fontSize={11} fill="#aaa">{val}%</text>
+              );
+            })}
+          </svg>
+        </div>
       </div>
     </div>
   );
