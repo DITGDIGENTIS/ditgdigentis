@@ -106,7 +106,6 @@ export default function SensorGraphDS18B20() {
   };
 
   const data = formatData();
-  const grouped = _.groupBy(data, "sensor_id");
   const visibleSensors = selectedSensors;
   const allTimestamps = _.uniq(data.map((d) => d.timestamp)).sort((a, b) => a - b);
   const stepX = 60;
@@ -168,33 +167,36 @@ export default function SensorGraphDS18B20() {
               return <line key={i} x1={0} y1={y} x2={width} y2={y} stroke="#444" />;
             })}
             {visibleSensors.map((sensorId, sIdx) => {
-              const points = allTimestamps.map((ts) => grouped[sensorId]?.find((d) => d.timestamp === ts)).filter(Boolean) as DataPoint[];
-              const pathD = points.map((d, i) => `${i === 0 ? "M" : "L"} ${i * stepX},${normTempY(d.temp)}`).join(" ");
+              const sensorPoints = data.filter((d) => d.sensor_id === sensorId);
+              const points = allTimestamps.map((ts) => sensorPoints.find((d) => d.timestamp === ts) || null);
+              const pathD = points.map((d, i) => d ? `${i === 0 ? "M" : "L"} ${i * stepX},${normTempY(d.temp)}` : null).filter(Boolean).join(" ");
               return (
                 <g key={sensorId}>
                   <path d={pathD} stroke={COLORS[sIdx % COLORS.length]} fill="none" strokeWidth={2} />
                   {points.map((d, i) => (
-                    <g key={i}>
-                      <circle cx={i * stepX} cy={normTempY(d.temp)} r={3} fill={COLORS[sIdx % COLORS.length]} />
-                      <text
-                        x={i * stepX}
-                        y={normTempY(d.temp) - 10}
-                        fontSize={11}
-                        fill="#ccc"
-                        textAnchor="middle"
-                      >
-                        {d.temp.toFixed(1)}°
-                      </text>
-                      <text
-                        x={i * stepX}
-                        y={chartHeight + 70}
-                        fontSize={10}
-                        fill="#999"
-                        textAnchor="middle"
-                      >
-                        {d.time}
-                      </text>
-                    </g>
+                    d ? (
+                      <g key={i}>
+                        <circle cx={i * stepX} cy={normTempY(d.temp)} r={3} fill={COLORS[sIdx % COLORS.length]} />
+                        <text
+                          x={i * stepX}
+                          y={normTempY(d.temp) - 10}
+                          fontSize={11}
+                          fill="#ccc"
+                          textAnchor="middle"
+                        >
+                          {d.temp.toFixed(1)}°
+                        </text>
+                        <text
+                          x={i * stepX}
+                          y={chartHeight + 70}
+                          fontSize={10}
+                          fill="#999"
+                          textAnchor="middle"
+                        >
+                          {d.time}
+                        </text>
+                      </g>
+                    ) : null
                   ))}
                 </g>
               );
