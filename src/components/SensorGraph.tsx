@@ -27,6 +27,7 @@ const COLORS = ["#44c0ff", "#ffa500", "#ff4444", "#66ff66"];
 export default function SensorGraphDS18B20() {
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [sensorData, setSensorData] = useState<SensorDataPoint[]>([]);
+  const [liveData, setLiveData] = useState<Record<string, SensorDataPoint>>({});
   const [selectedPeriod, setSelectedPeriod] = useState(PERIOD_OPTIONS[0]);
   const [selectedSensors, setSelectedSensors] = useState<string[]>([...SENSOR_OPTIONS]);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
@@ -35,9 +36,16 @@ export default function SensorGraphDS18B20() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch("/api/sensor-readings", { cache: "no-store" });
-        const readings = await response.json();
+        const [historicalRes, liveRes] = await Promise.all([
+          fetch("/api/sensor-readings", { cache: "no-store" }),
+          fetch("/api/sensors", { cache: "no-store" }),
+        ]);
+
+        const readings = await historicalRes.json();
+        const live = await liveRes.json();
+
         setSensorData(readings);
+        setLiveData(live?.sensors || {});
         setLastUpdate(new Date());
       } catch (e) {
         console.error("Failed to fetch sensor data", e);
@@ -153,7 +161,7 @@ export default function SensorGraphDS18B20() {
                     setSelectedSensors(updated);
                   }}
                 />
-                {sensor}
+                {sensor} ({liveData[sensor]?.temperature?.toFixed(1) || "--"}°)
               </label>
             ))}
           </div>
