@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import _ from "lodash";
 import { SensorDataPoint } from "../services/sensor-data.service";
 
@@ -30,7 +30,7 @@ export default function SensorGraphDS18B20() {
   const [selectedPeriod, setSelectedPeriod] = useState(PERIOD_OPTIONS[0]);
   const [selectedSensor, setSelectedSensor] = useState<string | "ALL">("ALL");
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
-  const [screenWidth, setScreenWidth] = useState<number>(typeof window !== "undefined" ? window.innerWidth : 1280);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -45,46 +45,46 @@ export default function SensorGraphDS18B20() {
     };
     fetchData();
     const interval = setInterval(fetchData, 5000);
-    const handleResize = () => setScreenWidth(window.innerWidth);
-    window.addEventListener("resize", handleResize);
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("resize", handleResize);
-    };
+    return () => clearInterval(interval);
   }, []);
 
-  const chartHeight = screenWidth < 768 ? 200 : 300;
+  const chartHeight = 300;
   const maxTemp = 100;
   const normTempY = (t: number) => chartHeight - (t / maxTemp) * chartHeight;
 
-  const filterData = () => {
-    const filtered = sensorData.map((d) => {
+  const formatData = (): DataPoint[] => {
+    const mapped = sensorData.map((d) => {
       const date = new Date(d.timestamp);
+      const rounded = Math.floor(date.getTime() / 300000) * 300000; // каждые 5 минут
+      const roundedDate = new Date(rounded);
       return {
-        time: date.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" }),
+        time: roundedDate.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" }),
         temp: d.temperature,
         hum: d.humidity ?? 0,
-        date: date.toLocaleDateString("uk-UA"),
-        timestamp: date.getTime(),
+        date: roundedDate.toLocaleDateString("uk-UA"),
+        timestamp: roundedDate.getTime(),
         sensor_id: d.sensor_id,
       };
     });
     const rangeEnd = new Date();
     const rangeStart = new Date(rangeEnd.getTime() - selectedPeriod.minutes * 60000);
-    return filtered.filter((d) => d.timestamp >= rangeStart.getTime() && d.timestamp <= rangeEnd.getTime());
+    return _.orderBy(
+      _.uniqBy(mapped.filter((d) => d.timestamp >= rangeStart.getTime() && d.timestamp <= rangeEnd.getTime()), (d) => `${d.sensor_id}-${d.timestamp}`),
+      ["timestamp"],
+      ["asc"]
+    );
   };
 
-  const data = filterData();
+  const data = formatData();
   const grouped = _.groupBy(data, "sensor_id");
   const visibleSensors = selectedSensor === "ALL" ? SENSOR_OPTIONS : [selectedSensor];
-  const maxPoints = Math.max(...visibleSensors.map((id) => grouped[id]?.length || 0), 0);
-  const stepX = screenWidth < 768 ? 30 : 60;
+  const allTimestamps = _.uniq(data.map((d) => d.timestamp)).sort((a, b) => a - b);
+  const stepX = 60;
   const yAxisWidth = 60;
-  const width = maxPoints * stepX + yAxisWidth;
-  const yTicks = screenWidth < 768 ? 5 : 10;
+  const width = allTimestamps.length * stepX;
 
   return (
-    <div className="container-fluid py-4" style={{ backgroundColor: "#2b2b2b", color: "#fff", borderRadius: 5 }}>
+    <div className="container-fluid py-4" style={{ backgroundColor: "#2b2b2b", color: "#fff", borderRadius: 5, position: "relative" }}>
       <div className="d-flex flex-wrap gap-2 mb-3 align-items-center justify-content-between">
         <h5 className="text-warning mb-0">Графік температури</h5>
         <div className="d-flex gap-2 flex-wrap">
@@ -101,12 +101,12 @@ export default function SensorGraphDS18B20() {
 
       <div className="text-warning mb-3">Оновлено: {lastUpdate.toLocaleTimeString()}</div>
 
-      <div style={{ display: "flex", overflowX: "auto" }}>
-        <div style={{ flex: "none", width: yAxisWidth, marginRight: 0 }}>
+      <div style={{ display: "flex", position: "relative" }}>
+        <div style={{ position: "absolute", left: 0, top: 0, height: chartHeight + 80, width: yAxisWidth, backgroundColor: "#2b2b2b", zIndex: 2 }}>
           <svg width={yAxisWidth} height={chartHeight + 80}>
-            {[...Array(yTicks + 1)].map((_, i) => {
-              const y = (i * chartHeight) / yTicks;
-              const temp = maxTemp - (i * maxTemp) / yTicks;
+            {[...Array(11)].map((_, i) => {
+              const y = (i * chartHeight) / 10;
+              const temp = maxTemp - (i * maxTemp) / 10;
               return (
                 <g key={i}>
                   <text x={5} y={y + 4} fontSize={12} fill="#aaa">{temp}°</text>
@@ -115,14 +115,14 @@ export default function SensorGraphDS18B20() {
             })}
           </svg>
         </div>
-        <div style={{ flex: "auto" }}>
+        <div ref={containerRef} style={{ overflowX: "auto", marginLeft: yAxisWidth, width: "100%" }}>
           <svg width={width} height={chartHeight + 80}>
-            {[...Array(yTicks + 1)].map((_, i) => {
-              const y = (i * chartHeight) / yTicks;
+            {[...Array(11)].map((_, i) => {
+              const y = (i * chartHeight) / 10;
               return <line key={i} x1={0} y1={y} x2={width} y2={y} stroke="#444" />;
             })}
             {visibleSensors.map((sensorId, sIdx) => {
-              const points = grouped[sensorId] || [];
+              const points = allTimestamps.map((ts) => grouped[sensorId]?.find((d) => d.timestamp === ts)).filter(Boolean) as DataPoint[];
               const pathD = points.map((d, i) => `${i === 0 ? "M" : "L"} ${i * stepX},${normTempY(d.temp)}`).join(" ");
               return (
                 <g key={sensorId}>
