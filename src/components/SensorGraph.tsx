@@ -70,7 +70,8 @@ export default function SensorGraphDS18B20() {
     const selectedDay = new Date(selectedDate);
     selectedDay.setHours(0, 0, 0, 0);
     const rangeStart = new Date(selectedDay.getTime());
-    const rangeEnd = new Date(rangeStart.getTime() + selectedPeriod.minutes * 60000);
+    const fullEnd = new Date(rangeStart.getTime() + selectedPeriod.minutes * 60000);
+    const rangeEnd = selectedDate === new Date().toISOString().split("T")[0] ? new Date() : fullEnd;
 
     const timeSlots: number[] = [];
     for (let t = rangeStart.getTime(); t <= rangeEnd.getTime(); t += 300000) {
@@ -115,13 +116,14 @@ export default function SensorGraphDS18B20() {
   const width = allTimestamps.length * stepX;
 
   const downloadCSV = () => {
-    const filtered = data.filter((d) => selectedSensors.includes(d.sensor_id));
+    const filtered = data.filter(d => selectedSensors.includes(d.sensor_id));
+    if (filtered.length === 0) {
+      alert("Немає даних для експорту");
+      return;
+    }
     const header = "Дата,Час,Сенсор,Температура,Вологість";
-    const rows = filtered.map(
-      (d) => `${d.date},${d.time},${d.sensor_id},${d.temp},${d.hum}`
-    );
+    const rows = filtered.map(d => `${d.date},${d.time},${d.sensor_id},${d.temp},${d.hum}`);
     const csv = [header, ...rows].join("\n");
-
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -137,7 +139,6 @@ export default function SensorGraphDS18B20() {
         <h5 className="text-warning mb-0">Графік температури</h5>
         <div className="d-flex gap-2 flex-wrap">
           <input type="date" className="form-control" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
-
           <div className="d-flex flex-wrap align-items-center gap-2">
             {SENSOR_OPTIONS.map((sensor) => (
               <label key={sensor} className="form-check-label text-light me-2">
@@ -156,14 +157,10 @@ export default function SensorGraphDS18B20() {
               </label>
             ))}
           </div>
-
           <select className="form-select" value={selectedPeriod.label} onChange={(e) => setSelectedPeriod(PERIOD_OPTIONS.find(p => p.label === e.target.value) || PERIOD_OPTIONS[0])}>
             {PERIOD_OPTIONS.map((p) => <option key={p.label} value={p.label}>{p.label}</option>)}
           </select>
-
-          <button className="btn btn-outline-light" onClick={downloadCSV}>
-            Завантажити CSV
-          </button>
+          <button className="btn btn-outline-light" onClick={downloadCSV}>Завантажити CSV</button>
         </div>
       </div>
 
@@ -190,33 +187,24 @@ export default function SensorGraphDS18B20() {
               return <line key={i} x1={0} y1={y} x2={width} y2={y} stroke="#444" />;
             })}
             {visibleSensors.map((sensorId, sIdx) => {
-              const points = data.filter((d) => d.sensor_id === sensorId);
-              const pathD = points.map((d, i) => `${i === 0 ? "M" : "L"} ${i * stepX},${normTempY(d.temp)}`).join(" ");
+              const sensorPoints = data.filter((d) => d.sensor_id === sensorId);
+              const points = allTimestamps.map((ts) => sensorPoints.find((d) => d.timestamp === ts) || null);
+              const pathD = points.map((d, i) => d ? `${i === 0 ? "M" : "L"} ${i * stepX},${normTempY(d.temp)}` : null).filter(Boolean).join(" ");
               return (
                 <g key={sensorId}>
                   <path d={pathD} stroke={COLORS[sIdx % COLORS.length]} fill="none" strokeWidth={2} />
                   {points.map((d, i) => (
-                    <g key={i}>
-                      <circle cx={i * stepX} cy={normTempY(d.temp)} r={3} fill={COLORS[sIdx % COLORS.length]} />
-                      <text
-                        x={i * stepX}
-                        y={normTempY(d.temp) - 10}
-                        fontSize={11}
-                        fill="#ccc"
-                        textAnchor="middle"
-                      >
-                        {d.temp.toFixed(1)}°
-                      </text>
-                      <text
-                        x={i * stepX}
-                        y={chartHeight + 70}
-                        fontSize={10}
-                        fill="#999"
-                        textAnchor="middle"
-                      >
-                        {d.time}
-                      </text>
-                    </g>
+                    d ? (
+                      <g key={i}>
+                        <circle cx={i * stepX} cy={normTempY(d.temp)} r={3} fill={COLORS[sIdx % COLORS.length]} />
+                        <text x={i * stepX} y={normTempY(d.temp) - 10} fontSize={11} fill="#ccc" textAnchor="middle">
+                          {d.temp.toFixed(1)}°
+                        </text>
+                        <text x={i * stepX} y={chartHeight + 70} fontSize={10} fill="#999" textAnchor="middle">
+                          {d.time}
+                        </text>
+                      </g>
+                    ) : null
                   ))}
                 </g>
               );
