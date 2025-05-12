@@ -94,7 +94,7 @@ export default function SensorGraphDS18B20() {
       <div className="text-warning mb-3">Оновлено: {lastUpdate.toLocaleTimeString()}</div>
 
       <div style={{ overflowX: "auto" }}>
-        <svg width={width} height={chartHeight + 60}>
+        <svg width={width} height={chartHeight + 80}>
           {[...Array(11)].map((_, i) => {
             const y = (i * chartHeight) / 10;
             const temp = maxTemp - (i * maxTemp) / 10;
@@ -112,7 +112,27 @@ export default function SensorGraphDS18B20() {
               <g key={sensorId}>
                 <path d={pathD} stroke={COLORS[sIdx % COLORS.length]} fill="none" strokeWidth={2} />
                 {points.map((d, i) => (
-                  <circle key={i} cx={i * stepX + 40} cy={normTempY(d.temp)} r={3} fill={COLORS[sIdx % COLORS.length]} />
+                  <g key={i}>
+                    <circle cx={i * stepX + 40} cy={normTempY(d.temp)} r={3} fill={COLORS[sIdx % COLORS.length]} />
+                    <text
+                      x={i * stepX + 40}
+                      y={normTempY(d.temp) - 10}
+                      fontSize={11}
+                      fill="#ccc"
+                      textAnchor="middle"
+                    >
+                      {d.temp.toFixed(1)}°
+                    </text>
+                    <text
+                      x={i * stepX + 40}
+                      y={chartHeight + 70}
+                      fontSize={10}
+                      fill="#999"
+                      textAnchor="middle"
+                    >
+                      {d.time}
+                    </text>
+                  </g>
                 ))}
               </g>
             );
