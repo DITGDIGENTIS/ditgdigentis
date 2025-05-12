@@ -19,6 +19,7 @@ export default function SensorGraphDHT21() {
   const [data, setData] = useState<SensorPoint[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState(PERIOD_OPTIONS[0]);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -39,27 +40,36 @@ export default function SensorGraphDHT21() {
           }
         }
       } catch (e) {
-        console.error("Failed to fetch DHT21 data", e);
+        console.error("❌ Fetch DHT21 error:", e);
       }
     };
     fetchData();
-    const interval = setInterval(fetchData, 5000);
-    return () => clearInterval(interval);
+    const int = setInterval(fetchData, 5000);
+    return () => clearInterval(int);
   }, [selectedPeriod]);
 
-  const width = 800;
+  const width = Math.max(800, data.length * 60);
   const height = 300;
-  const padding = 40;
   const stepX = width / Math.max(1, data.length - 1);
   const maxTemp = Math.max(...data.map(d => d.temperature), 30);
   const maxHum = Math.max(...data.map(d => d.humidity), 100);
 
   const normY = (val: number, max: number) => height - (val / max) * height;
-
   const formatTime = (ts: number) => new Date(ts).toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" });
 
-  const pathLine = (arr: SensorPoint[], key: "temperature" | "humidity", max: number) =>
-    arr.map((d, i) => `${i === 0 ? "M" : "L"} ${i * stepX},${normY(d[key], max)}`).join(" ");
+  const downloadCSV = () => {
+    if (!data.length) return alert("Немає даних для експорту");
+    const header = "Час,Температура,Вологість";
+    const rows = data.map(d => `${formatTime(d.timestamp)},${d.temperature.toFixed(1)},${d.humidity.toFixed(1)}`);
+    const csv = [header, ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `humidity-HUM1-1.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="container py-4">
@@ -74,16 +84,17 @@ export default function SensorGraphDHT21() {
         >
           {PERIOD_OPTIONS.map(p => <option key={p.label} value={p.label}>{p.label}</option>)}
         </select>
+        <button className="btn btn-outline-primary btn-sm" onClick={downloadCSV}>Завантажити CSV</button>
         <span className="text-secondary">Оновлено: {lastUpdate.toLocaleTimeString()}</span>
       </div>
 
-      <div style={{ overflowX: "auto" }}>
+      <div ref={containerRef} style={{ overflowX: "auto" }}>
         <svg width={width} height={height + 60}>
           {[...Array(6)].map((_, i) => (
             <line key={i} x1={0} y1={(height / 5) * i} x2={width} y2={(height / 5) * i} stroke="#333" />
           ))}
-          <path d={pathLine(data, "humidity", maxHum)} stroke="#44c0ff" fill="none" strokeWidth={2} />
-          <path d={pathLine(data, "temperature", maxTemp)} stroke="#66ff66" fill="none" strokeWidth={2} />
+          <path d={data.map((d, i) => `${i === 0 ? "M" : "L"} ${i * stepX},${normY(d.humidity, maxHum)}`).join(" ")} stroke="#44c0ff" fill="none" strokeWidth={2} />
+          <path d={data.map((d, i) => `${i === 0 ? "M" : "L"} ${i * stepX},${normY(d.temperature, maxTemp)}`).join(" ")} stroke="#66ff66" fill="none" strokeWidth={2} />
 
           {data.map((d, i) => (
             <g key={i}>

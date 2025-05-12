@@ -42,13 +42,13 @@ export const Furniset: FC = () => {
         <span id="clock" className="fw-semibold" style={{ fontSize: "2.6rem" }}>{time}</span>
       </div>
       <HumidityMonitor />
+      <SensorGraphDHT21 />
       <SensorMonitor />
       <div className="container mt-4">
         <h4 className="text-center mb-3" style={{ fontSize: "1.4rem", color: "#fff", fontWeight: "bold" }}>
           Графік (SENSOR)
         </h4>
         <SensorGraph sensorId="HUM1-1" />
-        <SensorGraphDHT21 />
       </div>
     </div>
   );
