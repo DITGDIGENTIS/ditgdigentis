@@ -28,7 +28,7 @@ export default function SensorGraphDS18B20() {
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [sensorData, setSensorData] = useState<SensorDataPoint[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState(PERIOD_OPTIONS[0]);
-  const [selectedSensor, setSelectedSensor] = useState<string | "ALL">("ALL");
+  const [selectedSensors, setSelectedSensors] = useState<string[]>(["SENSOR1-1", "SENSOR1-2", "SENSOR1-3", "SENSOR1-4"]);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -48,6 +48,11 @@ export default function SensorGraphDS18B20() {
     return () => clearInterval(interval);
   }, []);
 
+  const handleSensorChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const options = Array.from(e.target.selectedOptions).map((o) => o.value);
+    setSelectedSensors(options.includes("ALL") ? SENSOR_OPTIONS : options);
+  };
+
   const chartHeight = 300;
   const maxTemp = 100;
   const normTempY = (t: number) => chartHeight - (t / maxTemp) * chartHeight;
@@ -55,7 +60,7 @@ export default function SensorGraphDS18B20() {
   const formatData = (): DataPoint[] => {
     const mapped = sensorData.map((d) => {
       const date = new Date(d.timestamp);
-      const rounded = Math.floor(date.getTime() / 300000) * 300000; // каждые 5 минут
+      const rounded = Math.floor(date.getTime() / 300000) * 300000;
       const roundedDate = new Date(rounded);
       return {
         time: roundedDate.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" }),
@@ -77,7 +82,7 @@ export default function SensorGraphDS18B20() {
 
   const data = formatData();
   const grouped = _.groupBy(data, "sensor_id");
-  const visibleSensors = selectedSensor === "ALL" ? SENSOR_OPTIONS : [selectedSensor];
+  const visibleSensors = selectedSensors;
   const allTimestamps = _.uniq(data.map((d) => d.timestamp)).sort((a, b) => a - b);
   const stepX = 60;
   const yAxisWidth = 60;
@@ -89,7 +94,7 @@ export default function SensorGraphDS18B20() {
         <h5 className="text-warning mb-0">Графік температури</h5>
         <div className="d-flex gap-2 flex-wrap">
           <input type="date" className="form-control" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
-          <select className="form-select" value={selectedSensor} onChange={(e) => setSelectedSensor(e.target.value)}>
+          <select className="form-select" multiple value={selectedSensors} onChange={handleSensorChange} style={{ minWidth: 180 }}>
             <option value="ALL">Всі</option>
             {SENSOR_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
@@ -114,6 +119,14 @@ export default function SensorGraphDS18B20() {
               );
             })}
           </svg>
+          <div className="d-flex flex-wrap gap-3 mt-3 ps-2">
+            {visibleSensors.map((sensorId, sIdx) => (
+              <div key={sensorId} className="d-flex align-items-center gap-2">
+                <span style={{ width: 12, height: 12, backgroundColor: COLORS[sIdx % COLORS.length], display: 'inline-block', borderRadius: '50%' }}></span>
+                <span style={{ color: '#ccc', fontSize: 14 }}>{sensorId}</span>
+              </div>
+            ))}
+          </div>
         </div>
         <div ref={containerRef} style={{ overflowX: "auto", marginLeft: yAxisWidth, width: "100%" }}>
           <svg width={width} height={chartHeight + 80}>
@@ -154,6 +167,14 @@ export default function SensorGraphDS18B20() {
               );
             })}
           </svg>
+          <div className="d-flex flex-wrap gap-3 mt-3 ps-2">
+            {visibleSensors.map((sensorId, sIdx) => (
+              <div key={sensorId} className="d-flex align-items-center gap-2">
+                <span style={{ width: 12, height: 12, backgroundColor: COLORS[sIdx % COLORS.length], display: 'inline-block', borderRadius: '50%' }}></span>
+                <span style={{ color: '#ccc', fontSize: 14 }}>{sensorId}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
