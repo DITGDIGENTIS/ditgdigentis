@@ -50,9 +50,10 @@ export default function SensorGraphDHT21() {
 
   const width = Math.max(800, data.length * 60);
   const height = 300;
+  const padding = 40;
   const stepX = width / Math.max(1, data.length - 1);
-  const maxTemp = Math.max(...data.map(d => d.temperature), 30);
-  const maxHum = Math.max(...data.map(d => d.humidity), 100);
+  const maxTemp = 100;
+  const maxHum = 100;
 
   const normY = (val: number, max: number) => height - (val / max) * height;
   const formatTime = (ts: number) => new Date(ts).toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" });
@@ -89,18 +90,30 @@ export default function SensorGraphDHT21() {
       </div>
 
       <div ref={containerRef} style={{ overflowX: "auto" }}>
-        <svg width={width} height={height + 60}>
-          {[...Array(6)].map((_, i) => (
-            <line key={i} x1={0} y1={(height / 5) * i} x2={width} y2={(height / 5) * i} stroke="#333" />
-          ))}
-          <path d={data.map((d, i) => `${i === 0 ? "M" : "L"} ${i * stepX},${normY(d.humidity, maxHum)}`).join(" ")} stroke="#44c0ff" fill="none" strokeWidth={2} />
-          <path d={data.map((d, i) => `${i === 0 ? "M" : "L"} ${i * stepX},${normY(d.temperature, maxTemp)}`).join(" ")} stroke="#66ff66" fill="none" strokeWidth={2} />
+        <svg width={width + 80} height={height + 60}>
+          {/* Лінії температури */}
+          {[...Array(11)].map((_, i) => {
+            const y = (height / 10) * i;
+            const val = maxTemp - (i * 10);
+            return (
+              <g key={i}>
+                <line x1={padding} y1={y} x2={width + padding} y2={y} stroke="#333" />
+                <text x={5} y={y + 5} fontSize={10} fill="#aaa">{val}°</text>
+                <text x={width + padding + 5} y={y + 5} fontSize={10} fill="#aaa">{val}%</text>
+              </g>
+            );
+          })}
 
+          {/* Лінії графіку */}
+          <path d={data.map((d, i) => `${i === 0 ? "M" : "L"} ${i * stepX + padding},${normY(d.humidity, maxHum)}`).join(" ")} stroke="#44c0ff" fill="none" strokeWidth={2} />
+          <path d={data.map((d, i) => `${i === 0 ? "M" : "L"} ${i * stepX + padding},${normY(d.temperature, maxTemp)}`).join(" ")} stroke="#66ff66" fill="none" strokeWidth={2} />
+
+          {/* Точки та підписи */}
           {data.map((d, i) => (
             <g key={i}>
-              <circle cx={i * stepX} cy={normY(d.humidity, maxHum)} r={3} fill="#44c0ff" />
-              <circle cx={i * stepX} cy={normY(d.temperature, maxTemp)} r={3} fill="#66ff66" />
-              <text x={i * stepX} y={height + 15} fontSize={10} fill="#999" textAnchor="middle">
+              <circle cx={i * stepX + padding} cy={normY(d.humidity, maxHum)} r={3} fill="#44c0ff" />
+              <circle cx={i * stepX + padding} cy={normY(d.temperature, maxTemp)} r={3} fill="#66ff66" />
+              <text x={i * stepX + padding} y={height + 15} fontSize={10} fill="#999" textAnchor="middle">
                 {formatTime(d.timestamp)}
               </text>
             </g>
