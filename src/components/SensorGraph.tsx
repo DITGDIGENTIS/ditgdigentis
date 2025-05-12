@@ -67,22 +67,44 @@ export default function SensorGraphDS18B20() {
       };
     });
 
-    const rangeEnd = new Date();
-    const rangeStart = new Date(rangeEnd.getTime() - selectedPeriod.minutes * 60000);
+    const selectedDay = new Date(selectedDate);
+    selectedDay.setHours(0, 0, 0, 0);
+    const rangeStart = new Date(selectedDay.getTime());
+    const rangeEnd = new Date(rangeStart.getTime() + selectedPeriod.minutes * 60000);
 
-    const filtered = mapped.filter((d) =>
-      d.timestamp >= rangeStart.getTime() && d.timestamp <= rangeEnd.getTime()
-    );
+    const timeSlots: number[] = [];
+    for (let t = rangeStart.getTime(); t <= rangeEnd.getTime(); t += 300000) {
+      timeSlots.push(t);
+    }
 
-    const groupedBySlot = _.groupBy(filtered, (d) =>
-      `${d.sensor_id}-${Math.floor(d.timestamp / 300000) * 300000}`
-    );
+    const filled: DataPoint[] = [];
 
-    const result = Object.values(groupedBySlot).map((group) =>
-      _.maxBy(group, (d) => d.timestamp)!
-    );
+    for (const sensor of SENSOR_OPTIONS) {
+      const sensorPoints = mapped
+        .filter((d) => d.sensor_id === sensor)
+        .reduce((acc, d) => {
+          acc[d.timestamp] = d;
+          return acc;
+        }, {} as Record<number, DataPoint>);
 
-    return _.orderBy(result, ["timestamp"], ["asc"]);
+      let lastKnown: DataPoint | null = null;
+
+      for (const slot of timeSlots) {
+        if (sensorPoints[slot]) {
+          lastKnown = sensorPoints[slot];
+          filled.push(sensorPoints[slot]);
+        } else if (lastKnown && selectedSensors.includes(sensor)) {
+          filled.push({
+            ...lastKnown,
+            timestamp: slot,
+            time: new Date(slot).toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" }),
+            date: new Date(slot).toLocaleDateString("uk-UA"),
+          });
+        }
+      }
+    }
+
+    return _.orderBy(filled, ["timestamp"], ["asc"]);
   };
 
   const data = formatData();
@@ -156,22 +178,10 @@ export default function SensorGraphDS18B20() {
                   {points.map((d, i) => (
                     <g key={i}>
                       <circle cx={i * stepX} cy={normTempY(d.temp)} r={3} fill={COLORS[sIdx % COLORS.length]} />
-                      <text
-                        x={i * stepX}
-                        y={normTempY(d.temp) - 10}
-                        fontSize={11}
-                        fill="#ccc"
-                        textAnchor="middle"
-                      >
+                      <text x={i * stepX} y={normTempY(d.temp) - 10} fontSize={11} fill="#ccc" textAnchor="middle">
                         {d.temp.toFixed(1)}°
                       </text>
-                      <text
-                        x={i * stepX}
-                        y={chartHeight + 70}
-                        fontSize={10}
-                        fill="#999"
-                        textAnchor="middle"
-                      >
+                      <text x={i * stepX} y={chartHeight + 70} fontSize={10} fill="#999" textAnchor="middle">
                         {d.time}
                       </text>
                     </g>
