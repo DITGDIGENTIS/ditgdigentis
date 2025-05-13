@@ -83,7 +83,7 @@ export default function SensorGraphDHT21() {
   };
 
   return (
-    <div className="container py-4" style={{ backgroundColor: "#2b2b2b", color: "#fff", borderRadius: 5 }}>
+    <div className="container-fluid py-4" style={{ backgroundColor: "#2b2b2b", color: "#fff", borderRadius: 5 }}>
       <div className="d-flex flex-wrap gap-3 mb-3 align-items-center justify-content-between">
         <h5 className="text-warning mb-0">Графік DHT21 (Температура/Вологість)</h5>
         <div className="d-flex gap-2 flex-wrap">

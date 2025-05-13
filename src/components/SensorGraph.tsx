@@ -103,8 +103,10 @@ export default function SensorGraphDS18B20() {
           lastKnown = sensorPoints[slot];
           filled.push(sensorPoints[slot]);
         } else if (lastKnown && selectedSensors.includes(sensor)) {
+          const liveTemp = liveData?.[sensor]?.temperature;
           filled.push({
             ...lastKnown,
+            temp: typeof liveTemp === "number" ? liveTemp : lastKnown.temp,
             timestamp: slot,
             time: new Date(slot).toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" }),
             date: new Date(slot).toLocaleDateString("uk-UA"),
@@ -142,7 +144,7 @@ export default function SensorGraphDS18B20() {
   };
 
   return (
-    <div className="container-fluid py-4" style={{ backgroundColor: "#2b2b2b", color: "#fff", borderRadius: 5, position: "relative" }}>
+    <div className="container-fluid py-4" style={{ backgroundColor: "#2b2b2b", color: "#fff", borderRadius: 5 }}>
       <div className="d-flex flex-wrap gap-2 mb-3 align-items-center justify-content-between">
         <h5 className="text-warning mb-0">Графік температури</h5>
         <div className="d-flex gap-2 flex-wrap">
