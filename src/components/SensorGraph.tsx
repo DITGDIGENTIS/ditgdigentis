@@ -24,8 +24,15 @@ const PERIOD_OPTIONS = [
 
 const COLORS = ["#44c0ff", "#ffa500", "#ff4444", "#66ff66"];
 
+const getTodayUTC = () => {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+    .toISOString()
+    .split("T")[0];
+};
+
 export default function SensorGraphDS18B20() {
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [selectedDate, setSelectedDate] = useState(() => getTodayUTC());
   const [sensorData, setSensorData] = useState<SensorDataPoint[]>([]);
   const [liveData, setLiveData] = useState<Record<string, SensorDataPoint>>({});
   const [selectedPeriod, setSelectedPeriod] = useState(PERIOD_OPTIONS[0]);
@@ -44,6 +51,10 @@ export default function SensorGraphDS18B20() {
         const readings = await historicalRes.json();
         const live = await liveRes.json();
 
+        console.log("[✅ SensorGraph] Readings:", readings);
+        console.log("[✅ SensorGraph] Live sensors:", live?.sensors);
+        console.log("[✅ SensorGraph] Current selectedDate:", selectedDate);
+
         setSensorData(readings);
         setLiveData(live?.sensors || {});
         setLastUpdate(new Date());
@@ -54,7 +65,7 @@ export default function SensorGraphDS18B20() {
     fetchData();
     const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [selectedDate, selectedPeriod]);
 
   const chartHeight = 300;
   const maxTemp = 100;
@@ -79,11 +90,15 @@ export default function SensorGraphDS18B20() {
     selectedDay.setHours(0, 0, 0, 0);
     const rangeStart = new Date(selectedDay.getTime());
     const fullEnd = new Date(rangeStart.getTime() + selectedPeriod.minutes * 60000);
-    const rangeEnd = selectedDate === new Date().toISOString().split("T")[0] ? new Date() : fullEnd;
+    const rangeEnd = selectedDate === getTodayUTC() ? new Date() : fullEnd;
 
     const timeSlots: number[] = [];
     for (let t = rangeStart.getTime(); t <= rangeEnd.getTime(); t += 300000) {
       timeSlots.push(t);
+    }
+
+    if (timeSlots.length === 0) {
+      console.warn("⚠️ No time slots generated — possible invalid date range");
     }
 
     const filled: DataPoint[] = [];
@@ -115,7 +130,11 @@ export default function SensorGraphDS18B20() {
       }
     }
 
-    return _.orderBy(filled, ["timestamp"], ["asc"]);
+    const result = _.orderBy(filled, ["timestamp"], ["asc"]);
+    if (result.length === 0) {
+      console.warn("⚠️ No data points to show on the graph. Possibly wrong date/period selected.");
+    }
+    return result;
   };
 
   const data = formatData();
