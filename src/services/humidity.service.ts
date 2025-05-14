@@ -8,9 +8,17 @@ export interface HumidityDataPoint {
   timestamp?: Date;
 }
 
+export interface ReadingFilters {
+  startDate?: Date;
+  endDate?: Date;
+  sensorIds?: string[];
+  limit?: number;
+  offset?: number;
+}
+
 export interface HumidityService {
   createRecords(data: HumidityDataPoint[]): Promise<void>;
-  getAllReadings(): Promise<HumidityDataPoint[]>;
+  getAllReadings(filters?: ReadingFilters): Promise<HumidityDataPoint[]>;
   deleteSensorRecords(sensorId: string): Promise<number>;
 }
 
@@ -69,11 +77,34 @@ export function createHumidityService(): HumidityService {
     }
   };
 
-  const getAllReadings = async (): Promise<HumidityDataPoint[]> => {
+  const getAllReadings = async (filters?: ReadingFilters): Promise<HumidityDataPoint[]> => {
     try {
       await prisma.$connect();
 
+      const where: any = {};
+
+      if (filters?.startDate) {
+        where.timestamp = {
+          ...where.timestamp,
+          gte: filters.startDate
+        };
+      }
+
+      if (filters?.endDate) {
+        where.timestamp = {
+          ...where.timestamp,
+          lte: filters.endDate
+        };
+      }
+
+      if (filters?.sensorIds && filters.sensorIds.length > 0) {
+        where.sensor_id = {
+          in: filters.sensorIds
+        };
+      }
+
       const readings = await prisma.humidityReading.findMany({
+        where,
         orderBy: { timestamp: "desc" },
         select: {
           sensor_id: true,
@@ -81,6 +112,8 @@ export function createHumidityService(): HumidityService {
           temperature: true,
           timestamp: true,
         },
+        take: filters?.limit,
+        skip: filters?.offset,
       });
 
       const formatted = _.map(readings, (r) => ({
