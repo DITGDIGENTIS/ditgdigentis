@@ -51,10 +51,6 @@ export default function SensorGraphDS18B20() {
         const readings = await historicalRes.json();
         const live = await liveRes.json();
 
-        console.log("[✅ SensorGraph] Readings:", readings);
-        console.log("[✅ SensorGraph] Live sensors:", live?.sensors);
-        console.log("[✅ SensorGraph] Current selectedDate:", selectedDate);
-
         setSensorData(readings);
         setLiveData(live?.sensors || {});
         setLastUpdate(new Date());
@@ -66,6 +62,12 @@ export default function SensorGraphDS18B20() {
     const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
   }, [selectedDate, selectedPeriod]);
+
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.scrollLeft = containerRef.current.scrollWidth;
+    }
+  }, [sensorData]);
 
   const chartHeight = 300;
   const maxTemp = 100;
@@ -86,9 +88,8 @@ export default function SensorGraphDS18B20() {
       };
     });
 
-    const selectedDay = new Date(selectedDate);
-    selectedDay.setHours(0, 0, 0, 0);
-    const rangeStart = new Date(selectedDay.getTime());
+    const selectedDay = new Date(`${selectedDate}T00:00:00.000Z`);
+    const rangeStart = new Date(selectedDay);
     const fullEnd = new Date(rangeStart.getTime() + selectedPeriod.minutes * 60000);
     const rangeEnd = selectedDate === getTodayUTC() ? new Date() : fullEnd;
 
@@ -97,12 +98,7 @@ export default function SensorGraphDS18B20() {
       timeSlots.push(t);
     }
 
-    if (timeSlots.length === 0) {
-      console.warn("⚠️ No time slots generated — possible invalid date range");
-    }
-
     const filled: DataPoint[] = [];
-
     for (const sensor of SENSOR_OPTIONS) {
       const sensorPoints = mapped
         .filter((d) => d.sensor_id === sensor)
@@ -112,7 +108,6 @@ export default function SensorGraphDS18B20() {
         }, {} as Record<number, DataPoint>);
 
       let lastKnown: DataPoint | null = null;
-
       for (const slot of timeSlots) {
         if (sensorPoints[slot]) {
           lastKnown = sensorPoints[slot];
@@ -130,11 +125,7 @@ export default function SensorGraphDS18B20() {
       }
     }
 
-    const result = _.orderBy(filled, ["timestamp"], ["asc"]);
-    if (result.length === 0) {
-      console.warn("⚠️ No data points to show on the graph. Possibly wrong date/period selected.");
-    }
-    return result;
+    return _.orderBy(filled, ["timestamp"], ["asc"]);
   };
 
   const data = formatData();
@@ -169,22 +160,37 @@ export default function SensorGraphDS18B20() {
         <div className="d-flex gap-2 flex-wrap">
           <input type="date" className="form-control" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
           <div className="d-flex flex-wrap align-items-center gap-2">
-            {SENSOR_OPTIONS.map((sensor) => (
-              <label key={sensor} className="form-check-label text-light me-2">
-                <input
-                  type="checkbox"
-                  className="form-check-input me-1"
-                  checked={selectedSensors.includes(sensor)}
-                  onChange={(e) => {
-                    const updated = e.target.checked
-                      ? [...selectedSensors, sensor]
-                      : selectedSensors.filter((s) => s !== sensor);
-                    setSelectedSensors(updated);
-                  }}
-                />
-                {sensor} ({liveData[sensor]?.temperature?.toFixed(1) || "--"}°)
-              </label>
-            ))}
+            {SENSOR_OPTIONS.map((sensor, index) => {
+              const color = COLORS[index % COLORS.length];
+              return (
+                <label key={sensor} className="form-check-label d-flex align-items-center me-3">
+                  <input
+                    type="checkbox"
+                    className="form-check-input me-1"
+                    checked={selectedSensors.includes(sensor)}
+                    onChange={(e) => {
+                      const updated = e.target.checked
+                        ? [...selectedSensors, sensor]
+                        : selectedSensors.filter((s) => s !== sensor);
+                      setSelectedSensors(updated);
+                    }}
+                  />
+                  <span
+                    style={{
+                      width: 12,
+                      height: 12,
+                      backgroundColor: color,
+                      borderRadius: "50%",
+                      display: "inline-block",
+                      marginRight: 6,
+                    }}
+                  ></span>
+                  <span style={{ color: "#fff" }}>
+                    {sensor} ({liveData[sensor]?.temperature?.toFixed(1) || "--"}°)
+                  </span>
+                </label>
+              );
+            })}
           </div>
           <select className="form-select" value={selectedPeriod.label} onChange={(e) => setSelectedPeriod(PERIOD_OPTIONS.find(p => p.label === e.target.value) || PERIOD_OPTIONS[0])}>
             {PERIOD_OPTIONS.map((p) => <option key={p.label} value={p.label}>{p.label}</option>)}
