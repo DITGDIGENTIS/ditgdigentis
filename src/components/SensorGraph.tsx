@@ -92,7 +92,8 @@ export default function SensorGraphDS18B20() {
     const rangeStart = new Date(selectedDay);
     const rangeEnd = selectedDate === getTodayUTC()
       ? new Date()
-      : new Date(`${selectedDate}T23:59:59.999Z`);
+      : new Date(rangeStart.getTime() + selectedPeriod.minutes * 60 * 1000);
+
 
 
     const timeSlots: number[] = [];
