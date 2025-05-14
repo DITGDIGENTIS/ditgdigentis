@@ -74,27 +74,27 @@ export default function SensorGraphDS18B20() {
   const normTempY = (t: number) => chartHeight - (t / maxTemp) * chartHeight;
 
   const formatData = (): DataPoint[] => {
-    const mapped = sensorData.map((d) => {
-      const date = new Date(d.timestamp);
-      const rounded = Math.floor(date.getTime() / 300000) * 300000;
-      const roundedDate = new Date(rounded);
-      return {
-        time: roundedDate.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" }),
-        temp: d.temperature,
-        hum: d.humidity ?? 0,
-        date: roundedDate.toLocaleDateString("uk-UA"),
-        timestamp: roundedDate.getTime(),
-        sensor_id: d.sensor_id,
-      };
-    });
-
     const selectedDay = new Date(`${selectedDate}T00:00:00.000Z`);
     const rangeStart = new Date(selectedDay);
     const rangeEnd = selectedDate === getTodayUTC()
       ? new Date()
       : new Date(rangeStart.getTime() + selectedPeriod.minutes * 60 * 1000);
 
-
+    const mapped = sensorData
+      .map((d) => {
+        const date = new Date(d.timestamp);
+        const rounded = Math.floor(date.getTime() / 300000) * 300000;
+        const roundedDate = new Date(rounded);
+        return {
+          time: roundedDate.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" }),
+          temp: d.temperature,
+          hum: d.humidity ?? 0,
+          date: roundedDate.toLocaleDateString("uk-UA"),
+          timestamp: roundedDate.getTime(),
+          sensor_id: d.sensor_id,
+        };
+      })
+      .filter((d) => d.timestamp >= rangeStart.getTime() && d.timestamp <= rangeEnd.getTime());
 
     const timeSlots: number[] = [];
     for (let t = rangeStart.getTime(); t <= rangeEnd.getTime(); t += 300000) {
