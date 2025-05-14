@@ -1,18 +1,24 @@
 import { PrismaClient } from "../../generated/prisma";
 import _ from "lodash";
-import { SensorDataPoint, sortByTimestamp } from "./sensor-data.service";
 
-export interface SensorService {
-  createRecords(data: SensorDataPoint[]): Promise<void>;
-  getAllReadings(): Promise<SensorDataPoint[]>;
+export interface HumidityDataPoint {
+  sensor_id: string;
+  humidity: number;
+  temperature: number;
+  timestamp?: Date;
+}
+
+export interface HumidityService {
+  createRecords(data: HumidityDataPoint[]): Promise<void>;
+  getAllReadings(): Promise<HumidityDataPoint[]>;
   deleteSensorRecords(sensorId: string): Promise<number>;
 }
 
-export function createSensorService(): SensorService {
+export function createHumidityService(): HumidityService {
   const prisma = new PrismaClient();
 
-  const createRecords = async (data: SensorDataPoint[]): Promise<void> => {
-    if (!Array.isArray(data) || data.length === 0) {
+  const createRecords = async (data: HumidityDataPoint[]): Promise<void> => {
+    if (!_.isArray(data) || _.isEmpty(data)) {
       console.warn("[createRecords] Empty input");
       return;
     }
@@ -21,12 +27,12 @@ export function createSensorService(): SensorService {
       await prisma.$connect();
 
       const result = await Promise.all(
-        data.map(async (sensor) => {
+        _.map(data, async (sensor) => {
           const sensorTimestamp = sensor.timestamp instanceof Date
             ? sensor.timestamp
             : new Date(sensor.timestamp!);
 
-          const exists = await prisma.sensorReading.findFirst({
+          const exists = await prisma.humidityReading.findFirst({
             where: {
               sensor_id: sensor.sensor_id,
               timestamp: sensorTimestamp,
@@ -39,9 +45,10 @@ export function createSensorService(): SensorService {
           }
 
           try {
-            return await prisma.sensorReading.create({
+            return await prisma.humidityReading.create({
               data: {
                 sensor_id: sensor.sensor_id,
+                humidity: sensor.humidity,
                 temperature: sensor.temperature,
                 timestamp: sensorTimestamp,
               },
@@ -53,7 +60,7 @@ export function createSensorService(): SensorService {
         })
       );
 
-      console.log(`[createRecords] Inserted ${result.filter(Boolean).length} new records`);
+      console.log(`[createRecords] Inserted ${_.filter(result, Boolean).length} new records`);
     } catch (err) {
       console.error("[createRecords] Unexpected error:", err);
       throw err;
@@ -62,26 +69,28 @@ export function createSensorService(): SensorService {
     }
   };
 
-  const getAllReadings = async (): Promise<SensorDataPoint[]> => {
+  const getAllReadings = async (): Promise<HumidityDataPoint[]> => {
     try {
       await prisma.$connect();
 
-      const readings = await prisma.sensorReading.findMany({
+      const readings = await prisma.humidityReading.findMany({
         orderBy: { timestamp: "desc" },
         select: {
           sensor_id: true,
+          humidity: true,
           temperature: true,
           timestamp: true,
         },
       });
 
-      const formatted = readings.map((r) => ({
+      const formatted = _.map(readings, (r) => ({
         sensor_id: r.sensor_id,
+        humidity: Number(r.humidity),
         temperature: Number(r.temperature),
         timestamp: new Date(r.timestamp),
       }));
 
-      return sortByTimestamp("desc")(formatted);
+      return _.orderBy(formatted, ['timestamp'], ['desc']);
     } catch (err) {
       console.error("[getAllReadings] Error:", err);
       throw err;
@@ -93,7 +102,7 @@ export function createSensorService(): SensorService {
   const deleteSensorRecords = async (sensorId: string): Promise<number> => {
     try {
       await prisma.$connect();
-      const result = await prisma.sensorReading.deleteMany({
+      const result = await prisma.humidityReading.deleteMany({
         where: { sensor_id: sensorId },
       });
       return result.count;
@@ -110,4 +119,4 @@ export function createSensorService(): SensorService {
     getAllReadings,
     deleteSensorRecords,
   };
-}
+} 

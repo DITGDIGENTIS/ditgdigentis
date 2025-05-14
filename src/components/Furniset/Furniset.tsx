@@ -9,13 +9,8 @@ const HumidityMonitor = dynamic(() => import("../HumidityMonitor").then(mod => m
 const SensorGraphDHT21 = dynamic(() => import("../SensorGraphDHT21").then(mod => mod.default), { ssr: false, });
 
 
-// ✅ Типизируем пропсы для SensorGraph
-interface SensorGraphProps {
-  sensorId: string;
-}
-
-const SensorGraph = dynamic<SensorGraphProps>(
-  () => import("../SensorGraph").then(mod => mod.default),
+const SensorGraph = dynamic(
+  () => import("../SensorGraphDS18B20").then(mod => mod.default),
   { ssr: false }
 );
 
@@ -48,7 +43,7 @@ export const Furniset: FC = () => {
         <h4 className="text-center mb-3" style={{ fontSize: "1.4rem", color: "#fff", fontWeight: "bold" }}>
           Графік (SENSOR)
         </h4>
-        <SensorGraph sensorId="HUM1-1" />
+        <SensorGraph />
       </div>
     </div>
   );

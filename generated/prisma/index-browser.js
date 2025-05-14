@@ -126,8 +126,15 @@ exports.Prisma.SensorReadingScalarFieldEnum = {
   id: 'id',
   sensor_id: 'sensor_id',
   timestamp: 'timestamp',
-  temperature: 'temperature',
-  humidity: 'humidity'
+  temperature: 'temperature'
+};
+
+exports.Prisma.HumidityReadingScalarFieldEnum = {
+  id: 'id',
+  sensor_id: 'sensor_id',
+  timestamp: 'timestamp',
+  humidity: 'humidity',
+  temperature: 'temperature'
 };
 
 exports.Prisma.SortOrder = {
@@ -142,7 +149,8 @@ exports.Prisma.QueryMode = {
 
 
 exports.Prisma.ModelName = {
-  SensorReading: 'SensorReading'
+  SensorReading: 'SensorReading',
+  HumidityReading: 'HumidityReading'
 };
 
 /**

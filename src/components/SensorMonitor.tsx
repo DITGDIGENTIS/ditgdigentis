@@ -81,9 +81,6 @@ export function SensorMonitor() {
         if (typeof sensor.temperature !== 'number' || isNaN(sensor.temperature)) {
           throw new Error(`Invalid temperature at index ${index}`);
         }
-        if (typeof sensor.humidity !== 'number' || isNaN(sensor.humidity)) {
-          throw new Error(`Invalid humidity at index ${index}`);
-        }
         if (!(sensor.timestamp instanceof Date) || isNaN(sensor.timestamp.getTime())) {
           throw new Error(`Invalid timestamp at index ${index}`);
         }

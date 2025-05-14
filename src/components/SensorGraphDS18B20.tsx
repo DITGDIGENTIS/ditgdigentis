@@ -7,7 +7,6 @@ import { SensorDataPoint } from "../services/sensor-data.service";
 interface DataPoint {
   time: string;
   temp: number;
-  hum: number;
   date: string;
   timestamp: number;
   sensor_id: string;
@@ -88,7 +87,6 @@ export default function SensorGraphDS18B20() {
         return {
           time: roundedDate.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" }),
           temp: d.temperature,
-          hum: d.humidity ?? 0,
           date: roundedDate.toLocaleDateString("uk-UA"),
           timestamp: roundedDate.getTime(),
           sensor_id: d.sensor_id,
@@ -144,8 +142,8 @@ export default function SensorGraphDS18B20() {
       alert("Немає даних для експорту");
       return;
     }
-    const header = "Дата,Час,Сенсор,Температура,Вологість";
-    const rows = filtered.map(d => `${d.date},${d.time},${d.sensor_id},${d.temp},${d.hum}`);
+    const header = "Дата,Час,Сенсор,Температура";
+    const rows = filtered.map(d => `${d.date},${d.time},${d.sensor_id},${d.temp}`);
     const csv = [header, ...rows].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);

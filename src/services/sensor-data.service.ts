@@ -3,7 +3,6 @@ import _ from "lodash";
 export type SensorDataPoint = {
   sensor_id: string;
   temperature: number;
-  humidity: number;
   timestamp: Date;
 };
 
@@ -13,7 +12,6 @@ export type SensorDataBatch = {
 
 export type SensorAverages = {
   avgTemperature: number;
-  avgHumidity: number;
 };
 
 // ✅ Валидация данных
@@ -31,8 +29,6 @@ export const validateSensorData = (data: Partial<SensorDataPoint>): boolean => {
     data.sensor_id.length > 0 &&
     typeof data.temperature === "number" &&
     !isNaN(data.temperature) &&
-    typeof data.humidity === "number" &&
-    !isNaN(data.humidity) &&
     isValidTimestamp(data.timestamp)
   );
 };
@@ -57,7 +53,6 @@ export const createSensorData = (data: SensorDataBatch): SensorDataPoint[] => {
     return {
       sensor_id: String(sensor.sensor_id),
       temperature: Number(_.round(sensor.temperature ?? 0, 2)),
-      humidity: Number(_.round(sensor.humidity ?? 0, 2)),
       timestamp: date,
     };
   });
@@ -88,7 +83,6 @@ export const filterByTimeRange = _.curry(
 // 📐 Средние значения
 export const calculateAverages = (data: SensorDataPoint[]): SensorAverages => ({
   avgTemperature: _.round(_.meanBy(data, "temperature"), 2),
-  avgHumidity: _.round(_.meanBy(data, "humidity"), 2),
 });
 
 // 📊 Статистика
@@ -106,7 +100,6 @@ export const formatSensorData = _.curry(
   (precision: number, data: SensorDataPoint): SensorDataPoint => ({
     ...data,
     temperature: _.round(data.temperature, precision),
-    humidity: _.round(data.humidity, precision),
   })
 );
 

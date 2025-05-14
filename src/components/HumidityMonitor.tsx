@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTint, faTemperatureLow } from "@fortawesome/free-solid-svg-icons";
+import _ from "lodash";
+import { HumidityDataPoint } from "../services/humidity.service";
 
 type RawHumidityItem = {
   id: string;
@@ -30,13 +32,114 @@ const TIMEOUT_MS = 10 * 60 * 1000; // 10 хв
 
 export function HumidityMonitor() {
   const [sensors, setSensors] = useState<HumidityData[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const cache = useRef<Record<string, HumidityData>>({});
+
+  const saveToDatabase = async (sensorData: Record<string, RawHumidityItem>) => {
+    try {
+      console.log("Raw humidity data:", sensorData);
+
+      // Фильтруем только онлайн сенсоры
+      const onlineSensors = _.pickBy(sensorData, (sensor) => {
+        const age = Date.now() - Number(sensor.timestamp);
+        return age <= TIMEOUT_MS;
+      });
+
+      console.log("Online humidity sensors:", onlineSensors);
+
+      if (_.isEmpty(onlineSensors)) {
+        console.log("No online humidity sensors to save");
+        return;
+      }
+
+      // Преобразуем данные в нужный формат
+      const formattedSensors: HumidityDataPoint[] = _.map(onlineSensors, (sensor, id) => {
+        const humidity = typeof sensor.humidity === 'string' 
+          ? parseFloat(sensor.humidity) 
+          : sensor.humidity;
+
+        const temperature = typeof sensor.temperature === 'string'
+          ? parseFloat(sensor.temperature)
+          : sensor.temperature || 0;
+
+        if (isNaN(humidity)) {
+          throw new Error(`Invalid humidity value for sensor ${id}: ${sensor.humidity}`);
+        }
+
+        if (isNaN(temperature)) {
+          throw new Error(`Invalid temperature value for sensor ${id}: ${sensor.temperature}`);
+        }
+
+        // Преобразуем timestamp из миллисекунд в Date
+        const timestamp = new Date(Number(sensor.timestamp));
+        
+        return {
+          sensor_id: id,
+          humidity: _.round(humidity, 2),
+          temperature: _.round(temperature, 2),
+          timestamp
+        };
+      });
+
+      console.log("Formatted humidity sensors:", formattedSensors);
+
+      // Проверяем каждый сенсор перед отправкой
+      formattedSensors.forEach((sensor, index) => {
+        if (!sensor.sensor_id || typeof sensor.sensor_id !== 'string') {
+          throw new Error(`Invalid sensor_id at index ${index}`);
+        }
+        if (typeof sensor.humidity !== 'number' || isNaN(sensor.humidity)) {
+          throw new Error(`Invalid humidity at index ${index}`);
+        }
+        if (typeof sensor.temperature !== 'number' || isNaN(sensor.temperature)) {
+          throw new Error(`Invalid temperature at index ${index}`);
+        }
+        if (!(sensor.timestamp instanceof Date) || isNaN(sensor.timestamp.getTime())) {
+          throw new Error(`Invalid timestamp at index ${index}`);
+        }
+      });
+
+      const response = await fetch("/api/humidity-records", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formattedSensors),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Server error response:", errorData);
+        throw new Error(
+          `Failed to save humidity data: ${response.status} ${response.statusText}${
+            errorData.details ? ` - ${errorData.details}` : ""
+          }`
+        );
+      }
+
+      const result = await response.json();
+      console.log("Successfully saved humidity data:", result);
+      setError(null);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      console.error("Error saving humidity data:", error);
+      setError(errorMessage);
+    }
+  };
 
   useEffect(() => {
     const fetchHumidity = async () => {
       try {
         const res = await fetch("/api/humidity", { cache: "no-store" });
+        if (!res.ok) {
+          throw new Error(`Failed to fetch humidity: ${res.status} ${res.statusText}`);
+        }
+
         const { sensors: data, serverTime }: RawHumidityResponse = await res.json();
+        console.log("Received humidity data:", data);
+
+        // Сохраняем данные в базу
+        await saveToDatabase(data);
 
         SENSOR_KEYS.forEach((key) => {
           const raw = data?.[key];
@@ -81,8 +184,11 @@ export function HumidityMonitor() {
         });
 
         setSensors(updated);
-      } catch (e) {
-        console.error("❌ HUM fetch error:", e);
+        setError(null);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Unknown error occurred";
+        console.error("Error fetching humidity status:", err);
+        setError(errorMessage);
         setSensors(SENSOR_KEYS.map((id) => ({
           id,
           humidity: "--",
@@ -100,8 +206,9 @@ export function HumidityMonitor() {
   }, []);
 
   return (
-    <div className="container sensor-container ">
+    <div className="container sensor-container">
       <h2 className="text-center mt-4 mb-1">Моніторинг датчика вологості:</h2>
+      
       <div className="row justify-content-center">
         {sensors.map((sensor) => (
           <div key={sensor.id} className="col-12 col-md-8">

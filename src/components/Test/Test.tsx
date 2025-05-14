@@ -44,12 +44,10 @@ export const Test: FC = () => {
           {
             sensor_id: "sensor_1",
             temperature: 25.5,
-            humidity: 60.0,
           },
           {
             sensor_id: "sensor_2",
             temperature: 26.0,
-            humidity: 58.5,
           },
         ],
       };
@@ -135,7 +133,6 @@ export const Test: FC = () => {
               >
                 <h3>Сенсор: {reading.sensor_id}</h3>
                 <p>Температура: {reading.temperature}°C</p>
-                <p>Влажность: {reading.humidity}%</p>
                 <p>
                   Время:{" "}
                   {reading.timestamp
