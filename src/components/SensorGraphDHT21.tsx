@@ -458,13 +458,17 @@ export default function SensorGraphDHT21() {
             position: relative;
             width: 100%;
             height: 100%;
+            display: flex;
+          }
+          .scroll-container {
+            flex: 1;
             overflow-x: auto;
             overflow-y: hidden;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
-            padding: 0 40px;
+            margin: 0 40px;
           }
-          .chart-container::-webkit-scrollbar {
+          .scroll-container::-webkit-scrollbar {
             display: none;
           }
           .chart-content {
@@ -495,7 +499,6 @@ export default function SensorGraphDHT21() {
             background-color: #2b2b2b;
             width: 40px;
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
-            pointer-events: none;
           }
           .y-axis-right {
             position: absolute;
@@ -506,13 +509,11 @@ export default function SensorGraphDHT21() {
             background-color: #2b2b2b;
             width: 40px;
             box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
-            pointer-events: none;
           }
           .chart-main {
             position: relative;
             width: 100%;
             height: 100%;
-            z-index: 1;
           }
         `}</style>
 
@@ -551,60 +552,62 @@ export default function SensorGraphDHT21() {
             </LineChart>
           </div>
 
-          <div className="chart-content">
-            <div className="chart-main">
-              <ResponsiveContainer width="100%" height={400}>
-                <LineChart
-                  data={data}
-                  margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                  <XAxis
-                    dataKey="time"
-                    stroke="#999"
-                    tick={{ fill: "#999", className: "time-label" }}
-                    angle={-45}
-                    textAnchor="end"
-                    height={80}
-                    interval="preserveStartEnd"
-                    minTickGap={30}
-                  />
-                  <Tooltip 
-                    content={<CustomTooltip />}
-                    wrapperStyle={{
-                      backgroundColor: "#2b2b2b",
-                      border: "1px solid #444",
-                      borderRadius: "4px",
-                      padding: "8px",
-                      zIndex: 1001
-                    }}
-                  />
-                  {selectedSensors.map((sensorId) => (
-                    <React.Fragment key={sensorId}>
-                      <Line
-                        yAxisId="left"
-                        type="monotone"
-                        dataKey={`${sensorId}_humidity`}
-                        name={`${sensorId} Вологість`}
-                        stroke={COLORS[`${sensorId}_humidity` as ColorKey]}
-                        dot={false}
-                        unit="%"
-                        strokeWidth={2}
-                      />
-                      <Line
-                        yAxisId="right"
-                        type="monotone"
-                        dataKey={`${sensorId}_temperature`}
-                        name={`${sensorId} Температура`}
-                        stroke={COLORS[`${sensorId}_temperature` as ColorKey]}
-                        dot={false}
-                        unit="°C"
-                        strokeWidth={2}
-                      />
-                    </React.Fragment>
-                  ))}
-                </LineChart>
-              </ResponsiveContainer>
+          <div className="scroll-container">
+            <div className="chart-content">
+              <div className="chart-main">
+                <ResponsiveContainer width="100%" height={400}>
+                  <LineChart
+                    data={data}
+                    margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                    <XAxis
+                      dataKey="time"
+                      stroke="#999"
+                      tick={{ fill: "#999", className: "time-label" }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
+                      interval="preserveStartEnd"
+                      minTickGap={30}
+                    />
+                    <Tooltip 
+                      content={<CustomTooltip />}
+                      wrapperStyle={{
+                        backgroundColor: "#2b2b2b",
+                        border: "1px solid #444",
+                        borderRadius: "4px",
+                        padding: "8px",
+                        zIndex: 1001
+                      }}
+                    />
+                    {selectedSensors.map((sensorId) => (
+                      <React.Fragment key={sensorId}>
+                        <Line
+                          yAxisId="left"
+                          type="monotone"
+                          dataKey={`${sensorId}_humidity`}
+                          name={`${sensorId} Вологість`}
+                          stroke={COLORS[`${sensorId}_humidity` as ColorKey]}
+                          dot={false}
+                          unit="%"
+                          strokeWidth={2}
+                        />
+                        <Line
+                          yAxisId="right"
+                          type="monotone"
+                          dataKey={`${sensorId}_temperature`}
+                          name={`${sensorId} Температура`}
+                          stroke={COLORS[`${sensorId}_temperature` as ColorKey]}
+                          dot={false}
+                          unit="°C"
+                          strokeWidth={2}
+                        />
+                      </React.Fragment>
+                    ))}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
 
