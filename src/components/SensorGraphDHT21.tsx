@@ -112,16 +112,25 @@ export default function SensorGraphDHT21() {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        console.log("Fetching data...");
         
         const endDate = new Date();
         const startDate = new Date(endDate.getTime() - selectedPeriod.minutes * 60 * 1000);
 
         const [historicalRes, liveRes] = await Promise.all([
           fetch(`/api/humidity-readings?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}&sensorIds=${selectedSensors.join(',')}`, { 
-            cache: "no-store" 
+            cache: "no-store",
+            headers: {
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache'
+            }
           }),
-          fetch("/api/humidity", { cache: "no-store" }),
+          fetch("/api/humidity", { 
+            cache: "no-store",
+            headers: {
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache'
+            }
+          }),
         ]);
 
         if (!historicalRes.ok || !liveRes.ok) {
@@ -132,12 +141,6 @@ export default function SensorGraphDHT21() {
 
         const readings = await historicalRes.json();
         const live = await liveRes.json();
-
-        console.log("Raw historical data:", readings);
-        console.log("Raw live data:", live);
-        console.log("Selected period:", selectedPeriod);
-        console.log("Selected date:", selectedDate);
-        console.log("Selected sensors:", selectedSensors);
 
         // Форматируем исторические данные
         const formattedHistorical = _.map(readings, (r) => ({
@@ -157,10 +160,8 @@ export default function SensorGraphDHT21() {
 
         setHistoricalData(formattedHistorical);
         setLiveData(formattedLive);
-        setLastUpdate(new Date());
       } catch (e) {
-        const errorMessage =
-          e instanceof Error ? e.message : "Unknown error occurred";
+        const errorMessage = e instanceof Error ? e.message : "Unknown error occurred";
         console.error("Failed to fetch sensor data:", e);
         console.error("Error details:", {
           message: errorMessage,
@@ -381,43 +382,37 @@ export default function SensorGraphDHT21() {
         </h5>
         <div className="d-flex gap-2 flex-wrap">
           {SENSOR_IDS.map((id) => (
-            <label key={id} className="form-check-label text-light">
+            <div key={id} className="form-check form-check-inline">
               <input
                 type="checkbox"
-                className="form-check-input me-1"
+                className="form-check-input"
+                id={`sensor-${id}`}
                 checked={selectedSensors.includes(id)}
                 onChange={(e) => {
                   const updated = e.target.checked
                     ? [...selectedSensors, id]
                     : selectedSensors.filter((s) => s !== id);
                   setSelectedSensors(updated);
-                  console.log(
-                    `${id} ${e.target.checked ? "enabled" : "disabled"}`
-                  );
                 }}
               />
-              {id}
-            </label>
+              <label className="form-check-label text-light" htmlFor={`sensor-${id}`}>
+                {id}
+              </label>
+            </div>
           ))}
           <input
             type="date"
             className="form-control"
             value={selectedDate}
-            onChange={(e) => {
-              setSelectedDate(e.target.value);
-              console.log(`Date changed to ${e.target.value}`);
-            }}
+            onChange={(e) => setSelectedDate(e.target.value)}
             max={new Date().toISOString().split("T")[0]}
           />
           <select
             className="form-select"
             value={selectedPeriod.label}
             onChange={(e) => {
-              const period =
-                PERIOD_OPTIONS.find((p) => p.label === e.target.value) ||
-                PERIOD_OPTIONS[0];
+              const period = PERIOD_OPTIONS.find((p) => p.label === e.target.value) || PERIOD_OPTIONS[0];
               setSelectedPeriod(period);
-              console.log(`Period changed to ${period.label}`);
             }}
           >
             {PERIOD_OPTIONS.map((p) => (
@@ -426,7 +421,7 @@ export default function SensorGraphDHT21() {
               </option>
             ))}
           </select>
-          {SENSOR_IDS.map((id) => (
+          {selectedSensors.map((id) => (
             <button
               key={id}
               className="btn btn-outline-light btn-sm"
@@ -439,8 +434,7 @@ export default function SensorGraphDHT21() {
       </div>
 
       <div className="text-warning mb-3">
-        Оновлено: {lastUpdate.toLocaleTimeString()} | Вибрана дата:{" "}
-        {new Date(selectedDate).toLocaleDateString("uk-UA")}
+        Вибрана дата: {new Date(selectedDate).toLocaleDateString("uk-UA")}
         {isLoading && <span className="ms-2">(Завантаження...)</span>}
       </div>
 
@@ -460,7 +454,6 @@ export default function SensorGraphDHT21() {
                     <p className="mb-1" style={{ color: COLORS[`${sensorId}_temperature` as ColorKey] }}>
                       Температура: {current.temperature}°C
                     </p>
-                    <small className="text-muted">Оновлено: {current.timestamp}</small>
                   </>
                 ) : (
                   <p className="text-muted mb-0">Немає даних</p>
