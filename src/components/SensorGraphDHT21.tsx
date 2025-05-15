@@ -86,7 +86,6 @@ export default function SensorGraphDHT21() {
   const [historicalData, setHistoricalData] = useState<SensorPoint[]>([]);
   const [liveData, setLiveData] = useState<Record<string, SensorPoint>>({});
   const [selectedPeriod, setSelectedPeriod] = useState(PERIOD_OPTIONS[0]);
-  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [selectedSensors, setSelectedSensors] = useState<string[]>([
     ...SENSOR_IDS,
   ]);
@@ -95,18 +94,6 @@ export default function SensorGraphDHT21() {
   );
   const [isLoading, setIsLoading] = useState(false);
   const chartRef = useRef<HTMLDivElement>(null);
-
-  // Функция для получения текущих значений
-  const getCurrentValues = (sensorId: string) => {
-    const livePoint = liveData[sensorId];
-    if (!livePoint) return null;
-
-    return {
-      humidity: Number(livePoint.humidity.toFixed(1)),
-      temperature: Number(livePoint.temperature.toFixed(1)),
-      timestamp: new Date(livePoint.timestamp).toLocaleTimeString('uk-UA')
-    };
-  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -436,32 +423,6 @@ export default function SensorGraphDHT21() {
       <div className="text-warning mb-3">
         Вибрана дата: {new Date(selectedDate).toLocaleDateString("uk-UA")}
         {isLoading && <span className="ms-2">(Завантаження...)</span>}
-      </div>
-
-      {/* Текущие значения */}
-      <div className="d-flex flex-wrap gap-4 mb-3">
-        {selectedSensors.map((sensorId) => {
-          const current = getCurrentValues(sensorId);
-          return (
-            <div key={sensorId} className="card bg-dark border-secondary">
-              <div className="card-body">
-                <h6 className="card-title text-warning">{sensorId}</h6>
-                {current ? (
-                  <>
-                    <p className="mb-1" style={{ color: COLORS[`${sensorId}_humidity` as ColorKey] }}>
-                      Вологість: {current.humidity}%
-                    </p>
-                    <p className="mb-1" style={{ color: COLORS[`${sensorId}_temperature` as ColorKey] }}>
-                      Температура: {current.temperature}°C
-                    </p>
-                  </>
-                ) : (
-                  <p className="text-muted mb-0">Немає даних</p>
-                )}
-              </div>
-            </div>
-          );
-        })}
       </div>
 
       <div className="d-flex flex-wrap gap-3 mb-3">
