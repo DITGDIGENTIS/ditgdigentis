@@ -129,20 +129,20 @@ export default function SensorGraphDHT21() {
         const readings = await historicalRes.json();
         const live = await liveRes.json();
 
-        // Форматируем исторические данные
+        // Улучшенное форматирование исторических данных
         const formattedHistorical = _.map(readings, (r) => ({
           sensor_id: r.sensor_id,
           timestamp: new Date(r.timestamp).getTime(),
-          humidity: Number(Number(r.humidity).toFixed(1)),
-          temperature: Number(Number(r.temperature).toFixed(1)),
+          humidity: _.round(Number(r.humidity), 1),
+          temperature: _.round(Number(r.temperature), 1),
         }));
 
-        // Форматируем живые данные
+        // Улучшенное форматирование живых данных
         const formattedLive = _.mapValues(live.sensors, (s) => ({
           sensor_id: s.id,
           timestamp: Number(s.timestamp),
-          humidity: Number(Number(s.humidity).toFixed(1)),
-          temperature: Number(Number(s.temperature).toFixed(1)),
+          humidity: _.round(Number(s.humidity), 1),
+          temperature: _.round(Number(s.temperature), 1),
         }));
 
         setHistoricalData(formattedHistorical);
@@ -160,7 +160,8 @@ export default function SensorGraphDHT21() {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 5000);
+    // Увеличиваем частоту обновления для часового графика
+    const interval = setInterval(fetchData, selectedPeriod.minutes <= 60 ? 3000 : 5000);
     return () => clearInterval(interval);
   }, [selectedPeriod, selectedSensors]);
 
@@ -193,55 +194,59 @@ export default function SensorGraphDHT21() {
     const groupedByTime = _.groupBy(filtered, (point) => {
       const date = new Date(point.timestamp);
       if (selectedPeriod.minutes <= 60) {
-        // 1 час
-        return date.toISOString();
+        // Для часового графика используем более точную группировку
+        const minutes = date.getMinutes();
+        const seconds = date.getSeconds();
+        // Группируем по 30 секундам для более плавного графика
+        return `${date.getHours()}:${minutes}:${Math.floor(seconds / 30) * 30}`;
       } else if (selectedPeriod.minutes <= 720) {
-        // 12 часов
         return `${date.getHours()}:${Math.floor(date.getMinutes() / 5) * 5}`;
       } else if (selectedPeriod.minutes <= 1440) {
-        // 1 день
         return `${date.getHours()}:${Math.floor(date.getMinutes() / 15) * 15}`;
       } else if (selectedPeriod.minutes <= 10080) {
-        // 1 неделя
         return `${date.getDate()} ${date.getHours()}:00`;
       } else if (selectedPeriod.minutes <= 43200) {
-        // 1 месяц
         return `${date.getDate()} ${date.getHours()}:00`;
       } else {
-        // 1 год
         return `${date.getDate()}.${date.getMonth() + 1} ${date.getHours()}:00`;
       }
     });
 
-    // Преобразуем в формат для графика
+    // Преобразуем в формат для графика с улучшенной обработкой данных
     const chartData = _.map(groupedByTime, (points, timeKey) => {
       const dataPoint: ChartDataPoint = {
         timestamp: points[0].timestamp,
         time: formatTime(points[0].timestamp),
       };
 
-      // Вычисляем средние значения для каждой группы
+      // Улучшенное вычисление средних значений
       points.forEach((point) => {
         const humidityKey = `${point.sensor_id}_humidity`;
         const tempKey = `${point.sensor_id}_temperature`;
 
         if (!dataPoint[humidityKey]) {
-          dataPoint[humidityKey] = 0;
-        }
-        if (!dataPoint[tempKey]) {
-          dataPoint[tempKey] = 0;
+          dataPoint[humidityKey] = point.humidity;
+        } else {
+          // Используем взвешенное среднее для более точных данных
+          dataPoint[humidityKey] = _.round(
+            (Number(dataPoint[humidityKey]) + point.humidity) / 2,
+            1
+          );
         }
 
-        dataPoint[humidityKey] =
-          (Number(dataPoint[humidityKey]) + point.humidity) / 2;
-        dataPoint[tempKey] =
-          (Number(dataPoint[tempKey]) + point.temperature) / 2;
+        if (!dataPoint[tempKey]) {
+          dataPoint[tempKey] = point.temperature;
+        } else {
+          dataPoint[tempKey] = _.round(
+            (Number(dataPoint[tempKey]) + point.temperature) / 2,
+            1
+          );
+        }
       });
 
       return dataPoint;
     });
 
-    console.log("Chart data:", chartData);
     return _.orderBy(chartData, ["timestamp"], ["asc"]);
   };
 
