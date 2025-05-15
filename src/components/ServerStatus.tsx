@@ -17,7 +17,7 @@ export const ServerStatus: FC<IProps> = ({
 
   const checkStatus = async () => {
     try {
-      const res = await fetch("https://ditgdigentis.vercel.app/api/status", {
+      const res = await fetch("/api/status", {
         next: { revalidate: 0 },
       });
       const data = await res.json();

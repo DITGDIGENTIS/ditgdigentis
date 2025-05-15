@@ -50,11 +50,15 @@ export default function SensorGraphDS18B20() {
         const readings = await historicalRes.json();
         const live = await liveRes.json();
 
-        setSensorData(readings);
+        const formattedReadings = Array.isArray(readings) ? readings : [];
+        
+        setSensorData(formattedReadings);
         setLiveData(live?.sensors || {});
         setLastUpdate(new Date());
       } catch (e) {
         console.error("Failed to fetch sensor data", e);
+        setSensorData([]);
+        setLiveData({});
       }
     };
     fetchData();
@@ -79,8 +83,17 @@ export default function SensorGraphDS18B20() {
       ? new Date()
       : new Date(rangeStart.getTime() + selectedPeriod.minutes * 60 * 1000);
 
+    if (!Array.isArray(sensorData)) {
+      console.warn('sensorData is not an array:', sensorData);
+      return [];
+    }
+
     const mapped = sensorData
       .map((d) => {
+        if (!d || typeof d.timestamp === 'undefined' || typeof d.temperature === 'undefined') {
+          console.warn('Invalid data point:', d);
+          return null;
+        }
         const date = new Date(d.timestamp);
         const rounded = Math.floor(date.getTime() / 300000) * 300000;
         const roundedDate = new Date(rounded);
@@ -92,6 +105,7 @@ export default function SensorGraphDS18B20() {
           sensor_id: d.sensor_id,
         };
       })
+      .filter((d): d is DataPoint => d !== null)
       .filter((d) => d.timestamp >= rangeStart.getTime() && d.timestamp <= rangeEnd.getTime());
 
     const timeSlots: number[] = [];

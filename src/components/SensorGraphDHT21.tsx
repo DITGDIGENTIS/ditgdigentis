@@ -239,7 +239,76 @@ export default function SensorGraphDHT21() {
     return _.orderBy(chartData, ["timestamp"], ["asc"]);
   };
 
+  // Добавляем функцию для вычисления диапазонов осей
+  const calculateAxisRanges = (data: ChartDataPoint[]) => {
+    if (!data.length) return { humidity: [0, 100], temperature: [0, 100] };
+
+    const humidityValues: number[] = [];
+    const temperatureValues: number[] = [];
+
+    data.forEach(point => {
+      selectedSensors.forEach(sensorId => {
+        const humidityKey = `${sensorId}_humidity`;
+        const tempKey = `${sensorId}_temperature`;
+        
+        if (point[humidityKey] !== undefined) {
+          humidityValues.push(Number(point[humidityKey]));
+        }
+        if (point[tempKey] !== undefined) {
+          temperatureValues.push(Number(point[tempKey]));
+        }
+      });
+    });
+
+    // Добавляем небольшой запас для лучшей визуализации
+    const addPadding = (min: number, max: number, padding: number = 0.1): [number, number] => {
+      const range = max - min;
+      const paddingValue = range * padding;
+      return [Math.max(0, min - paddingValue), max + paddingValue];
+    };
+
+    // Вычисляем минимальные и максимальные значения
+    const humidityMin = Math.min(...humidityValues);
+    const humidityMax = Math.max(...humidityValues);
+    const tempMin = Math.min(...temperatureValues);
+    const tempMax = Math.max(...temperatureValues);
+
+    // Вычисляем диапазоны с учетом интервалов и добавляем отступы
+    const humidityRange = calculateNiceRange(humidityMin, humidityMax, 5);
+    const temperatureRange = calculateNiceRange(tempMin, tempMax, 5);
+
+    return {
+      humidity: addPadding(humidityRange[0], humidityRange[1]),
+      temperature: addPadding(temperatureRange[0], temperatureRange[1])
+    };
+  };
+
+  // Функция для вычисления "красивых" границ диапазона
+  const calculateNiceRange = (min: number, max: number, ticks: number): [number, number] => {
+    const range = max - min;
+    const step = range / (ticks - 1);
+    
+    // Округляем шаг до "красивого" числа
+    const magnitude = Math.pow(10, Math.floor(Math.log10(step)));
+    const normalizedStep = step / magnitude;
+    
+    let niceStep: number;
+    if (normalizedStep < 1.5) niceStep = 1;
+    else if (normalizedStep < 3) niceStep = 2;
+    else if (normalizedStep < 7.5) niceStep = 5;
+    else niceStep = 10;
+    
+    niceStep *= magnitude;
+    
+    // Вычисляем новые границы с округлением
+    const niceMin = Math.floor(min / niceStep) * niceStep;
+    const niceMax = Math.ceil(max / niceStep) * niceStep;
+    
+    return [niceMin, niceMax];
+  };
+
   const data = formatData();
+  const axisRanges = calculateAxisRanges(data);
 
   const downloadCSV = (sensorId: string) => {
     const filtered = historicalData.filter((d) => d.sensor_id === sensorId);
@@ -386,32 +455,36 @@ export default function SensorGraphDHT21() {
             zIndex: 2,
             backgroundColor: "#2b2b2b",
             paddingRight: "10px",
+            width: 60,
+            height: 400,
           }}
         >
-          <ResponsiveContainer width={60} height={400}>
-            <LineChart
-              data={data}
-              margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
-            >
-              <YAxis
-                yAxisId="left"
-                orientation="left"
-                stroke="#44c0ff"
-                tick={{ fill: "#44c0ff" }}
-                label={{
-                  value: "Вологість (%)",
-                  angle: -90,
-                  position: "insideLeft",
-                  fill: "#44c0ff",
-                }}
-                domain={[0, 100]}
-                ticks={[
-                  0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75,
-                  80, 85, 90, 95, 100,
-                ]}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          <LineChart
+            data={data}
+            margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+            width={60}
+            height={400}
+          >
+            <YAxis
+              yAxisId="left"
+              orientation="left"
+              stroke="#44c0ff"
+              tick={{ fill: "#44c0ff" }}
+              label={{
+                value: "Вологість (%)",
+                angle: -90,
+                position: "insideLeft",
+                fill: "#44c0ff",
+              }}
+              domain={axisRanges.humidity}
+              allowDataOverflow={false}
+              tickCount={5}
+              tickFormatter={(value) => `${value}%`}
+              scale="linear"
+              allowDecimals={true}
+              tickMargin={10}
+            />
+          </LineChart>
         </div>
 
         <div
@@ -471,32 +544,36 @@ export default function SensorGraphDHT21() {
             zIndex: 2,
             backgroundColor: "#2b2b2b",
             paddingLeft: "10px",
+            width: 60,
+            height: 400,
           }}
         >
-          <ResponsiveContainer width={60} height={400}>
-            <LineChart
-              data={data}
-              margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
-            >
-              <YAxis
-                yAxisId="right"
-                orientation="right"
-                stroke="#ffa500"
-                tick={{ fill: "#ffa500" }}
-                label={{
-                  value: "Температура (°C)",
-                  angle: 90,
-                  position: "insideRight",
-                  fill: "#ffa500",
-                }}
-                domain={[0, 100]}
-                ticks={[
-                  0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75,
-                  80, 85, 90, 95, 100,
-                ]}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          <LineChart
+            data={data}
+            margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+            width={60}
+            height={400}
+          >
+            <YAxis
+              yAxisId="right"
+              orientation="right"
+              stroke="#ffa500"
+              tick={{ fill: "#ffa500" }}
+              label={{
+                value: "Температура (°C)",
+                angle: 90,
+                position: "insideRight",
+                fill: "#ffa500",
+              }}
+              domain={axisRanges.temperature}
+              allowDataOverflow={false}
+              tickCount={5}
+              tickFormatter={(value) => `${value}°C`}
+              scale="linear"
+              allowDecimals={true}
+              tickMargin={10}
+            />
+          </LineChart>
         </div>
       </div>
     </div>

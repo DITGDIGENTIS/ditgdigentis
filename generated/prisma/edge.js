@@ -131,7 +131,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "/Users/daniil/Desktop/ditgdigentis/generated/prisma",
+      "value": "/Users/r1/Desktop/ditgdigentis/generated/prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -140,7 +140,7 @@ const config = {
     "binaryTargets": [
       {
         "fromEnvVar": null,
-        "value": "darwin-arm64",
+        "value": "darwin",
         "native": true
       },
       {
@@ -149,7 +149,7 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "/Users/daniil/Desktop/ditgdigentis/prisma/schema.prisma",
+    "sourceFilePath": "/Users/r1/Desktop/ditgdigentis/prisma/schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {

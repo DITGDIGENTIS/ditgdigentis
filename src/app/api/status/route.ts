@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { writeFile, readFile } from "fs/promises";
 import path from "path";
 
-const filePath = path.resolve("/tmp/status.json");
+const filePath = path.resolve(process.cwd(), "status.json");
 
 type DeviceStatus = {
   ip: string;
@@ -38,11 +38,27 @@ export async function POST(req: Request) {
 }
 
 export async function GET() {
-  try {
-    const raw = await readFile(filePath, "utf8");
-    const json = JSON.parse(raw);
-    return NextResponse.json(json);
-  } catch {
-    return NextResponse.json({});
-  }
+  return new NextResponse(
+    JSON.stringify({ status: "ok", timestamp: new Date().toISOString() }),
+    {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      },
+    }
+  );
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    },
+  });
 }
