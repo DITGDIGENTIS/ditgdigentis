@@ -451,6 +451,7 @@ export default function SensorGraphDHT21() {
             position: relative;
             width: 100%;
             overflow: hidden;
+            background-color: #2b2b2b;
           }
           .chart-container {
             position: relative;
@@ -460,6 +461,7 @@ export default function SensorGraphDHT21() {
             overflow-y: hidden;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
+            display: flex;
           }
           .chart-container::-webkit-scrollbar {
             display: none;
@@ -468,8 +470,9 @@ export default function SensorGraphDHT21() {
             position: relative;
             min-width: 100%;
             height: 100%;
-            display: flex;
-            align-items: stretch;
+            display: grid;
+            grid-template-columns: 40px 1fr 40px;
+            gap: 0;
           }
           @media (max-width: 768px) {
             .chart-content {
@@ -492,7 +495,7 @@ export default function SensorGraphDHT21() {
             background-color: #2b2b2b;
             width: 40px;
             height: 100%;
-            flex-shrink: 0;
+            grid-column: 1;
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
           }
           .y-axis-right {
@@ -502,15 +505,15 @@ export default function SensorGraphDHT21() {
             background-color: #2b2b2b;
             width: 40px;
             height: 100%;
-            flex-shrink: 0;
+            grid-column: 3;
             box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
           }
           .chart-main {
-            flex: 1;
-            min-width: 0;
+            grid-column: 2;
             position: relative;
             z-index: 1;
-            margin: 0 40px;
+            width: 100%;
+            height: 100%;
           }
         `}</style>
 
@@ -555,6 +558,7 @@ export default function SensorGraphDHT21() {
                 <LineChart
                   data={data}
                   margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+                  layout="horizontal"
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#444" />
                   <XAxis
