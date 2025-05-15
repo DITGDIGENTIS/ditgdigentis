@@ -20,66 +20,27 @@ let humidityCache: { sensors: HumidityMap; lastUpdate: number } = {
 
 const TIMEOUT_MS = 10 * 60 * 1000; // 10 минут
 
-function validateSensorData(sensor: any): sensor is HumidityData {
-  return (
-    sensor &&
-    typeof sensor === "object" &&
-    typeof sensor.id === "string" &&
-    (typeof sensor.humidity === "number" || typeof sensor.humidity === "string") &&
-    (typeof sensor.temperature === "number" || typeof sensor.temperature === "string" || sensor.temperature === undefined) &&
-    typeof sensor.timestamp === "number"
-  );
-}
-
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    console.log("Received humidity data:", body);
+    const sensors: HumidityMap = body.sensors || {};
 
-    if (!body || typeof body !== "object" || !("sensors" in body)) {
-      console.error("Invalid payload structure:", body);
-      return NextResponse.json({ error: "Invalid payload structure" }, { status: 400 });
+    if (_.isEmpty(sensors)) {
+      return NextResponse.json({ status: "ok", received: 0 });
     }
 
-    const sensors: HumidityMap = body.sensors;
-
-    if (!sensors || Object.keys(sensors).length === 0) {
-      console.error("Empty humidity list");
-      return NextResponse.json({ error: "Empty humidity list" }, { status: 400 });
-    }
-
-    // Валидация данных каждого сенсора
-    const validSensors = _.pickBy(sensors, (sensor, id) => {
-      if (!validateSensorData(sensor)) {
-        console.error(`Invalid sensor data for ${id}:`, sensor);
-        return false;
-      }
-      return true;
-    });
-
-    if (Object.keys(validSensors).length === 0) {
-      console.error("No valid sensors found");
-      return NextResponse.json({ error: "No valid sensors found" }, { status: 400 });
-    }
-
-    // Обновляем кэш только валидными данными
+    // Обновляем кэш
     humidityCache = {
-      sensors: validSensors,
+      sensors,
       lastUpdate: Date.now(),
     };
 
-    console.log("Updated humidity cache:", humidityCache);
     return NextResponse.json({ 
       status: "ok", 
-      received: Object.keys(validSensors).length,
-      timestamp: humidityCache.lastUpdate
+      received: Object.keys(sensors).length
     });
   } catch (err) {
-    console.error("Ошибка при записи данных вологості:", err);
-    return NextResponse.json({ 
-      error: "Failed to save humidity data",
-      details: err instanceof Error ? err.message : "Unknown error"
-    }, { status: 500 });
+    return NextResponse.json({ status: "error" }, { status: 500 });
   }
 }
 
@@ -88,34 +49,17 @@ export async function GET() {
     const now = Date.now();
     const expired = now - humidityCache.lastUpdate > TIMEOUT_MS;
 
-    // Фильтруем только валидные сенсоры
+    // Фильтруем только сенсоры HUM1-
     const filtered = Object.fromEntries(
       Object.entries(humidityCache.sensors || {})
-        .filter(([key, sensor]) => {
-          const isValid = key.startsWith("HUM1-") && validateSensorData(sensor);
-          if (!isValid) {
-            console.warn(`Invalid sensor data for ${key}:`, sensor);
-          }
-          return isValid;
-        })
+        .filter(([key]) => key.startsWith("HUM1-"))
     );
-
-    console.log("Returning humidity data:", {
-      sensorCount: Object.keys(filtered).length,
-      expired,
-      lastUpdate: new Date(humidityCache.lastUpdate).toISOString()
-    });
 
     return NextResponse.json({
       sensors: expired ? {} : filtered,
-      serverTime: now,
-      lastUpdate: humidityCache.lastUpdate
+      serverTime: now
     });
   } catch (err) {
-    console.error("Error fetching humidity data:", err);
-    return NextResponse.json({ 
-      error: "Failed to fetch humidity data",
-      details: err instanceof Error ? err.message : "Unknown error"
-    }, { status: 500 });
+    return NextResponse.json({ sensors: {} }, { status: 200 });
   }
 }
