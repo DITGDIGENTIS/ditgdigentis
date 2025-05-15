@@ -455,15 +455,14 @@ export default function SensorGraphDHT21() {
             overflow: hidden;
           }
           .chart-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            position: relative;
+            width: 100%;
+            height: 100%;
             overflow-x: auto;
             overflow-y: hidden;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
+            padding: 0 40px;
           }
           .chart-container::-webkit-scrollbar {
             display: none;
@@ -472,7 +471,6 @@ export default function SensorGraphDHT21() {
             position: relative;
             min-width: 100%;
             height: 100%;
-            padding: 0 40px;
           }
           @media (max-width: 768px) {
             .chart-content {
@@ -497,6 +495,7 @@ export default function SensorGraphDHT21() {
             background-color: #2b2b2b;
             width: 40px;
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+            pointer-events: none;
           }
           .y-axis-right {
             position: absolute;
@@ -507,6 +506,7 @@ export default function SensorGraphDHT21() {
             background-color: #2b2b2b;
             width: 40px;
             box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
+            pointer-events: none;
           }
           .chart-main {
             position: relative;
@@ -517,53 +517,47 @@ export default function SensorGraphDHT21() {
         `}</style>
 
         <div className="chart-container">
-          <div className="chart-content">
-            <div className="y-axis-left">
-              <LineChart
-                data={data}
-                margin={{ top: 5, right: 0, left: 0, bottom: 5 }}
+          <div className="y-axis-left">
+            <LineChart
+              data={data}
+              margin={{ top: 5, right: 0, left: 0, bottom: 5 }}
+              width={40}
+              height={400}
+            >
+              <YAxis
+                yAxisId="left"
+                orientation="left"
+                stroke="#44c0ff"
+                tick={{ fill: "#44c0ff", fontSize: 10 }}
+                label={{
+                  value: "Вологість (%)",
+                  angle: -90,
+                  position: "insideLeft",
+                  fill: "#44c0ff",
+                  style: { fontSize: "10px" },
+                  className: "y-axis-label"
+                }}
+                domain={axisRanges.humidity}
+                allowDataOverflow={false}
+                tickCount={5}
+                tickFormatter={(value) => `${value}%`}
+                scale="linear"
+                allowDecimals={true}
+                tickMargin={5}
                 width={40}
-                height={400}
-              >
-                <YAxis
-                  yAxisId="left"
-                  orientation="left"
-                  stroke="#44c0ff"
-                  tick={{ fill: "#44c0ff", fontSize: 10 }}
-                  label={{
-                    value: "Вологість (%)",
-                    angle: -90,
-                    position: "insideLeft",
-                    fill: "#44c0ff",
-                    style: { fontSize: "10px" },
-                    className: "y-axis-label"
-                  }}
-                  domain={axisRanges.humidity}
-                  allowDataOverflow={false}
-                  tickCount={5}
-                  tickFormatter={(value) => `${value}%`}
-                  scale="linear"
-                  allowDecimals={true}
-                  tickMargin={5}
-                  width={40}
-                  axisLine={{ stroke: "#44c0ff" }}
-                  tickLine={{ stroke: "#44c0ff" }}
-                />
-              </LineChart>
-            </div>
+                axisLine={{ stroke: "#44c0ff" }}
+                tickLine={{ stroke: "#44c0ff" }}
+              />
+            </LineChart>
+          </div>
 
+          <div className="chart-content">
             <div className="chart-main">
               <ResponsiveContainer width="100%" height={400}>
                 <LineChart
                   data={data}
                   margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
                 >
-                  <defs>
-                    <linearGradient id="chartBackground" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#2b2b2b" stopOpacity={0} />
-                      <stop offset="100%" stopColor="#2b2b2b" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#444" />
                   <XAxis
                     dataKey="time"
@@ -612,40 +606,40 @@ export default function SensorGraphDHT21() {
                 </LineChart>
               </ResponsiveContainer>
             </div>
+          </div>
 
-            <div className="y-axis-right">
-              <LineChart
-                data={data}
-                margin={{ top: 5, right: 0, left: 0, bottom: 5 }}
+          <div className="y-axis-right">
+            <LineChart
+              data={data}
+              margin={{ top: 5, right: 0, left: 0, bottom: 5 }}
+              width={40}
+              height={400}
+            >
+              <YAxis
+                yAxisId="right"
+                orientation="right"
+                stroke="#ffa500"
+                tick={{ fill: "#ffa500", fontSize: 10 }}
+                label={{
+                  value: "Температура (°C)",
+                  angle: 90,
+                  position: "insideRight",
+                  fill: "#ffa500",
+                  style: { fontSize: "10px" },
+                  className: "y-axis-label"
+                }}
+                domain={axisRanges.temperature}
+                allowDataOverflow={false}
+                tickCount={5}
+                tickFormatter={(value) => `${value}°C`}
+                scale="linear"
+                allowDecimals={true}
+                tickMargin={5}
                 width={40}
-                height={400}
-              >
-                <YAxis
-                  yAxisId="right"
-                  orientation="right"
-                  stroke="#ffa500"
-                  tick={{ fill: "#ffa500", fontSize: 10 }}
-                  label={{
-                    value: "Температура (°C)",
-                    angle: 90,
-                    position: "insideRight",
-                    fill: "#ffa500",
-                    style: { fontSize: "10px" },
-                    className: "y-axis-label"
-                  }}
-                  domain={axisRanges.temperature}
-                  allowDataOverflow={false}
-                  tickCount={5}
-                  tickFormatter={(value) => `${value}°C`}
-                  scale="linear"
-                  allowDecimals={true}
-                  tickMargin={5}
-                  width={40}
-                  axisLine={{ stroke: "#ffa500" }}
-                  tickLine={{ stroke: "#ffa500" }}
-                />
-              </LineChart>
-            </div>
+                axisLine={{ stroke: "#ffa500" }}
+                tickLine={{ stroke: "#ffa500" }}
+              />
+            </LineChart>
           </div>
         </div>
       </div>
