@@ -445,25 +445,32 @@ export default function SensorGraphDHT21() {
         ))}
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          width: "100%",
-          height: 400,
-          position: "relative",
-          overflowX: "auto",
-          WebkitOverflowScrolling: "touch",
-          msOverflowStyle: "none",
-          scrollbarWidth: "none",
-        }}
-        className="chart-container"
-      >
+      <div className="chart-wrapper" style={{ position: 'relative', width: '100%', overflow: 'hidden' }}>
         <style jsx>{`
+          .chart-wrapper {
+            position: relative;
+            width: 100%;
+            overflow: hidden;
+          }
+          .chart-container {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+          }
           .chart-container::-webkit-scrollbar {
             display: none;
           }
+          .chart-content {
+            position: relative;
+            min-width: 100%;
+            height: 100%;
+          }
           @media (max-width: 768px) {
-            .chart-container {
+            .chart-content {
               min-width: 800px;
             }
             .time-label {
@@ -473,149 +480,148 @@ export default function SensorGraphDHT21() {
               white-space: nowrap;
             }
           }
+          .y-axis-left {
+            position: sticky;
+            left: 0;
+            z-index: 2;
+            background-color: #2b2b2b;
+            padding-right: 10px;
+            width: 60px;
+            height: 100%;
+          }
+          .y-axis-right {
+            position: sticky;
+            right: 0;
+            z-index: 2;
+            background-color: #2b2b2b;
+            padding-left: 10px;
+            width: 60px;
+            height: 100%;
+          }
         `}</style>
 
-        <div
-          style={{
-            position: "sticky",
-            left: 0,
-            zIndex: 2,
-            backgroundColor: "#2b2b2b",
-            paddingRight: "10px",
-            width: 60,
-            height: 400,
-          }}
-        >
-          <LineChart
-            data={data}
-            margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
-            width={60}
-            height={400}
-          >
-            <YAxis
-              yAxisId="left"
-              orientation="left"
-              stroke="#44c0ff"
-              tick={{ fill: "#44c0ff" }}
-              label={{
-                value: "Вологість (%)",
-                angle: -90,
-                position: "insideLeft",
-                fill: "#44c0ff",
-                style: { fontSize: "12px" }
-              }}
-              domain={axisRanges.humidity}
-              allowDataOverflow={false}
-              tickCount={5}
-              tickFormatter={(value) => `${value}%`}
-              scale="linear"
-              allowDecimals={true}
-              tickMargin={10}
-            />
-          </LineChart>
-        </div>
-
-        <div
-          style={{
-            flex: 1,
-            overflowX: "auto",
-            overflowY: "hidden",
-            minWidth: "800px",
-          }}
-        >
-          <div style={{ minWidth: "max-content" }}>
-            <ResponsiveContainer width="100%" height={400}>
+        <div className="chart-container">
+          <div className="chart-content">
+            <div className="y-axis-left">
               <LineChart
                 data={data}
-                margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
+                margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+                width={60}
+                height={400}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                <XAxis
-                  dataKey="time"
-                  stroke="#999"
-                  tick={{ fill: "#999", className: "time-label" }}
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                  interval="preserveStartEnd"
-                  minTickGap={30}
-                />
-                <Tooltip 
-                  content={<CustomTooltip />}
-                  wrapperStyle={{
-                    backgroundColor: "#2b2b2b",
-                    border: "1px solid #444",
-                    borderRadius: "4px",
-                    padding: "8px"
+                <YAxis
+                  yAxisId="left"
+                  orientation="left"
+                  stroke="#44c0ff"
+                  tick={{ fill: "#44c0ff" }}
+                  label={{
+                    value: "Вологість (%)",
+                    angle: -90,
+                    position: "insideLeft",
+                    fill: "#44c0ff",
+                    style: { fontSize: "12px" }
                   }}
+                  domain={axisRanges.humidity}
+                  allowDataOverflow={false}
+                  tickCount={5}
+                  tickFormatter={(value) => `${value}%`}
+                  scale="linear"
+                  allowDecimals={true}
+                  tickMargin={10}
                 />
-                {selectedSensors.map((sensorId) => (
-                  <React.Fragment key={sensorId}>
-                    <Line
-                      yAxisId="left"
-                      type="monotone"
-                      dataKey={`${sensorId}_humidity`}
-                      name={`${sensorId} Вологість`}
-                      stroke={COLORS[`${sensorId}_humidity` as ColorKey]}
-                      dot={false}
-                      unit="%"
-                      strokeWidth={2}
-                    />
-                    <Line
-                      yAxisId="right"
-                      type="monotone"
-                      dataKey={`${sensorId}_temperature`}
-                      name={`${sensorId} Температура`}
-                      stroke={COLORS[`${sensorId}_temperature` as ColorKey]}
-                      dot={false}
-                      unit="°C"
-                      strokeWidth={2}
-                    />
-                  </React.Fragment>
-                ))}
               </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+            </div>
 
-        <div
-          style={{
-            position: "sticky",
-            right: 0,
-            zIndex: 2,
-            backgroundColor: "#2b2b2b",
-            paddingLeft: "10px",
-            width: 60,
-            height: 400,
-          }}
-        >
-          <LineChart
-            data={data}
-            margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
-            width={60}
-            height={400}
-          >
-            <YAxis
-              yAxisId="right"
-              orientation="right"
-              stroke="#ffa500"
-              tick={{ fill: "#ffa500" }}
-              label={{
-                value: "Температура (°C)",
-                angle: 90,
-                position: "insideRight",
-                fill: "#ffa500",
-                style: { fontSize: "12px" }
-              }}
-              domain={axisRanges.temperature}
-              allowDataOverflow={false}
-              tickCount={5}
-              tickFormatter={(value) => `${value}°C`}
-              scale="linear"
-              allowDecimals={true}
-              tickMargin={10}
-            />
-          </LineChart>
+            <div style={{ 
+              position: 'absolute',
+              left: 60,
+              right: 60,
+              top: 0,
+              bottom: 0
+            }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={data}
+                  margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                  <XAxis
+                    dataKey="time"
+                    stroke="#999"
+                    tick={{ fill: "#999", className: "time-label" }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                    interval="preserveStartEnd"
+                    minTickGap={30}
+                  />
+                  <Tooltip 
+                    content={<CustomTooltip />}
+                    wrapperStyle={{
+                      backgroundColor: "#2b2b2b",
+                      border: "1px solid #444",
+                      borderRadius: "4px",
+                      padding: "8px"
+                    }}
+                  />
+                  {selectedSensors.map((sensorId) => (
+                    <React.Fragment key={sensorId}>
+                      <Line
+                        yAxisId="left"
+                        type="monotone"
+                        dataKey={`${sensorId}_humidity`}
+                        name={`${sensorId} Вологість`}
+                        stroke={COLORS[`${sensorId}_humidity` as ColorKey]}
+                        dot={false}
+                        unit="%"
+                        strokeWidth={2}
+                      />
+                      <Line
+                        yAxisId="right"
+                        type="monotone"
+                        dataKey={`${sensorId}_temperature`}
+                        name={`${sensorId} Температура`}
+                        stroke={COLORS[`${sensorId}_temperature` as ColorKey]}
+                        dot={false}
+                        unit="°C"
+                        strokeWidth={2}
+                      />
+                    </React.Fragment>
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="y-axis-right">
+              <LineChart
+                data={data}
+                margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+                width={60}
+                height={400}
+              >
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  stroke="#ffa500"
+                  tick={{ fill: "#ffa500" }}
+                  label={{
+                    value: "Температура (°C)",
+                    angle: 90,
+                    position: "insideRight",
+                    fill: "#ffa500",
+                    style: { fontSize: "12px" }
+                  }}
+                  domain={axisRanges.temperature}
+                  allowDataOverflow={false}
+                  tickCount={5}
+                  tickFormatter={(value) => `${value}°C`}
+                  scale="linear"
+                  allowDecimals={true}
+                  tickMargin={10}
+                />
+              </LineChart>
+            </div>
+          </div>
         </div>
       </div>
     </div>
