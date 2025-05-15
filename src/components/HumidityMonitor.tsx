@@ -33,6 +33,7 @@ const TIMEOUT_MS = 10 * 60 * 1000; // 10 хв
 export function HumidityMonitor() {
   const [sensors, setSensors] = useState<HumidityData[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const cache = useRef<Record<string, HumidityData>>({});
 
   const saveToDatabase = async (sensorData: Record<string, RawHumidityItem>) => {
@@ -75,8 +76,8 @@ export function HumidityMonitor() {
         
         return {
           sensor_id: id,
-          humidity: _.round(humidity, 2),
-          temperature: _.round(temperature, 2),
+          humidity: _.round(humidity, 1),
+          temperature: _.round(temperature, 1),
           timestamp
         };
       });
@@ -130,7 +131,17 @@ export function HumidityMonitor() {
   useEffect(() => {
     const fetchHumidity = async () => {
       try {
-        const res = await fetch("/api/humidity", { cache: "no-store" });
+        setIsLoading(true);
+        console.log("Fetching humidity data...");
+        
+        const res = await fetch("/api/humidity", { 
+          cache: "no-store",
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
+        
         if (!res.ok) {
           throw new Error(`Failed to fetch humidity: ${res.status} ${res.statusText}`);
         }
@@ -141,14 +152,20 @@ export function HumidityMonitor() {
         // Сохраняем данные в базу
         await saveToDatabase(data);
 
+        // Обновляем кэш
         SENSOR_KEYS.forEach((key) => {
           const raw = data?.[key];
-          if (!raw) return;
+          if (!raw) {
+            console.log(`No data for sensor ${key}`);
+            return;
+          }
 
           const ts = Number(raw.timestamp);
           const h = parseFloat(String(raw.humidity));
           const t = parseFloat(String(raw.temperature));
           const age = serverTime - ts;
+
+          console.log(`Processing sensor ${key}:`, { ts, h, t, age });
 
           if (!isNaN(h) && !isNaN(t)) {
             cache.current[key] = {
@@ -159,6 +176,8 @@ export function HumidityMonitor() {
               age,
               online: age <= TIMEOUT_MS,
             };
+          } else {
+            console.warn(`Invalid values for sensor ${key}:`, { h, t });
           }
         });
 
@@ -183,6 +202,7 @@ export function HumidityMonitor() {
           };
         });
 
+        console.log("Updated sensors state:", updated);
         setSensors(updated);
         setError(null);
       } catch (err) {
@@ -197,6 +217,8 @@ export function HumidityMonitor() {
           age: Infinity,
           online: false,
         })));
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -208,6 +230,18 @@ export function HumidityMonitor() {
   return (
     <div className="container sensor-container">
       <h2 className="text-center mt-4 mb-1">Моніторинг датчика вологості:</h2>
+      
+      {error && (
+        <div className="alert alert-danger text-center p-2 mb-2">
+          ⚠ Помилка: {error}
+        </div>
+      )}
+
+      {isLoading && (
+        <div className="alert alert-info text-center p-2 mb-2">
+          Завантаження даних...
+        </div>
+      )}
       
       <div className="row justify-content-center">
         {sensors.map((sensor) => (
