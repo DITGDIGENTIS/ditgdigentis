@@ -469,6 +469,7 @@ export default function SensorGraphDHT21() {
             min-width: 100%;
             height: 100%;
             display: flex;
+            align-items: stretch;
           }
           @media (max-width: 768px) {
             .chart-content {
@@ -487,25 +488,29 @@ export default function SensorGraphDHT21() {
           .y-axis-left {
             position: sticky;
             left: 0;
-            z-index: 2;
+            z-index: 3;
             background-color: #2b2b2b;
             width: 40px;
             height: 100%;
             flex-shrink: 0;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
           }
           .y-axis-right {
             position: sticky;
             right: 0;
-            z-index: 2;
+            z-index: 3;
             background-color: #2b2b2b;
             width: 40px;
             height: 100%;
             flex-shrink: 0;
+            box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
           }
           .chart-main {
             flex: 1;
             min-width: 0;
             position: relative;
+            z-index: 1;
+            margin: 0 40px;
           }
         `}</style>
 
@@ -568,7 +573,8 @@ export default function SensorGraphDHT21() {
                       backgroundColor: "#2b2b2b",
                       border: "1px solid #444",
                       borderRadius: "4px",
-                      padding: "8px"
+                      padding: "8px",
+                      zIndex: 4
                     }}
                   />
                   {selectedSensors.map((sensorId) => (
