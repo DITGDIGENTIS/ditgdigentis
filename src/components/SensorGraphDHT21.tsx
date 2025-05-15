@@ -93,14 +93,27 @@ export default function SensorGraphDHT21() {
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
+  const [isLoading, setIsLoading] = useState(false);
   const chartRef = useRef<HTMLDivElement>(null);
+
+  // Функция для получения текущих значений
+  const getCurrentValues = (sensorId: string) => {
+    const livePoint = liveData[sensorId];
+    if (!livePoint) return null;
+
+    return {
+      humidity: Number(livePoint.humidity.toFixed(1)),
+      temperature: Number(livePoint.temperature.toFixed(1)),
+      timestamp: new Date(livePoint.timestamp).toLocaleTimeString('uk-UA')
+    };
+  };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setIsLoading(true);
         console.log("Fetching data...");
         
-        // Вычисляем временной диапазон на основе выбранного периода
         const endDate = new Date();
         const startDate = new Date(endDate.getTime() - selectedPeriod.minutes * 60 * 1000);
 
@@ -122,21 +135,24 @@ export default function SensorGraphDHT21() {
 
         console.log("Raw historical data:", readings);
         console.log("Raw live data:", live);
+        console.log("Selected period:", selectedPeriod);
+        console.log("Selected date:", selectedDate);
+        console.log("Selected sensors:", selectedSensors);
 
         // Форматируем исторические данные
         const formattedHistorical = _.map(readings, (r) => ({
           sensor_id: r.sensor_id,
           timestamp: new Date(r.timestamp).getTime(),
-          humidity: Number(r.humidity),
-          temperature: Number(r.temperature),
+          humidity: Number(Number(r.humidity).toFixed(1)),
+          temperature: Number(Number(r.temperature).toFixed(1)),
         }));
 
         // Форматируем живые данные
         const formattedLive = _.mapValues(live.sensors, (s) => ({
           sensor_id: s.id,
           timestamp: Number(s.timestamp),
-          humidity: parseFloat(String(s.humidity)),
-          temperature: parseFloat(String(s.temperature)),
+          humidity: Number(Number(s.humidity).toFixed(1)),
+          temperature: Number(Number(s.temperature).toFixed(1)),
         }));
 
         setHistoricalData(formattedHistorical);
@@ -150,6 +166,8 @@ export default function SensorGraphDHT21() {
           message: errorMessage,
           stack: e instanceof Error ? e.stack : undefined,
         });
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -423,6 +441,34 @@ export default function SensorGraphDHT21() {
       <div className="text-warning mb-3">
         Оновлено: {lastUpdate.toLocaleTimeString()} | Вибрана дата:{" "}
         {new Date(selectedDate).toLocaleDateString("uk-UA")}
+        {isLoading && <span className="ms-2">(Завантаження...)</span>}
+      </div>
+
+      {/* Текущие значения */}
+      <div className="d-flex flex-wrap gap-4 mb-3">
+        {selectedSensors.map((sensorId) => {
+          const current = getCurrentValues(sensorId);
+          return (
+            <div key={sensorId} className="card bg-dark border-secondary">
+              <div className="card-body">
+                <h6 className="card-title text-warning">{sensorId}</h6>
+                {current ? (
+                  <>
+                    <p className="mb-1" style={{ color: COLORS[`${sensorId}_humidity` as ColorKey] }}>
+                      Вологість: {current.humidity}%
+                    </p>
+                    <p className="mb-1" style={{ color: COLORS[`${sensorId}_temperature` as ColorKey] }}>
+                      Температура: {current.temperature}°C
+                    </p>
+                    <small className="text-muted">Оновлено: {current.timestamp}</small>
+                  </>
+                ) : (
+                  <p className="text-muted mb-0">Немає даних</p>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <div className="d-flex flex-wrap gap-3 mb-3">
