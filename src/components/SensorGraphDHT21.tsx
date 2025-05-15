@@ -450,18 +450,20 @@ export default function SensorGraphDHT21() {
           .chart-wrapper {
             position: relative;
             width: 100%;
-            overflow: hidden;
+            height: 400px;
             background-color: #2b2b2b;
+            overflow: hidden;
           }
           .chart-container {
-            position: relative;
-            width: 100%;
-            height: 400px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             overflow-x: auto;
             overflow-y: hidden;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
-            display: flex;
           }
           .chart-container::-webkit-scrollbar {
             display: none;
@@ -470,9 +472,7 @@ export default function SensorGraphDHT21() {
             position: relative;
             min-width: 100%;
             height: 100%;
-            display: grid;
-            grid-template-columns: 40px 1fr 40px;
-            gap: 0;
+            padding: 0 40px;
           }
           @media (max-width: 768px) {
             .chart-content {
@@ -489,29 +489,27 @@ export default function SensorGraphDHT21() {
             }
           }
           .y-axis-left {
-            position: sticky;
+            position: absolute;
             left: 0;
-            z-index: 3;
+            top: 0;
+            bottom: 0;
+            z-index: 1000;
             background-color: #2b2b2b;
             width: 40px;
-            height: 100%;
-            grid-column: 1;
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
           }
           .y-axis-right {
-            position: sticky;
+            position: absolute;
             right: 0;
-            z-index: 3;
+            top: 0;
+            bottom: 0;
+            z-index: 1000;
             background-color: #2b2b2b;
             width: 40px;
-            height: 100%;
-            grid-column: 3;
             box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
           }
           .chart-main {
-            grid-column: 2;
             position: relative;
-            z-index: 1;
             width: 100%;
             height: 100%;
           }
@@ -558,7 +556,6 @@ export default function SensorGraphDHT21() {
                 <LineChart
                   data={data}
                   margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
-                  layout="horizontal"
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#444" />
                   <XAxis
@@ -578,7 +575,7 @@ export default function SensorGraphDHT21() {
                       border: "1px solid #444",
                       borderRadius: "4px",
                       padding: "8px",
-                      zIndex: 4
+                      zIndex: 1001
                     }}
                   />
                   {selectedSensors.map((sensorId) => (
