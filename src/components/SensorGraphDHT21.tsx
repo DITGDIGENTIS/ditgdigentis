@@ -531,6 +531,8 @@ export default function SensorGraphDHT21() {
                   allowDecimals={true}
                   tickMargin={5}
                   width={40}
+                  axisLine={{ stroke: "#44c0ff" }}
+                  tickLine={{ stroke: "#44c0ff" }}
                 />
               </LineChart>
             </div>
@@ -623,6 +625,8 @@ export default function SensorGraphDHT21() {
                   allowDecimals={true}
                   tickMargin={5}
                   width={40}
+                  axisLine={{ stroke: "#ffa500" }}
+                  tickLine={{ stroke: "#ffa500" }}
                 />
               </LineChart>
             </div>
