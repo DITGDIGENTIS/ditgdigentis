@@ -479,14 +479,16 @@ export default function SensorGraphDHT21() {
               transform-origin: top right;
               white-space: nowrap;
             }
+            .y-axis-label {
+              font-size: 10px;
+            }
           }
           .y-axis-left {
             position: sticky;
             left: 0;
             z-index: 2;
             background-color: #2b2b2b;
-            padding-right: 10px;
-            width: 60px;
+            width: 40px;
             height: 100%;
           }
           .y-axis-right {
@@ -494,8 +496,7 @@ export default function SensorGraphDHT21() {
             right: 0;
             z-index: 2;
             background-color: #2b2b2b;
-            padding-left: 10px;
-            width: 60px;
+            width: 40px;
             height: 100%;
           }
         `}</style>
@@ -505,21 +506,22 @@ export default function SensorGraphDHT21() {
             <div className="y-axis-left">
               <LineChart
                 data={data}
-                margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
-                width={60}
+                margin={{ top: 5, right: 0, left: 0, bottom: 5 }}
+                width={40}
                 height={400}
               >
                 <YAxis
                   yAxisId="left"
                   orientation="left"
                   stroke="#44c0ff"
-                  tick={{ fill: "#44c0ff" }}
+                  tick={{ fill: "#44c0ff", fontSize: 10 }}
                   label={{
                     value: "Вологість (%)",
                     angle: -90,
                     position: "insideLeft",
                     fill: "#44c0ff",
-                    style: { fontSize: "12px" }
+                    style: { fontSize: "10px" },
+                    className: "y-axis-label"
                   }}
                   domain={axisRanges.humidity}
                   allowDataOverflow={false}
@@ -527,15 +529,16 @@ export default function SensorGraphDHT21() {
                   tickFormatter={(value) => `${value}%`}
                   scale="linear"
                   allowDecimals={true}
-                  tickMargin={10}
+                  tickMargin={5}
+                  width={40}
                 />
               </LineChart>
             </div>
 
             <div style={{ 
               position: 'absolute',
-              left: 60,
-              right: 60,
+              left: 40,
+              right: 40,
               top: 0,
               bottom: 0
             }}>
@@ -595,21 +598,22 @@ export default function SensorGraphDHT21() {
             <div className="y-axis-right">
               <LineChart
                 data={data}
-                margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
-                width={60}
+                margin={{ top: 5, right: 0, left: 0, bottom: 5 }}
+                width={40}
                 height={400}
               >
                 <YAxis
                   yAxisId="right"
                   orientation="right"
                   stroke="#ffa500"
-                  tick={{ fill: "#ffa500" }}
+                  tick={{ fill: "#ffa500", fontSize: 10 }}
                   label={{
                     value: "Температура (°C)",
                     angle: 90,
                     position: "insideRight",
                     fill: "#ffa500",
-                    style: { fontSize: "12px" }
+                    style: { fontSize: "10px" },
+                    className: "y-axis-label"
                   }}
                   domain={axisRanges.temperature}
                   allowDataOverflow={false}
@@ -617,7 +621,8 @@ export default function SensorGraphDHT21() {
                   tickFormatter={(value) => `${value}°C`}
                   scale="linear"
                   allowDecimals={true}
-                  tickMargin={10}
+                  tickMargin={5}
+                  width={40}
                 />
               </LineChart>
             </div>
