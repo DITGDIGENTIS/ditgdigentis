@@ -503,40 +503,6 @@ export default function SensorGraphDHT21() {
 
         <div className="chart-container">
           <div className="chart-content">
-            <div className="y-axis-left">
-              <LineChart
-                data={data}
-                margin={{ top: 5, right: 0, left: 0, bottom: 5 }}
-                width={40}
-                height={400}
-              >
-                <YAxis
-                  yAxisId="left"
-                  orientation="left"
-                  stroke="#44c0ff"
-                  tick={{ fill: "#44c0ff", fontSize: 10 }}
-                  label={{
-                    value: "Вологість (%)",
-                    angle: -90,
-                    position: "insideLeft",
-                    fill: "#44c0ff",
-                    style: { fontSize: "10px" },
-                    className: "y-axis-label"
-                  }}
-                  domain={axisRanges.humidity}
-                  allowDataOverflow={false}
-                  tickCount={5}
-                  tickFormatter={(value) => `${value}%`}
-                  scale="linear"
-                  allowDecimals={true}
-                  tickMargin={5}
-                  width={40}
-                  axisLine={{ stroke: "#44c0ff" }}
-                  tickLine={{ stroke: "#44c0ff" }}
-                />
-              </LineChart>
-            </div>
-
             <div style={{ 
               position: 'absolute',
               left: 40,
@@ -559,54 +525,6 @@ export default function SensorGraphDHT21() {
                     height={80}
                     interval="preserveStartEnd"
                     minTickGap={30}
-                  />
-                  <YAxis
-                    yAxisId="left"
-                    orientation="left"
-                    stroke="#44c0ff"
-                    tick={{ fill: "#44c0ff", fontSize: 10 }}
-                    label={{
-                      value: "Вологість (%)",
-                      angle: -90,
-                      position: "insideLeft",
-                      fill: "#44c0ff",
-                      style: { fontSize: "10px" },
-                      className: "y-axis-label"
-                    }}
-                    domain={axisRanges.humidity}
-                    allowDataOverflow={false}
-                    tickCount={5}
-                    tickFormatter={(value) => `${value}%`}
-                    scale="linear"
-                    allowDecimals={true}
-                    tickMargin={5}
-                    width={40}
-                    axisLine={{ stroke: "#44c0ff" }}
-                    tickLine={{ stroke: "#44c0ff" }}
-                  />
-                  <YAxis
-                    yAxisId="right"
-                    orientation="right"
-                    stroke="#ffa500"
-                    tick={{ fill: "#ffa500", fontSize: 10 }}
-                    label={{
-                      value: "Температура (°C)",
-                      angle: 90,
-                      position: "insideRight",
-                      fill: "#ffa500",
-                      style: { fontSize: "10px" },
-                      className: "y-axis-label"
-                    }}
-                    domain={axisRanges.temperature}
-                    allowDataOverflow={false}
-                    tickCount={5}
-                    tickFormatter={(value) => `${value}°C`}
-                    scale="linear"
-                    allowDecimals={true}
-                    tickMargin={5}
-                    width={40}
-                    axisLine={{ stroke: "#ffa500" }}
-                    tickLine={{ stroke: "#ffa500" }}
                   />
                   <Tooltip 
                     content={<CustomTooltip />}
@@ -643,6 +561,40 @@ export default function SensorGraphDHT21() {
                   ))}
                 </LineChart>
               </ResponsiveContainer>
+            </div>
+
+            <div className="y-axis-left">
+              <LineChart
+                data={data}
+                margin={{ top: 5, right: 0, left: 0, bottom: 5 }}
+                width={40}
+                height={400}
+              >
+                <YAxis
+                  yAxisId="left"
+                  orientation="left"
+                  stroke="#44c0ff"
+                  tick={{ fill: "#44c0ff", fontSize: 10 }}
+                  label={{
+                    value: "Вологість (%)",
+                    angle: -90,
+                    position: "insideLeft",
+                    fill: "#44c0ff",
+                    style: { fontSize: "10px" },
+                    className: "y-axis-label"
+                  }}
+                  domain={axisRanges.humidity}
+                  allowDataOverflow={false}
+                  tickCount={5}
+                  tickFormatter={(value) => `${value}%`}
+                  scale="linear"
+                  allowDecimals={true}
+                  tickMargin={5}
+                  width={40}
+                  axisLine={{ stroke: "#44c0ff" }}
+                  tickLine={{ stroke: "#44c0ff" }}
+                />
+              </LineChart>
             </div>
 
             <div className="y-axis-right">
