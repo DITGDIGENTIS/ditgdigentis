@@ -468,6 +468,7 @@ export default function SensorGraphDHT21() {
             position: relative;
             min-width: 100%;
             height: 100%;
+            display: flex;
           }
           @media (max-width: 768px) {
             .chart-content {
@@ -490,6 +491,7 @@ export default function SensorGraphDHT21() {
             background-color: #2b2b2b;
             width: 40px;
             height: 100%;
+            flex-shrink: 0;
           }
           .y-axis-right {
             position: sticky;
@@ -498,19 +500,53 @@ export default function SensorGraphDHT21() {
             background-color: #2b2b2b;
             width: 40px;
             height: 100%;
+            flex-shrink: 0;
+          }
+          .chart-main {
+            flex: 1;
+            min-width: 0;
+            position: relative;
           }
         `}</style>
 
         <div className="chart-container">
           <div className="chart-content">
-            <div style={{ 
-              position: 'absolute',
-              left: 40,
-              right: 40,
-              top: 0,
-              bottom: 0
-            }}>
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="y-axis-left">
+              <LineChart
+                data={data}
+                margin={{ top: 5, right: 0, left: 0, bottom: 5 }}
+                width={40}
+                height={400}
+              >
+                <YAxis
+                  yAxisId="left"
+                  orientation="left"
+                  stroke="#44c0ff"
+                  tick={{ fill: "#44c0ff", fontSize: 10 }}
+                  label={{
+                    value: "Вологість (%)",
+                    angle: -90,
+                    position: "insideLeft",
+                    fill: "#44c0ff",
+                    style: { fontSize: "10px" },
+                    className: "y-axis-label"
+                  }}
+                  domain={axisRanges.humidity}
+                  allowDataOverflow={false}
+                  tickCount={5}
+                  tickFormatter={(value) => `${value}%`}
+                  scale="linear"
+                  allowDecimals={true}
+                  tickMargin={5}
+                  width={40}
+                  axisLine={{ stroke: "#44c0ff" }}
+                  tickLine={{ stroke: "#44c0ff" }}
+                />
+              </LineChart>
+            </div>
+
+            <div className="chart-main">
+              <ResponsiveContainer width="100%" height={400}>
                 <LineChart
                   data={data}
                   margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
@@ -561,40 +597,6 @@ export default function SensorGraphDHT21() {
                   ))}
                 </LineChart>
               </ResponsiveContainer>
-            </div>
-
-            <div className="y-axis-left">
-              <LineChart
-                data={data}
-                margin={{ top: 5, right: 0, left: 0, bottom: 5 }}
-                width={40}
-                height={400}
-              >
-                <YAxis
-                  yAxisId="left"
-                  orientation="left"
-                  stroke="#44c0ff"
-                  tick={{ fill: "#44c0ff", fontSize: 10 }}
-                  label={{
-                    value: "Вологість (%)",
-                    angle: -90,
-                    position: "insideLeft",
-                    fill: "#44c0ff",
-                    style: { fontSize: "10px" },
-                    className: "y-axis-label"
-                  }}
-                  domain={axisRanges.humidity}
-                  allowDataOverflow={false}
-                  tickCount={5}
-                  tickFormatter={(value) => `${value}%`}
-                  scale="linear"
-                  allowDecimals={true}
-                  tickMargin={5}
-                  width={40}
-                  axisLine={{ stroke: "#44c0ff" }}
-                  tickLine={{ stroke: "#44c0ff" }}
-                />
-              </LineChart>
             </div>
 
             <div className="y-axis-right">
