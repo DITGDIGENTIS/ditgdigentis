@@ -16,20 +16,31 @@ export const ServerStatus: FC<IProps> = ({
   const lastRef = useRef<boolean>(false);
 
   const checkStatus = async () => {
-    try {
+    try{
+      console.log("Checking status for device:", deviceId);
       const res = await fetch("/api/status", {
         next: { revalidate: 0 },
+        cache: "no-store"
       });
-      const data = await res.json();
-
-      console.log(data, "=== SERVER STATUS ===");
+      
+      const text = await res.text();
+      console.log("Raw response:", text);
+      
+      const data = JSON.parse(text);
+      console.log("Parsed data:", data);
+      console.log("Device data:", data?.[deviceId]);
 
       const lastUpdate = data?.[deviceId]?.timestamp ?? 0;
+      console.log("Last update timestamp:", lastUpdate);
+      console.log("Current time:", Date.now());
+      console.log("Time difference:", Date.now() - lastUpdate);
 
       // УБИРАЕМ *1000, потому что timestamp уже в миллисекундах
       const online = Date.now() - lastUpdate < 20000; // 20 секунд окно
+      console.log("Is online:", online);
 
       if (lastRef.current !== online) {
+        console.log("Status changed:", { from: lastRef.current, to: online });
         lastRef.current = online;
         setIsOnline(online);
       }
