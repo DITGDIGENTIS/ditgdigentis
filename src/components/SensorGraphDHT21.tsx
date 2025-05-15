@@ -451,8 +451,30 @@ export default function SensorGraphDHT21() {
           width: "100%",
           height: 400,
           position: "relative",
+          overflowX: "auto",
+          WebkitOverflowScrolling: "touch",
+          msOverflowStyle: "none",
+          scrollbarWidth: "none",
         }}
+        className="chart-container"
       >
+        <style jsx>{`
+          .chart-container::-webkit-scrollbar {
+            display: none;
+          }
+          @media (max-width: 768px) {
+            .chart-container {
+              min-width: 800px;
+            }
+            .time-label {
+              font-size: 12px;
+              transform: rotate(-45deg);
+              transform-origin: top right;
+              white-space: nowrap;
+            }
+          }
+        `}</style>
+
         <div
           style={{
             position: "sticky",
@@ -480,6 +502,7 @@ export default function SensorGraphDHT21() {
                 angle: -90,
                 position: "insideLeft",
                 fill: "#44c0ff",
+                style: { fontSize: "12px" }
               }}
               domain={axisRanges.humidity}
               allowDataOverflow={false}
@@ -497,6 +520,7 @@ export default function SensorGraphDHT21() {
             flex: 1,
             overflowX: "auto",
             overflowY: "hidden",
+            minWidth: "800px",
           }}
         >
           <div style={{ minWidth: "max-content" }}>
@@ -509,12 +533,22 @@ export default function SensorGraphDHT21() {
                 <XAxis
                   dataKey="time"
                   stroke="#999"
-                  tick={{ fill: "#999" }}
+                  tick={{ fill: "#999", className: "time-label" }}
                   angle={-45}
                   textAnchor="end"
-                  height={60}
+                  height={80}
+                  interval="preserveStartEnd"
+                  minTickGap={30}
                 />
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip 
+                  content={<CustomTooltip />}
+                  wrapperStyle={{
+                    backgroundColor: "#2b2b2b",
+                    border: "1px solid #444",
+                    borderRadius: "4px",
+                    padding: "8px"
+                  }}
+                />
                 {selectedSensors.map((sensorId) => (
                   <React.Fragment key={sensorId}>
                     <Line
@@ -525,6 +559,7 @@ export default function SensorGraphDHT21() {
                       stroke={COLORS[`${sensorId}_humidity` as ColorKey]}
                       dot={false}
                       unit="%"
+                      strokeWidth={2}
                     />
                     <Line
                       yAxisId="right"
@@ -534,6 +569,7 @@ export default function SensorGraphDHT21() {
                       stroke={COLORS[`${sensorId}_temperature` as ColorKey]}
                       dot={false}
                       unit="°C"
+                      strokeWidth={2}
                     />
                   </React.Fragment>
                 ))}
@@ -569,6 +605,7 @@ export default function SensorGraphDHT21() {
                 angle: 90,
                 position: "insideRight",
                 fill: "#ffa500",
+                style: { fontSize: "12px" }
               }}
               domain={axisRanges.temperature}
               allowDataOverflow={false}
