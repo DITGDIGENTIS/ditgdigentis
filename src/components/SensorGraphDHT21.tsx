@@ -512,6 +512,7 @@ export default function SensorGraphDHT21() {
             position: relative;
             width: 100%;
             height: 100%;
+            z-index: 1;
           }
         `}</style>
 
@@ -557,6 +558,12 @@ export default function SensorGraphDHT21() {
                   data={data}
                   margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
                 >
+                  <defs>
+                    <linearGradient id="chartBackground" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#2b2b2b" stopOpacity={0} />
+                      <stop offset="100%" stopColor="#2b2b2b" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#444" />
                   <XAxis
                     dataKey="time"
