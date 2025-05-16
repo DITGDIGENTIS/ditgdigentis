@@ -761,7 +761,7 @@ export default function SensorGraphDHT21() {
           }
           @media (max-width: 768px) {
             .chart-content {
-              min-width: ${selectedPeriod.minutes >= 10080 ? '3000px' : '1200px'};
+              min-width: ${selectedPeriod.minutes === 60 ? '2000px' : (selectedPeriod.minutes >= 10080 ? '3000px' : '1200px')};
             }
             .time-label {
               font-size: ${selectedPeriod.minutes >= 10080 ? '14px' : '12px'};
@@ -775,7 +775,7 @@ export default function SensorGraphDHT21() {
           }
           @media (min-width: 769px) {
             .chart-content {
-              min-width: ${selectedPeriod.minutes >= 10080 ? '2400px' : '100%'};
+              min-width: ${selectedPeriod.minutes === 60 ? '1800px' : (selectedPeriod.minutes >= 10080 ? '2400px' : '100%')};
             }
             .time-label {
               font-size: ${selectedPeriod.minutes >= 10080 ? '14px' : '12px'};
@@ -849,7 +849,7 @@ export default function SensorGraphDHT21() {
                 <ResponsiveContainer width="100%" height={400}>
                   <LineChart
                     data={chartData}
-                    margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+                    margin={{ top: 5, right: 5, left: 5, bottom: 25 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke="#444" />
                     <XAxis
@@ -862,9 +862,9 @@ export default function SensorGraphDHT21() {
                       }}
                       angle={-45}
                       textAnchor="end"
-                      height={80}
-                      interval={selectedPeriod.minutes === 60 ? 1 : (selectedPeriod.minutes >= 10080 ? 48 : (selectedPeriod.minutes <= 60 ? (window.innerWidth <= 768 ? 3 : 2) : "preserveStartEnd"))}
-                      minTickGap={selectedPeriod.minutes === 60 ? 20 : (selectedPeriod.minutes >= 10080 ? 200 : (window.innerWidth <= 768 ? 40 : (selectedPeriod.minutes <= 720 ? 15 : 30)))}
+                      height={60}
+                      interval={selectedPeriod.minutes === 60 ? 2 : (selectedPeriod.minutes >= 10080 ? 48 : (selectedPeriod.minutes <= 60 ? (window.innerWidth <= 768 ? 3 : 2) : "preserveStartEnd"))}
+                      minTickGap={selectedPeriod.minutes === 60 ? 40 : (selectedPeriod.minutes >= 10080 ? 200 : (window.innerWidth <= 768 ? 40 : (selectedPeriod.minutes <= 720 ? 15 : 30)))}
                       tickMargin={selectedPeriod.minutes === 60 ? 15 : (selectedPeriod.minutes >= 10080 ? 35 : (window.innerWidth <= 768 ? 15 : 10))}
                     />
                     <YAxis
