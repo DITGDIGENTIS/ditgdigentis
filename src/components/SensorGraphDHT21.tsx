@@ -1,19 +1,5 @@
-"use client";
-
-import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
-import _ from "lodash";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  ReferenceArea,
-  ReferenceLine,
-  Brush
-} from "recharts";
+import React, { useEffect, useRef, useState, useMemo } from 'react';
+import _ from 'lodash';
 
 interface SensorPoint {
   sensor_id: string;
@@ -22,440 +8,150 @@ interface SensorPoint {
   temperature: number;
 }
 
-interface ChartDataPoint {
-  timestamp: number;
-  time: string;
-  [key: string]: number | string;
-}
-
 const SENSOR_IDS = ["HUM1-1", "HUM1-2"] as const;
 type SensorId = (typeof SENSOR_IDS)[number];
-type ColorKey = `${SensorId}_humidity` | `${SensorId}_temperature`;
 
-// Функция для генерации цветов
-const generateColors = (
-  sensorIds: readonly string[]
-): Record<ColorKey, string> => {
-  const colors: Record<string, string> = {};
+interface ColorKey {
+  [key: string]: string;
+}
 
-  // Базовые цвета для влажности (оттенки синего)
-  const humidityColors = [
-    "#4dabf7", // Синий
-    "#339af0", // Голубой
-    "#228be6", // Темно-синий
-    "#1c7ed6", // Морской
-    "#1971c2", // Индиго
-    "#1864ab", // Нави
-    "#145591", // Океан
-    "#0c4b8e", // Глубокий синий
-  ];
-
-  // Базовые цвета для температуры (оттенки оранжевого/красного)
-  const temperatureColors = [
-    "#ffa500", // Оранжевый
-    "#ff6b6b", // Красный
-    "#fa5252", // Алый
-    "#f03e3e", // Киноварь
-    "#e03131", // Кармин
-    "#c92a2a", // Бордовый
-    "#a61e1e", // Темно-красный
-    "#862e2e", // Коричневый
-  ];
-
-  sensorIds.forEach((sensorId, index) => {
-    const humidityColor = humidityColors[index % humidityColors.length];
-    const temperatureColor =
-      temperatureColors[index % temperatureColors.length];
-
-    colors[`${sensorId}_humidity`] = humidityColor;
-    colors[`${sensorId}_temperature`] = temperatureColor;
-  });
-
-  return colors as Record<ColorKey, string>;
+const COLORS: ColorKey = {
+  "HUM1-1_humidity": "#4dabf7",
+  "HUM1-1_temperature": "#ffa500",
+  "HUM1-2_humidity": "#339af0",
+  "HUM1-2_temperature": "#ff6b6b"
 };
 
-const COLORS = generateColors(SENSOR_IDS);
+interface PeriodOption {
+  label: string;
+  minutes: number;
+  interval: number;
+  intervalUnit: 'seconds' | 'minutes' | 'hours' | 'days';
+}
 
-const PERIOD_OPTIONS = [
-  { label: "1 година", minutes: 60, groupBySeconds: 3, tickMinutes: 5 },
-  { label: "12 годин", minutes: 720, groupBySeconds: 30, tickMinutes: 30 },
-  { label: "1 день", minutes: 1440, groupBySeconds: 300, tickMinutes: 60 },
-  { label: "1 тиждень", minutes: 10080, groupBySeconds: 1800, tickHours: 3 },
-  { label: "1 місяць", minutes: 43200, groupBySeconds: 10800, tickHours: 6 },
-  { label: "1 рік", minutes: 525600, groupByDays: 1, tickDays: 7 }
+const PERIOD_OPTIONS: PeriodOption[] = [
+  { label: "1 година", minutes: 60, interval: 3, intervalUnit: 'seconds' }, // каждые 3 секунды
+  { label: "12 годин", minutes: 720, interval: 30, intervalUnit: 'seconds' }, // каждые 30 секунд
+  { label: "1 день", minutes: 1440, interval: 5, intervalUnit: 'minutes' }, // каждые 5 минут
+  { label: "1 тиждень", minutes: 10080, interval: 30, intervalUnit: 'minutes' }, // каждые 30 минут
+  { label: "1 місяць", minutes: 43200, interval: 3, intervalUnit: 'hours' }, // каждые 3 часа
+  { label: "1 рік", minutes: 525600, interval: 1, intervalUnit: 'days' } // каждый день
 ];
 
-// Определяем тип для параметров линии
-interface LineProperties {
-  type: "monotone";
-  strokeWidth: number;
-  connectNulls: boolean;
-  dot: boolean | { r: number };
-  activeDot: { r: number };
-  isAnimationActive?: boolean;
-}
-
-// Добавляем интерфейс для статистических данных
-interface Statistics {
-  min: number;
-  max: number;
-  avg: number;
-  median: number;
-  stdDev: number;
-}
-
-interface StatisticsMap {
-  [key: string]: Statistics;
-}
-
-const SensorGraphDHT21 = () => {
-  const [historicalData, setHistoricalData] = useState<SensorPoint[]>([]);
-  const [liveData, setLiveData] = useState<Record<string, SensorPoint>>({});
-  const [selectedPeriod, setSelectedPeriod] = useState(PERIOD_OPTIONS[0]);
-  const [selectedSensors, setSelectedSensors] = useState<string[]>([...SENSOR_IDS]);
-  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split("T")[0]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
-  const chartRef = useRef<HTMLDivElement>(null);
-  
-  // Добавляем состояния для зума
-  const [zoomState, setZoomState] = useState({
-    refAreaLeft: '',
-    refAreaRight: '',
-    left: 'dataMin',
-    right: 'dataMax',
-    top: 'dataMax+1',
-    bottom: 'dataMin-1',
-    animation: true
-  });
-
-  // Добавляем константы для шкал
-  const DEFAULT_RANGES = {
-    humidity: [0, 100],
-    temperature: [-10, 50]
+interface SVGSensorGraphProps {
+  width?: number;
+  height?: number;
+  padding?: {
+    top: number;
+    right: number;
+    bottom: number;
+    left: number;
   };
+}
 
-  // Добавляем состояние для статистики
-  const [statistics, setStatistics] = useState<StatisticsMap>({});
+const SVGSensorGraph: React.FC<SVGSensorGraphProps> = ({
+  width = 1200,
+  height = 600,
+  padding = { top: 40, right: 60, bottom: 60, left: 60 }
+}) => {
+  const [data, setData] = useState<SensorPoint[]>([]);
+  const [selectedPeriod, setSelectedPeriod] = useState<PeriodOption>(PERIOD_OPTIONS[0]);
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [selectedSensors, setSelectedSensors] = useState<string[]>([...SENSOR_IDS]);
+  const [isLoading, setIsLoading] = useState(false);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [hoveredPoint, setHoveredPoint] = useState<{
+    x: number;
+    y: number;
+    values: {
+      sensorId: string;
+      humidity: number;
+      temperature: number;
+      timestamp: number;
+    };
+  } | null>(null);
 
-  // Add window resize listener
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
+  // Размеры графика
+  const graphWidth = width - padding.left - padding.right;
+  const graphHeight = height - padding.top - padding.bottom;
 
-    const handleResize = _.debounce(() => {
-      setWindowWidth(window.innerWidth);
-    }, 250);
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // Replace all window.innerWidth with windowWidth state
-  const isMobile = windowWidth <= 768;
-
-  // Добавляем функцию форматирования диапазона времени
-  const formatTimeRange = useCallback((startTime: number, endTime: number) => {
-    const start = new Date(startTime);
-    const end = new Date(endTime);
+  // Функция для форматирования времени в зависимости от периода
+  const formatTime = (timestamp: number): string => {
+    const date = new Date(timestamp);
     
-    const formatOptions: Intl.DateTimeFormatOptions = {
-      hour: '2-digit',
-      minute: '2-digit',
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    };
-
-    if (selectedPeriod.minutes === 60) {
-      // Для часового периода показываем часы и минуты
-      return `${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')} - ${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`;
-    } else if (selectedPeriod.minutes <= 1440) {
-      // Для периодов до суток включительно
-      return start.toLocaleString('uk-UA', {
-        hour: '2-digit',
-        minute: '2-digit'
-      }) + ' - ' + end.toLocaleString('uk-UA', {
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } else {
-      // Для более длительных периодов включаем дату
-      return start.toLocaleString('uk-UA', formatOptions) + ' - ' + 
-             end.toLocaleString('uk-UA', formatOptions);
-    }
-  }, [selectedPeriod.minutes]);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        
-        const today = new Date().toISOString().split('T')[0];
-        const isToday = selectedDate === today;
-        
-        // Устанавливаем начало и конец периода
-        let startDate = new Date(selectedDate);
-        startDate.setHours(0, 0, 0, 0);
-        
-        let endDate = new Date(selectedDate);
-        endDate.setDate(endDate.getDate() + 1);
-        endDate.setHours(0, 0, 0, 0);
-
-        // Для часового периода берем последний час текущего дня
-        if (selectedPeriod.minutes === 60) {
-          const now = new Date();
-          startDate = new Date(now);
-          startDate.setMinutes(Math.floor(now.getMinutes() / 5) * 5, 0, 0);
-          startDate.setTime(startDate.getTime() - 60 * 60 * 1000);
-          endDate = new Date(now);
-        } else if (selectedPeriod.minutes === 720) {
-          // Для 12-часового периода берем последние 12 часов
-          const now = new Date();
-          startDate = new Date(now);
-          startDate.setTime(startDate.getTime() - 12 * 60 * 60 * 1000);
-          endDate = new Date(now);
-        }
-
-        const queryParams = new URLSearchParams({
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString(),
-          sensorIds: selectedSensors.join(',')
-        });
-
-        const [historicalRes, liveRes] = await Promise.all([
-          fetch(`/api/humidity-readings?${queryParams}`, {
-            cache: "no-store",
-            headers: {
-              'Cache-Control': 'no-cache',
-              'Pragma': 'no-cache'
-            }
-          }),
-          isToday ? fetch("/api/humidity", {
-            cache: "no-store",
-            headers: {
-              'Cache-Control': 'no-cache',
-              'Pragma': 'no-cache'
-            }
-          }) : Promise.resolve(new Response(JSON.stringify({ sensors: {} })))
-        ]);
-
-        if (!historicalRes.ok || (isToday && !liveRes.ok)) {
-          throw new Error(
-            `Failed to fetch data: Historical ${historicalRes.status}${isToday ? `, Live ${liveRes.status}` : ''}`
-          );
-        }
-
-        const [readings, live] = await Promise.all([
-          historicalRes.json(),
-          isToday ? liveRes.json() : { sensors: {} }
-        ]);
-
-        // Обрабатываем исторические данные
-        const formattedHistorical = readings.map((r: any) => ({
-          sensor_id: r.sensor_id,
-          timestamp: new Date(r.timestamp).getTime(),
-          humidity: _.round(Number(r.humidity), 1),
-          temperature: _.round(Number(r.temperature), 1),
-        }));
-
-        // Обрабатываем живые данные
-        const formattedLive = isToday ? 
-          Object.entries(live.sensors).reduce((acc: Record<string, SensorPoint>, [id, data]: [string, any]) => {
-            acc[id] = {
-              sensor_id: data.id,
-              timestamp: Number(data.timestamp),
-              humidity: _.round(Number(data.humidity), 1),
-              temperature: _.round(Number(data.temperature), 1),
-            };
-            return acc;
-          }, {}) : {};
-
-        setHistoricalData(formattedHistorical);
-        setLiveData(formattedLive);
-      } catch (e) {
-        console.error("Failed to fetch sensor data:", e);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-
-    const isToday = selectedDate === new Date().toISOString().split('T')[0];
-    const updateInterval = selectedPeriod.minutes === 60 ? 3000 : 15000;
-    const interval = isToday ? setInterval(fetchData, updateInterval) : null;
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [selectedPeriod, selectedSensors, selectedDate]);
-
-  const getTimeKey = (date: Date) => {
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    const seconds = date.getSeconds().toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-
-    // Форматируем время в зависимости от периода для точной аналитики
     switch(selectedPeriod.minutes) {
       case 60: // 1 час
-        // Каждые 5 секунд
-        const roundedSeconds = Math.floor(date.getSeconds() / 5) * 5;
-        return `${hours}:${minutes}:${roundedSeconds.toString().padStart(2, '0')}`;
+        return date.toLocaleTimeString('uk-UA', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          second: '2-digit'
+        });
       case 720: // 12 часов
-        // Каждые 5 минут
-        const roundedMinutes12h = Math.floor(date.getMinutes() / 5) * 5;
-        return `${hours}:${roundedMinutes12h.toString().padStart(2, '0')}`;
+        return date.toLocaleTimeString('uk-UA', { 
+          hour: '2-digit', 
+          minute: '2-digit'
+        });
       case 1440: // 1 день
-        // Каждые 5 минут
-        const roundedMinutes24h = Math.floor(date.getMinutes() / 5) * 5;
-        return `${hours}:${roundedMinutes24h.toString().padStart(2, '0')}`;
+        return date.toLocaleTimeString('uk-UA', { 
+          hour: '2-digit', 
+          minute: '2-digit'
+        });
       case 10080: // 1 неделя
-        // Каждый час
-        return `${day}.${month} ${hours}:00`;
+        return `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:00`;
       case 43200: // 1 месяц
-        // Каждые 12 часов
-        return `${day}.${month} ${hours}:00`;
+        return `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:00`;
       default: // 1 год
-        // По 5 дней
-        return `${day}.${month}`;
+        return `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}`;
     }
   };
 
-  const formatTime = (ts: number) => {
-    const date = new Date(ts);
+  // Функция для получения временных меток
+  const getTimePoints = (): Date[] => {
+    const startDate = new Date(selectedDate);
+    startDate.setHours(0, 0, 0, 0);
+    
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 1);
 
-    if (selectedPeriod.minutes === 60) {
-      // Для часового периода показываем время в формате ЧЧ:ММ
-      const minutes = Math.floor(date.getMinutes() / 5) * 5;
-      return `${date.getHours().toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-    } else if (selectedPeriod.minutes === 720) {
-      // Для 12-часового периода
-      const hours = date.getHours().toString().padStart(2, '0');
-      const minutes = Math.floor(date.getMinutes() / 30) * 30;
-      return `${hours}:${minutes.toString().padStart(2, '0')}`;
-    } else if (selectedPeriod.minutes === 1440) {
-      // Для суточного периода
-      const hours = date.getHours().toString().padStart(2, '0');
-      const minutes = Math.floor(date.getMinutes() / 5) * 5;
-      return `${hours}:${minutes.toString().padStart(2, '0')}`;
-    } else if (selectedPeriod.minutes === 10080) {
-      // Для недельного периода
-      const day = date.getDate().toString().padStart(2, '0');
-      const month = (date.getMonth() + 1).toString().padStart(2, '0');
-      const hours = date.getHours().toString().padStart(2, '0');
-      return `${day}.${month} ${hours}:00`;
-    } else if (selectedPeriod.minutes === 43200) {
-      // Для месячного периода
-      const day = date.getDate().toString().padStart(2, '0');
-      const month = (date.getMonth() + 1).toString().padStart(2, '0');
-      const hours = Math.floor(date.getHours() / 3) * 3;
-      return `${day}.${month} ${hours.toString().padStart(2, '0')}:00`;
-    } else {
-      // Для годового периода
-      const day = date.getDate().toString().padStart(2, '0');
-      const month = (date.getMonth() + 1).toString().padStart(2, '0');
-      return `${day}.${month}`;
-    }
-  };
+    const points: Date[] = [];
+    let currentDate = new Date(startDate);
 
-  // Мемоизируем функцию форматирования данных
-  const formatData = useCallback((): ChartDataPoint[] => {
-    const filtered = _.chain(historicalData)
-      .filter(d => {
-        const timestamp = new Date(d.timestamp).getTime();
-        return selectedSensors.includes(d.sensor_id);
-      })
-      .orderBy(['timestamp'], ['asc'])
-      .value();
-
-    // Группируем данные в зависимости от периода
-    const groupedByTime = _.groupBy(filtered, point => {
-      const date = new Date(point.timestamp);
-      date.setMilliseconds(0);
-
-      if (selectedPeriod.minutes === 60) {
-        // Группировка по 3 секунды
-        const seconds = Math.floor(date.getSeconds() / 3) * 3;
-        date.setSeconds(seconds);
-      } else if (selectedPeriod.minutes === 720) {
-        // Группировка по 30 секунд
-        date.setSeconds(Math.floor(date.getSeconds() / 30) * 30);
-      } else if (selectedPeriod.minutes === 1440) {
-        // Группировка по 5 минут
-        date.setMinutes(Math.floor(date.getMinutes() / 5) * 5);
-        date.setSeconds(0);
-      } else if (selectedPeriod.minutes === 10080) {
-        // Группировка по 30 минут
-        date.setMinutes(Math.floor(date.getMinutes() / 30) * 30);
-        date.setSeconds(0);
-      } else if (selectedPeriod.minutes === 43200) {
-        // Группировка по 3 часа
-        date.setHours(Math.floor(date.getHours() / 3) * 3);
-        date.setMinutes(0);
-        date.setSeconds(0);
-      } else {
-        // Группировка по дням
-        date.setHours(0);
-        date.setMinutes(0);
-        date.setSeconds(0);
+    while (currentDate < endDate) {
+      points.push(new Date(currentDate));
+      
+      switch(selectedPeriod.intervalUnit) {
+        case 'seconds':
+          currentDate.setSeconds(currentDate.getSeconds() + selectedPeriod.interval);
+          break;
+        case 'minutes':
+          currentDate.setMinutes(currentDate.getMinutes() + selectedPeriod.interval);
+          break;
+        case 'hours':
+          currentDate.setHours(currentDate.getHours() + selectedPeriod.interval);
+          break;
+        case 'days':
+          currentDate.setDate(currentDate.getDate() + selectedPeriod.interval);
+          break;
       }
-      return date.getTime();
-    });
+    }
 
-    return _.map(groupedByTime, (points, timeKey) => {
-      const timestamp = Number(timeKey);
-      const dataPoint: ChartDataPoint = {
-        timestamp,
-        time: formatTime(timestamp),
-      };
+    return points;
+  };
 
-      selectedSensors.forEach(sensorId => {
-        const sensorPoints = points.filter(p => p.sensor_id === sensorId);
-        if (sensorPoints.length > 0) {
-          const humidityValues = sensorPoints.map(p => p.humidity);
-          const tempValues = sensorPoints.map(p => p.temperature);
-
-          dataPoint[`${sensorId}_humidity`] = _.round(_.mean(humidityValues), 1);
-          dataPoint[`${sensorId}_temperature`] = _.round(_.mean(tempValues), 1);
-        }
-      });
-
-      return dataPoint;
-    });
-  }, [historicalData, selectedPeriod, selectedSensors]);
-
-  // Мемоизируем отформатированные данные
-  const chartData = useMemo(() => formatData(), [formatData]);
-
-  // Мемоизируем функцию расчета диапазонов осей
-  const calculateAxisRanges = useCallback((data: ChartDataPoint[]) => {
-    if (!data.length) return DEFAULT_RANGES;
+  // Функция для масштабирования значений
+  const getScales = () => {
+    if (!data.length) return null;
 
     const humidityValues: number[] = [];
     const temperatureValues: number[] = [];
 
-    // Собираем все значения
     data.forEach(point => {
-      selectedSensors.forEach(sensorId => {
-        const humidityKey = `${sensorId}_humidity`;
-        const tempKey = `${sensorId}_temperature`;
-        
-        if (point[humidityKey] !== undefined) {
-          humidityValues.push(Number(point[humidityKey]));
-        }
-        if (point[tempKey] !== undefined) {
-          temperatureValues.push(Number(point[tempKey]));
-        }
-      });
+      if (selectedSensors.includes(point.sensor_id)) {
+        humidityValues.push(point.humidity);
+        temperatureValues.push(point.temperature);
+      }
     });
 
-    if (humidityValues.length === 0 || temperatureValues.length === 0) {
-      return DEFAULT_RANGES;
-    }
-
-    // Находим минимальные и максимальные значения
     const humidityMin = Math.min(...humidityValues);
     const humidityMax = Math.max(...humidityValues);
     const tempMin = Math.min(...temperatureValues);
@@ -465,587 +161,543 @@ const SensorGraphDHT21 = () => {
     const humidityPadding = (humidityMax - humidityMin) * 0.1;
     const tempPadding = (tempMax - tempMin) * 0.1;
 
-    // Округляем значения для более красивых шкал
-    const roundToNearest = (value: number, step: number) => Math.round(value / step) * step;
-
     return {
-      humidity: [
-        Math.max(0, roundToNearest(humidityMin - humidityPadding, 5)),
-        Math.min(100, roundToNearest(humidityMax + humidityPadding, 5))
-      ],
-      temperature: [
-        roundToNearest(tempMin - tempPadding, 2),
-        roundToNearest(tempMax + tempPadding, 2)
-      ]
+      humidity: {
+        min: Math.max(0, humidityMin - humidityPadding),
+        max: Math.min(100, humidityMax + humidityPadding)
+      },
+      temperature: {
+        min: tempMin - tempPadding,
+        max: tempMax + tempPadding
+      }
     };
-  }, []);
+  };
 
-  // Мемоизируем диапазоны осей
-  const axisRanges = useMemo(() => calculateAxisRanges(chartData), [chartData, calculateAxisRanges]);
+  // Функция для получения координат точки на графике
+  const getPointCoordinates = (point: SensorPoint, scales: ReturnType<typeof getScales>) => {
+    if (!scales) return null;
 
-  const downloadCSV = (sensorId: string) => {
-    const filtered = historicalData.filter((d) => d.sensor_id === sensorId);
-    if (!filtered.length) {
+    const timePoints = getTimePoints();
+    const xScale = graphWidth / (timePoints.length - 1);
+    
+    // Находим ближайшую временную метку
+    const pointTime = new Date(point.timestamp);
+    const timeIndex = timePoints.findIndex(time => {
+      const diff = Math.abs(time.getTime() - pointTime.getTime());
+      return diff < selectedPeriod.interval * 1000; // Конвертируем интервал в миллисекунды
+    });
+
+    if (timeIndex === -1) return null;
+
+    const x = padding.left + timeIndex * xScale;
+    
+    const humidityY = padding.top + (scales.humidity.max - point.humidity) / 
+      (scales.humidity.max - scales.humidity.min) * graphHeight;
+    
+    const temperatureY = padding.top + (scales.temperature.max - point.temperature) / 
+      (scales.temperature.max - scales.temperature.min) * graphHeight;
+
+    return { x, humidityY, temperatureY };
+  };
+
+  // Функция для отрисовки линий графика
+  const renderLines = () => {
+    const scales = getScales();
+    if (!scales) return null;
+
+    return selectedSensors.map(sensorId => {
+      const sensorData = data.filter(point => point.sensor_id === sensorId);
+      const points = sensorData.map(point => getPointCoordinates(point, scales)).filter((p): p is NonNullable<typeof p> => p !== null);
+
+      if (points.length < 2) return null;
+
+      return (
+        <g key={sensorId} className="sensor-lines">
+          {/* Линия влажности */}
+          <path
+            d={`M ${points.map(p => `${p.x},${p.humidityY}`).join(' L ')}`}
+            stroke={COLORS[`${sensorId}_humidity`]}
+            strokeWidth="2"
+            fill="none"
+          />
+          {/* Линия температуры */}
+          <path
+            d={`M ${points.map(p => `${p.x},${p.temperatureY}`).join(' L ')}`}
+            stroke={COLORS[`${sensorId}_temperature`]}
+            strokeWidth="2"
+            fill="none"
+          />
+          {/* Точки для интерактивности */}
+          {points.map((point, index) => {
+            const originalData = sensorData[index];
+            return (
+              <g key={`points-${index}`}>
+                <circle
+                  cx={point.x}
+                  cy={point.humidityY}
+                  r="4"
+                  fill={COLORS[`${sensorId}_humidity`]}
+                  opacity="0"
+                  onMouseEnter={() => setHoveredPoint({
+                    x: point.x,
+                    y: point.humidityY,
+                    values: {
+                      sensorId,
+                      humidity: originalData.humidity,
+                      temperature: originalData.temperature,
+                      timestamp: originalData.timestamp
+                    }
+                  })}
+                  onMouseLeave={() => setHoveredPoint(null)}
+                />
+                <circle
+                  cx={point.x}
+                  cy={point.temperatureY}
+                  r="4"
+                  fill={COLORS[`${sensorId}_temperature`]}
+                  opacity="0"
+                  onMouseEnter={() => setHoveredPoint({
+                    x: point.x,
+                    y: point.temperatureY,
+                    values: {
+                      sensorId,
+                      humidity: originalData.humidity,
+                      temperature: originalData.temperature,
+                      timestamp: originalData.timestamp
+                    }
+                  })}
+                  onMouseLeave={() => setHoveredPoint(null)}
+                />
+              </g>
+            );
+          })}
+        </g>
+      );
+    });
+  };
+
+  // Функция для отрисовки тултипа
+  const renderTooltip = () => {
+    if (!hoveredPoint) return null;
+
+    const tooltipX = hoveredPoint.x + 10;
+    const tooltipY = hoveredPoint.y - 10;
+
+    return (
+      <g className="tooltip" transform={`translate(${tooltipX},${tooltipY})`}>
+        <rect
+          x="-5"
+          y="-35"
+          width="160"
+          height="70"
+          fill="rgba(35, 35, 35, 0.95)"
+          stroke="#666"
+          rx="4"
+        />
+        <text x="5" y="-15" fill="#fff" fontSize="12">
+          {hoveredPoint.values.sensorId}
+        </text>
+        <text x="5" y="5" fill="#44c0ff" fontSize="12">
+          Вологість: {hoveredPoint.values.humidity.toFixed(1)}%
+        </text>
+        <text x="5" y="25" fill="#ffa500" fontSize="12">
+          Температура: {hoveredPoint.values.temperature.toFixed(1)}°C
+        </text>
+      </g>
+    );
+  };
+
+  // Функция для генерации делений шкалы
+  const generateTicks = (min: number, max: number, count: number = 5): number[] => {
+    const step = (max - min) / (count - 1);
+    return Array.from({ length: count }, (_, i) => min + step * i);
+  };
+
+  // Обновляем функцию renderSVG
+  const renderSVG = () => {
+    const timePoints = getTimePoints();
+    const xScale = graphWidth / (timePoints.length - 1);
+    const scales = getScales();
+    
+    // Генерируем деления для осей
+    const humidityTicks = scales ? generateTicks(scales.humidity.min, scales.humidity.max) : [];
+    const temperatureTicks = scales ? generateTicks(scales.temperature.min, scales.temperature.max) : [];
+    
+    return (
+      <>
+        {/* Горизонтальные линии сетки и метки значений */}
+        <g className="grid-horizontal">
+          {humidityTicks.map((tick, index) => {
+            const y = padding.top + (scales!.humidity.max - tick) / 
+              (scales!.humidity.max - scales!.humidity.min) * graphHeight;
+            return (
+              <g key={`humidity-tick-${index}`}>
+                <line
+                  x1={padding.left}
+                  y1={y}
+                  x2={width - padding.right}
+                  y2={y}
+                  stroke="#444"
+                  strokeDasharray="3,3"
+                />
+                <text
+                  x={padding.left - 10}
+                  y={y}
+                  fill="#44c0ff"
+                  fontSize="12"
+                  textAnchor="end"
+                  dominantBaseline="middle"
+                >
+                  {tick.toFixed(1)}%
+                </text>
+              </g>
+            );
+          })}
+          {temperatureTicks.map((tick, index) => {
+            const y = padding.top + (scales!.temperature.max - tick) / 
+              (scales!.temperature.max - scales!.temperature.min) * graphHeight;
+            return (
+              <g key={`temperature-tick-${index}`}>
+                <text
+                  x={width - padding.right + 10}
+                  y={y}
+                  fill="#ffa500"
+                  fontSize="12"
+                  textAnchor="start"
+                  dominantBaseline="middle"
+                >
+                  {tick.toFixed(1)}°C
+                </text>
+              </g>
+            );
+          })}
+        </g>
+
+        {/* Вертикальные линии сетки и метки времени */}
+        <g className="grid">
+          {timePoints.map((time, index) => (
+            <line
+              key={`grid-${index}`}
+              x1={padding.left + index * xScale}
+              y1={padding.top}
+              x2={padding.left + index * xScale}
+              y2={height - padding.bottom}
+              stroke="#444"
+              strokeDasharray="3,3"
+            />
+          ))}
+        </g>
+
+        {/* Ось X */}
+        <g className="x-axis">
+          <line
+            x1={padding.left}
+            y1={height - padding.bottom}
+            x2={width - padding.right}
+            y2={height - padding.bottom}
+            stroke="#666"
+            strokeWidth="2"
+          />
+          {timePoints.map((time, index) => (
+            <g
+              key={`time-${index}`}
+              transform={`translate(${padding.left + index * xScale},${height - padding.bottom + 20})`}
+            >
+              <text
+                transform="rotate(-45)"
+                textAnchor="end"
+                fill="#999"
+                fontSize="12"
+              >
+                {formatTime(time.getTime())}
+              </text>
+            </g>
+          ))}
+        </g>
+
+        {/* Оси Y */}
+        <g className="y-axis-left">
+          <line
+            x1={padding.left}
+            y1={padding.top}
+            x2={padding.left}
+            y2={height - padding.bottom}
+            stroke="#44c0ff"
+            strokeWidth="2"
+          />
+          <text
+            transform={`translate(${padding.left - 40},${height / 2}) rotate(-90)`}
+            fill="#44c0ff"
+            textAnchor="middle"
+            fontSize="14"
+          >
+            Вологість (%)
+          </text>
+        </g>
+
+        <g className="y-axis-right">
+          <line
+            x1={width - padding.right}
+            y1={padding.top}
+            x2={width - padding.right}
+            y2={height - padding.bottom}
+            stroke="#ffa500"
+            strokeWidth="2"
+          />
+          <text
+            transform={`translate(${width - padding.right + 40},${height / 2}) rotate(90)`}
+            fill="#ffa500"
+            textAnchor="middle"
+            fontSize="14"
+          >
+            Температура (°C)
+          </text>
+        </g>
+
+        {/* Линии графика */}
+        {renderLines()}
+
+        {/* Тултип */}
+        {renderTooltip()}
+      </>
+    );
+  };
+
+  // Эффект для загрузки данных
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const startDate = new Date(selectedDate);
+        startDate.setHours(0, 0, 0, 0);
+        
+        const endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 1);
+
+        const queryParams = new URLSearchParams({
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+          sensorIds: selectedSensors.join(',')
+        });
+
+        const response = await fetch(`/api/humidity-readings?${queryParams}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const readings = await response.json();
+        setData(readings);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [selectedDate, selectedPeriod, selectedSensors]);
+
+  // Функция для экспорта данных в CSV
+  const exportToCSV = (sensorId: string) => {
+    const sensorData = data.filter(point => point.sensor_id === sensorId);
+    if (!sensorData.length) {
       console.warn(`No data available for ${sensorId}`);
-      return alert(`Немає даних для ${sensorId}`);
+      return;
     }
 
-    // Добавляем больше информации в CSV для аналитики
+    // Форматируем данные для CSV
     const header = "Дата,Час,Температура,Вологість";
-    const rows = filtered.map((d) => {
-      const date = new Date(d.timestamp);
-      return `${date.toLocaleDateString('uk-UA')},${date.toLocaleTimeString('uk-UA')},${d.temperature.toFixed(2)},${d.humidity.toFixed(2)}`;
+    const rows = sensorData.map(point => {
+      const date = new Date(point.timestamp);
+      return `${date.toLocaleDateString('uk-UA')},${date.toLocaleTimeString('uk-UA')},${point.temperature.toFixed(2)},${point.humidity.toFixed(2)}`;
     });
     
     const csv = [header, ...rows].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${sensorId}_${selectedDate}_${selectedPeriod.label}.csv`;
-    a.click();
+    
+    // Создаем ссылку для скачивания
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `${sensorId}_${selectedDate}_${selectedPeriod.label}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
 
-  // Функция расчета статистики
-  const calculateStatistics = useCallback((data: ChartDataPoint[], sensorId: string) => {
-    const humidityKey = `${sensorId}_humidity`;
-    const tempKey = `${sensorId}_temperature`;
-    
-    const calculateStatsForKey = (key: string) => {
-      const values = data
-        .map(point => Number(point[key]))
-        .filter(val => !isNaN(val));
-
-      if (values.length === 0) return null;
-
-      const sorted = [...values].sort((a, b) => a - b);
-      const sum = values.reduce((a, b) => a + b, 0);
-      const avg = sum / values.length;
-      const median = sorted.length % 2 === 0
-        ? (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
-        : sorted[Math.floor(sorted.length / 2)];
-      
-      // Расчет стандартного отклонения
-      const squareDiffs = values.map(value => Math.pow(value - avg, 2));
-      const avgSquareDiff = squareDiffs.reduce((a, b) => a + b, 0) / values.length;
-      const stdDev = Math.sqrt(avgSquareDiff);
-
-      return {
-        min: Math.min(...values),
-        max: Math.max(...values),
-        avg,
-        median,
-        stdDev
-      };
-    };
-
-    return {
-      [`${sensorId}_humidity`]: calculateStatsForKey(humidityKey),
-      [`${sensorId}_temperature`]: calculateStatsForKey(tempKey)
-    };
-  }, []);
-
-  // Обновляем статистику при изменении данных
-  useEffect(() => {
-    const newStats: StatisticsMap = {};
-    selectedSensors.forEach(sensorId => {
-      const sensorStats = calculateStatistics(chartData, sensorId);
-      Object.assign(newStats, sensorStats);
-    });
-    setStatistics(newStats);
-  }, [chartData, selectedSensors, calculateStatistics]);
-
-  // Кастомный тултип с дополнительной статистикой
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      const timestamp = payload[0]?.payload?.timestamp;
-      const date = timestamp ? new Date(timestamp) : null;
-      
-      return (
-        <div className="custom-tooltip">
-          <style jsx>{`
-            .custom-tooltip {
-              background-color: rgba(35, 35, 35, 0.95);
-              border: 1px solid #666;
-              border-radius: 4px;
-              padding: 8px;
-              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-              font-size: 11px;
-            }
-            .tooltip-header {
-              margin-bottom: 4px;
-              padding-bottom: 4px;
-              border-bottom: 1px solid #555;
-              font-weight: 500;
-            }
-            .tooltip-row {
-              display: flex;
-              justify-content: space-between;
-              gap: 8px;
-              white-space: nowrap;
-            }
-            .tooltip-value {
-              font-weight: 500;
-            }
-          `}</style>
-          <div className="tooltip-header text-white">
-            {date && date.toLocaleString('uk-UA', {
-              hour: '2-digit',
-              minute: '2-digit',
-              second: selectedPeriod.minutes <= 720 ? '2-digit' : undefined,
-              hour12: false
-            })}
-          </div>
-          {payload.map((entry: any, index: number) => (
-            <div key={index} className="tooltip-row">
-              <span style={{ color: entry.color }}>
-                {entry.value.toFixed(1)}{entry.unit}
-              </span>
-            </div>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
-
-  // Функция для определения параметров линий с улучшенной визуализацией
-  const getLineProps = useCallback((): LineProperties => {
-    const baseProps = {
-      type: "monotone" as const,
-      strokeWidth: 2,
-      connectNulls: true,
-      dot: selectedPeriod.minutes >= 10080 ? { r: 2 } : false,
-      activeDot: { r: 6, strokeWidth: 1 }
-    };
-
-    // Отключаем анимацию только для часового графика
-    if (selectedPeriod.minutes === 60) {
-      return {
-        ...baseProps,
-        isAnimationActive: false
-      };
-    }
-
-    return baseProps;
-  }, [selectedPeriod.minutes]);
-
-  // Мемоизируем параметры линий
-  const lineProps = useMemo(() => getLineProps(), [selectedPeriod.minutes]);
-
-  // Добавляем функции для управления зумом
-  const zoom = () => {
-    let { refAreaLeft, refAreaRight } = zoomState;
-    
-    if (refAreaLeft === refAreaRight || !refAreaRight) {
-      setZoomState({
-        ...zoomState,
-        refAreaLeft: '',
-        refAreaRight: ''
-      });
-      return;
-    }
-
-    // Убеждаемся, что left меньше right
-    if (Number(refAreaLeft) > Number(refAreaRight)) {
-      [refAreaLeft, refAreaRight] = [refAreaRight, refAreaLeft];
-    }
-
-    setZoomState({
-      ...zoomState,
-      refAreaLeft: '',
-      refAreaRight: '',
-      left: refAreaLeft,
-      right: refAreaRight
-    });
-  };
-
-  const zoomOut = () => {
-    setZoomState({
-      ...zoomState,
-      refAreaLeft: '',
-      refAreaRight: '',
-      left: 'dataMin',
-      right: 'dataMax'
-    });
-  };
-
   return (
-    <div
-      className="container-fluid py-4"
-      style={{ backgroundColor: "#2b2b2b", color: "#fff", borderRadius: 5 }}
-    >
-      <style jsx global>{`
-        .chart-controls {
+    <div className="svg-sensor-graph">
+      <style jsx>{`
+        .svg-sensor-graph {
+          background-color: #2b2b2b;
+          border-radius: 5px;
+          padding: 1rem;
+          color: #fff;
+        }
+
+        .controls {
           display: flex;
           flex-wrap: wrap;
-          gap: 0.5rem;
+          gap: 1rem;
           margin-bottom: 1rem;
         }
 
-        .chart-controls select,
-        .chart-controls input,
-        .chart-controls button {
-          min-width: auto;
-          max-width: 100%;
+        .control-group {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
         }
 
-        .chart-controls .form-select,
-        .chart-controls .form-control {
-          width: auto;
+        .sensor-checkboxes {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+        }
+
+        .form-check {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.25rem 0.5rem;
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 4px;
+        }
+
+        .form-check input {
+          margin: 0;
+        }
+
+        .form-check label {
+          margin: 0;
+          cursor: pointer;
+          user-select: none;
+        }
+
+        .date-select,
+        .period-select {
+          padding: 0.25rem 0.5rem;
+          background: rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 4px;
+          color: #fff;
           min-width: 120px;
         }
 
-        @media (max-width: 576px) {
-          .chart-controls {
+        .date-select:focus,
+        .period-select:focus {
+          outline: none;
+          border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .csv-button {
+          padding: 0.25rem 0.75rem;
+          background: transparent;
+          border: 1px solid rgba(255, 255, 255, 0.4);
+          border-radius: 4px;
+          color: #fff;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .csv-button:hover {
+          background: rgba(255, 255, 255, 0.1);
+        }
+
+        @media (max-width: 768px) {
+          .controls {
             flex-direction: column;
           }
-          
-          .chart-controls .form-select,
-          .chart-controls .form-control,
-          .chart-controls button {
+
+          .control-group {
+            width: 100%;
+          }
+
+          .date-select,
+          .period-select {
             width: 100%;
           }
 
           .sensor-checkboxes {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-            gap: 0.5rem;
-          }
-        }
-
-        .chart-wrapper {
-          position: relative;
-          width: 100%;
-          height: min(calc(100vh - 250px), 600px);
-          min-height: 300px;
-          background-color: #2b2b2b;
-          border-radius: 8px;
-          border: 1px solid #444;
-          overflow: hidden;
-        }
-
-        @media (max-width: 768px) {
-          .chart-wrapper {
-            height: min(calc(100vh - 200px), 400px);
-          }
-        }
-
-        .chart-container {
-          position: relative;
-          width: 100%;
-          height: 100%;
-          display: flex;
-        }
-
-        .scroll-container {
-          flex: 1;
-          overflow-x: auto;
-          overflow-y: hidden;
-          -webkit-overflow-scrolling: touch;
-          scrollbar-width: thin;
-          scrollbar-color: #666 #2b2b2b;
-          margin: 0 40px;
-        }
-
-        .scroll-container::-webkit-scrollbar {
-          height: 8px;
-        }
-
-        .scroll-container::-webkit-scrollbar-track {
-          background: #2b2b2b;
-          border-radius: 4px;
-        }
-
-        .scroll-container::-webkit-scrollbar-thumb {
-          background-color: #666;
-          border-radius: 4px;
-          border: 2px solid #2b2b2b;
-        }
-
-        .chart-content {
-          position: relative;
-          min-width: 100%;
-          height: 100%;
-        }
-
-        .custom-tooltip {
-          background-color: rgba(35, 35, 35, 0.95) !important;
-          border: 1px solid #666 !important;
-          border-radius: 4px !important;
-          padding: 8px !important;
-          font-size: 12px !important;
-          color: #fff !important;
-        }
-
-        .time-label {
-          font-size: 12px;
-        }
-
-        @media (max-width: 768px) {
-          .time-label {
-            font-size: 10px;
-          }
-
-          .chart-content {
-            min-width: ${selectedPeriod.minutes <= 720 ? '800px' : 
-                       selectedPeriod.minutes <= 1440 ? '1000px' :
-                       selectedPeriod.minutes <= 10080 ? '1200px' : '1500px'};
-          }
-        }
-
-        @media (min-width: 769px) {
-          .chart-content {
-            min-width: ${selectedPeriod.minutes <= 720 ? '1000px' : 
-                       selectedPeriod.minutes <= 1440 ? '1200px' :
-                       selectedPeriod.minutes <= 10080 ? '1500px' : '2000px'};
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
           }
         }
       `}</style>
 
-      <div className="d-flex flex-column gap-3">
-        <h5 className="text-warning mb-0">
-          Графік DHT21 (Температура/Вологість)
-        </h5>
-        
-        <div className="chart-controls">
-          <div className="sensor-checkboxes">
-            {SENSOR_IDS.map((id) => (
-              <div key={id} className="form-check">
-                <input
-                  type="checkbox"
-                  className="form-check-input"
-                  id={`sensor-${id}`}
-                  checked={selectedSensors.includes(id)}
-                  onChange={(e) => {
-                    const updated = e.target.checked
-                      ? [...selectedSensors, id]
-                      : selectedSensors.filter((s) => s !== id);
-                    setSelectedSensors(updated);
-                  }}
-                />
-                <label className="form-check-label text-light" htmlFor={`sensor-${id}`}>
-                  {id}
-                </label>
-              </div>
-            ))}
-          </div>
-
-          <div className="d-flex flex-wrap gap-2">
-            <input
-              type="date"
-              className="form-control"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              max={new Date().toISOString().split("T")[0]}
-            />
-            <select
-              className="form-select"
-              value={selectedPeriod.label}
-              onChange={(e) => {
-                const period = PERIOD_OPTIONS.find((p) => p.label === e.target.value) || PERIOD_OPTIONS[0];
-                setSelectedPeriod(period);
-              }}
-            >
-              {PERIOD_OPTIONS.map((p) => (
-                <option key={p.label} value={p.label}>
-                  {p.label}
-                </option>
-              ))}
-            </select>
-            {selectedSensors.map((id) => (
-              <button
-                key={id}
-                className="btn btn-outline-light btn-sm"
-                onClick={() => downloadCSV(id)}
-              >
-                CSV {id}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="text-warning">
-          Вибрана дата: {new Date(selectedDate).toLocaleDateString("uk-UA")}
-          {isLoading && <span className="ms-2">(Завантаження...)</span>}
-        </div>
-      </div>
-
-      <div className="chart-wrapper">
-        <div className="chart-container">
-          <div className="y-axis-left">
-            <LineChart
-              data={chartData}
-              margin={{ top: 5, right: 0, left: 0, bottom: 5 }}
-              width={40}
-              height={400}
-            >
-              <YAxis
-                yAxisId="left"
-                orientation="left"
-                stroke="#44c0ff"
-                tick={{ fill: "#44c0ff", fontSize: 11 }}
-                label={{
-                  value: "Вологість (%)",
-                  angle: -90,
-                  position: "insideLeft",
-                  fill: "#44c0ff",
-                  style: { fontSize: "12px" }
+      <div className="controls">
+        <div className="control-group sensor-checkboxes">
+          {SENSOR_IDS.map((id) => (
+            <div key={id} className="form-check">
+              <input
+                type="checkbox"
+                id={`sensor-${id}`}
+                checked={selectedSensors.includes(id)}
+                onChange={(e) => {
+                  const updated = e.target.checked
+                    ? [...selectedSensors, id]
+                    : selectedSensors.filter((s) => s !== id);
+                  setSelectedSensors(updated);
                 }}
-                domain={axisRanges.humidity}
-                allowDataOverflow={true}
-                tickCount={8}
-                tickFormatter={(value) => `${value}%`}
-                scale="linear"
-                allowDecimals={true}
-                tickMargin={5}
-                width={40}
-                axisLine={{ stroke: "#44c0ff" }}
-                tickLine={{ stroke: "#44c0ff" }}
               />
-            </LineChart>
-          </div>
-
-          <div className="scroll-container">
-            <div className="chart-content">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={chartData}
-                  margin={{ top: 20, right: 5, left: 5, bottom: 40 }}
-                  onMouseDown={(e) => e?.activeLabel && setZoomState({ ...zoomState, refAreaLeft: e.activeLabel })}
-                  onMouseMove={(e) => e?.activeLabel && zoomState.refAreaLeft && setZoomState({ ...zoomState, refAreaRight: e.activeLabel })}
-                  onMouseUp={zoom}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                  <XAxis
-                    dataKey="time"
-                    stroke="#999"
-                    tick={{ 
-                      fill: "#999",
-                      className: "time-label",
-                      fontSize: isMobile ? 10 : 12
-                    }}
-                    angle={-45}
-                    textAnchor="end"
-                    height={60}
-                    interval={isMobile ? (
-                      selectedPeriod.minutes <= 720 ? 8 : 
-                      selectedPeriod.minutes <= 1440 ? 12 : 
-                      selectedPeriod.minutes <= 10080 ? 16 : 24
-                    ) : (
-                      selectedPeriod.minutes <= 720 ? 4 : 
-                      selectedPeriod.minutes <= 1440 ? 8 : 
-                      selectedPeriod.minutes <= 10080 ? 12 : 16
-                    )}
-                    minTickGap={20}
-                    tickMargin={15}
-                    domain={[zoomState.left, zoomState.right]}
-                    allowDataOverflow
-                  />
-                  <YAxis
-                    yAxisId="left"
-                    orientation="left"
-                    domain={axisRanges.humidity}
-                    hide={true}
-                  />
-                  <YAxis
-                    yAxisId="right"
-                    orientation="right"
-                    domain={axisRanges.temperature}
-                    hide={true}
-                  />
-                  <Tooltip 
-                    content={<CustomTooltip />}
-                    wrapperStyle={{
-                      backgroundColor: "rgba(35, 35, 35, 0.95)",
-                      border: "1px solid #666",
-                      borderRadius: "4px",
-                      padding: "8px",
-                      zIndex: 1001
-                    }}
-                  />
-                  {selectedSensors.map((sensorId) => (
-                    <React.Fragment key={sensorId}>
-                      <Line
-                        yAxisId="left"
-                        type="monotone"
-                        dataKey={`${sensorId}_humidity`}
-                        name="Вологість"
-                        stroke={COLORS[`${sensorId}_humidity` as ColorKey]}
-                        strokeWidth={isMobile ? 1.5 : 2}
-                        dot={selectedPeriod.minutes >= 10080 ? { r: isMobile ? 1.5 : 2 } : false}
-                        activeDot={{ r: isMobile ? 4 : 6, strokeWidth: 1 }}
-                        unit="%"
-                        connectNulls={true}
-                        isAnimationActive={selectedPeriod.minutes !== 60}
-                      />
-                      <Line
-                        yAxisId="right"
-                        type="monotone"
-                        dataKey={`${sensorId}_temperature`}
-                        name="Температура"
-                        stroke={COLORS[`${sensorId}_temperature` as ColorKey]}
-                        strokeWidth={isMobile ? 1.5 : 2}
-                        dot={selectedPeriod.minutes >= 10080 ? { r: isMobile ? 1.5 : 2 } : false}
-                        activeDot={{ r: isMobile ? 4 : 6, strokeWidth: 1 }}
-                        unit="°C"
-                        connectNulls={true}
-                        isAnimationActive={selectedPeriod.minutes !== 60}
-                      />
-                    </React.Fragment>
-                  ))}
-                  {zoomState.refAreaLeft && zoomState.refAreaRight ? (
-                    <ReferenceArea
-                      yAxisId="left"
-                      x1={zoomState.refAreaLeft}
-                      x2={zoomState.refAreaRight}
-                      strokeOpacity={0.3}
-                      fill="#fff"
-                      fillOpacity={0.1}
-                    />
-                  ) : null}
-                </LineChart>
-              </ResponsiveContainer>
+              <label htmlFor={`sensor-${id}`}>{id}</label>
             </div>
-          </div>
+          ))}
+        </div>
 
-          <div className="y-axis-right">
-            <LineChart
-              data={chartData}
-              margin={{ top: 5, right: 0, left: 0, bottom: 5 }}
-              width={40}
-              height={400}
+        <div className="control-group">
+          <input
+            type="date"
+            className="date-select"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            max={new Date().toISOString().split("T")[0]}
+          />
+          <select
+            className="period-select"
+            value={selectedPeriod.label}
+            onChange={(e) => {
+              const period = PERIOD_OPTIONS.find((p) => p.label === e.target.value);
+              if (period) setSelectedPeriod(period);
+            }}
+          >
+            {PERIOD_OPTIONS.map((period) => (
+              <option key={period.label} value={period.label}>
+                {period.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="control-group">
+          {selectedSensors.map((id) => (
+            <button
+              key={id}
+              className="csv-button"
+              onClick={() => exportToCSV(id)}
+              disabled={isLoading || !data.some(point => point.sensor_id === id)}
             >
-              <YAxis
-                yAxisId="right"
-                orientation="right"
-                stroke="#ffa500"
-                tick={{ fill: "#ffa500", fontSize: 11 }}
-                label={{
-                  value: "Температура (°C)",
-                  angle: 90,
-                  position: "insideRight",
-                  fill: "#ffa500",
-                  style: { fontSize: "12px" }
-                }}
-                domain={axisRanges.temperature}
-                allowDataOverflow={true}
-                tickCount={8}
-                tickFormatter={(value) => `${value}°C`}
-                scale="linear"
-                allowDecimals={true}
-                tickMargin={5}
-                width={40}
-                axisLine={{ stroke: "#ffa500" }}
-                tickLine={{ stroke: "#ffa500" }}
-              />
-            </LineChart>
-          </div>
+              CSV {id}
+            </button>
+          ))}
         </div>
       </div>
+
+      {isLoading ? (
+        <div style={{ textAlign: 'center', padding: '2rem' }}>
+          Завантаження...
+        </div>
+      ) : (
+        <svg
+          ref={svgRef}
+          width={width}
+          height={height}
+          viewBox={`0 0 ${width} ${height}`}
+          style={{ maxWidth: '100%', height: 'auto' }}
+        >
+          {renderSVG()}
+        </svg>
+      )}
     </div>
   );
 };
 
-export default SensorGraphDHT21;
+export default SVGSensorGraph; 
