@@ -111,21 +111,6 @@ export default function SensorGraphDHT21() {
     temperature: [-10, 50]
   };
 
-  // Добавляем состояние для отслеживания ширины экрана
-  const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 768);
-
-  // Отслеживаем изменение размера экрана
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const handleResize = _.debounce(() => {
-      setScreenWidth(window.innerWidth);
-    }, 250);
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -210,35 +195,11 @@ export default function SensorGraphDHT21() {
     fetchData();
 
     const isToday = selectedDate === new Date().toISOString().split("T")[0];
-    const isHourlyView = selectedPeriod.minutes === 60;
-    
-    // Для часового графика используем RAF для более плавного обновления
-    let animationFrameId: number;
-    let lastUpdate = Date.now();
-    
-    const updateIfNeeded = () => {
-      const now = Date.now();
-      if (isHourlyView && isToday && now - lastUpdate >= 3000) {
-        fetchData();
-        lastUpdate = now;
-      }
-      animationFrameId = requestAnimationFrame(updateIfNeeded);
-    };
-
-    if (isHourlyView && isToday) {
-      animationFrameId = requestAnimationFrame(updateIfNeeded);
-    } else {
-      // Для других периодов используем обычный интервал
-      const interval = isToday ? setInterval(fetchData, 15000) : null;
-      return () => {
-        if (interval) clearInterval(interval);
-      };
-    }
+    const updateInterval = selectedPeriod.minutes <= 60 ? 3000 : 15000;
+    const interval = isToday ? setInterval(fetchData, updateInterval) : null;
 
     return () => {
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-      }
+      if (interval) clearInterval(interval);
     };
   }, [selectedPeriod, selectedSensors, selectedDate]);
 
@@ -657,32 +618,6 @@ export default function SensorGraphDHT21() {
   // Мемоизируем параметры линий
   const lineProps = useMemo(() => getLineProps(), [selectedPeriod.minutes]);
 
-  // Вычисляем интервал меток времени в зависимости от периода и размера экрана
-  const getTickInterval = useCallback(() => {
-    const isSmallScreen = screenWidth <= 768;
-    
-    switch(selectedPeriod.minutes) {
-      case 60: // 1 час
-        return isSmallScreen ? 15 : 10; // каждые 15/10 точек
-      case 720: // 12 часов
-        return isSmallScreen ? 24 : 18; // каждые 24/18 точек
-      case 1440: // 1 день
-        return isSmallScreen ? 36 : 24; // каждые 36/24 точек
-      case 10080: // 1 неделя
-        return isSmallScreen ? 12 : 8; // каждые 12/8 часов
-      case 43200: // 1 месяц
-        return isSmallScreen ? 48 : 36; // каждые 48/36 часов
-      default: // 1 год
-        return isSmallScreen ? 6 : 4; // каждые 6/4 дня
-    }
-  }, [selectedPeriod.minutes, screenWidth]);
-
-  // Функция для определения, показывать ли метку
-  const shouldShowLabel = useCallback((index: number) => {
-    const interval = getTickInterval();
-    return index % interval === 0;
-  }, [getTickInterval]);
-
   return (
     <div
       className="container-fluid py-4"
@@ -805,7 +740,6 @@ export default function SensorGraphDHT21() {
               transform: rotate(-45deg);
               transform-origin: top right;
               white-space: nowrap;
-              margin-top: ${selectedPeriod.minutes >= 10080 ? '15px' : '10px'};
             }
             .y-axis-label {
               font-size: 10px;
@@ -817,7 +751,6 @@ export default function SensorGraphDHT21() {
             }
             .time-label {
               font-size: ${selectedPeriod.minutes >= 10080 ? '14px' : '12px'};
-              margin-top: ${selectedPeriod.minutes >= 10080 ? '10px' : '5px'};
             }
           }
           .y-axis-left {
@@ -888,32 +821,23 @@ export default function SensorGraphDHT21() {
                 <ResponsiveContainer width="100%" height={400}>
                   <LineChart
                     data={chartData}
-                    margin={{ top: 5, right: 30, left: 30, bottom: screenWidth <= 768 ? 40 : 25 }}
-                    width={selectedPeriod.minutes >= 10080 ? (screenWidth <= 768 ? 3000 : 2400) : (screenWidth <= 768 ? 1200 : 800)}
-                    height={400}
+                    margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke="#444" />
                     <XAxis
                       dataKey="time"
-                      stroke="#888"
-                      tick={(props) => {
-                        const { x, y, payload, index } = props;
-                        if (!shouldShowLabel(index)) return <g />;
-                        return (
-                          <g transform={`translate(${x},${y})`}>
-                            <text
-                              x={0}
-                              y={0}
-                              dy={16}
-                              textAnchor="middle"
-                              fill="#888"
-                              className="time-label"
-                            >
-                              {payload.value}
-                            </text>
-                          </g>
-                        );
+                      stroke="#999"
+                      tick={{ 
+                        fill: "#999", 
+                        className: "time-label",
+                        fontSize: window.innerWidth <= 768 ? 10 : 12
                       }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
+                      interval={selectedPeriod.minutes === 60 ? 12 : (selectedPeriod.minutes >= 10080 ? 48 : (selectedPeriod.minutes <= 60 ? (window.innerWidth <= 768 ? 3 : 2) : "preserveStartEnd"))}
+                      minTickGap={selectedPeriod.minutes === 60 ? 30 : (selectedPeriod.minutes >= 10080 ? 200 : (window.innerWidth <= 768 ? 40 : (selectedPeriod.minutes <= 720 ? 15 : 30)))}
+                      tickMargin={selectedPeriod.minutes === 60 ? 20 : (selectedPeriod.minutes >= 10080 ? 35 : (window.innerWidth <= 768 ? 15 : 10))}
                     />
                     <YAxis
                       yAxisId="left"
