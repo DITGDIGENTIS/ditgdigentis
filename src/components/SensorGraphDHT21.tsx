@@ -78,7 +78,7 @@ const COLORS = generateColors(SENSOR_IDS);
 
 const PERIOD_OPTIONS = [
   { label: "1 година", minutes: 60, groupBySeconds: 3, tickMinutes: 5 },
-  { label: "12 годин", minutes: 720, groupBySeconds: 1800, tickMinutes: 30 },
+  { label: "12 годин", minutes: 720, groupBySeconds: 30, tickMinutes: 30 },
   { label: "1 день", minutes: 1440, groupBySeconds: 300, tickMinutes: 60 },
   { label: "1 тиждень", minutes: 10080, groupBySeconds: 1800, tickHours: 3 },
   { label: "1 місяць", minutes: 43200, groupBySeconds: 10800, tickHours: 6 },
@@ -191,15 +191,19 @@ export default function SensorGraphDHT21() {
         endDate.setDate(endDate.getDate() + 1);
         endDate.setHours(0, 0, 0, 0);
 
-        if (isToday) {
-          endDate = new Date();
-        }
-
-        // Для часового периода берем последний час
+        // Для часового периода берем последний час текущего дня
         if (selectedPeriod.minutes === 60) {
-          startDate = new Date(endDate.getTime() - 60 * 60 * 1000);
+          const now = new Date();
+          startDate = new Date(now);
+          startDate.setMinutes(Math.floor(now.getMinutes() / 5) * 5, 0, 0);
+          startDate.setTime(startDate.getTime() - 60 * 60 * 1000);
+          endDate = new Date(now);
         } else if (selectedPeriod.minutes === 720) {
-          startDate = new Date(endDate.getTime() - 12 * 60 * 60 * 1000);
+          // Для 12-часового периода берем последние 12 часов
+          const now = new Date();
+          startDate = new Date(now);
+          startDate.setTime(startDate.getTime() - 12 * 60 * 60 * 1000);
+          endDate = new Date(now);
         }
 
         const queryParams = new URLSearchParams({
@@ -316,26 +320,30 @@ export default function SensorGraphDHT21() {
       // Для часового периода показываем время в формате ЧЧ:ММ
       const minutes = Math.floor(date.getMinutes() / 5) * 5;
       return `${date.getHours().toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-    } else if (selectedPeriod.minutes <= 1440) {
-      // Для периодов до суток включительно
+    } else if (selectedPeriod.minutes === 720) {
+      // Для 12-часового периода
       const hours = date.getHours().toString().padStart(2, '0');
-      const minutes = Math.floor(date.getMinutes() / (selectedPeriod.minutes === 720 ? 30 : 5)) * (selectedPeriod.minutes === 720 ? 30 : 5);
+      const minutes = Math.floor(date.getMinutes() / 30) * 30;
       return `${hours}:${minutes.toString().padStart(2, '0')}`;
-    } else if (selectedPeriod.minutes <= 10080) {
-      // Для недели
+    } else if (selectedPeriod.minutes === 1440) {
+      // Для суточного периода
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = Math.floor(date.getMinutes() / 5) * 5;
+      return `${hours}:${minutes.toString().padStart(2, '0')}`;
+    } else if (selectedPeriod.minutes === 10080) {
+      // Для недельного периода
       const day = date.getDate().toString().padStart(2, '0');
       const month = (date.getMonth() + 1).toString().padStart(2, '0');
       const hours = date.getHours().toString().padStart(2, '0');
-      const minutes = Math.floor(date.getMinutes() / 30) * 30;
-      return `${day}.${month} ${hours}:${minutes.toString().padStart(2, '0')}`;
+      return `${day}.${month} ${hours}:00`;
     } else if (selectedPeriod.minutes === 43200) {
-      // Для месяца
+      // Для месячного периода
       const day = date.getDate().toString().padStart(2, '0');
       const month = (date.getMonth() + 1).toString().padStart(2, '0');
       const hours = Math.floor(date.getHours() / 3) * 3;
       return `${day}.${month} ${hours.toString().padStart(2, '0')}:00`;
     } else {
-      // Для года
+      // Для годового периода
       const day = date.getDate().toString().padStart(2, '0');
       const month = (date.getMonth() + 1).toString().padStart(2, '0');
       return `${day}.${month}`;
@@ -862,9 +870,14 @@ export default function SensorGraphDHT21() {
                     angle={-45}
                     textAnchor="end"
                     height={60}
-                    interval={0}
-                    minTickGap={selectedPeriod.minutes === 60 ? 30 : (selectedPeriod.minutes >= 10080 ? 200 : (window.innerWidth <= 768 ? 40 : (selectedPeriod.minutes <= 720 ? 15 : 30)))}
-                    tickMargin={selectedPeriod.minutes === 60 ? 15 : (selectedPeriod.minutes >= 10080 ? 35 : (window.innerWidth <= 768 ? 15 : 10))}
+                    interval={selectedPeriod.minutes === 60 ? 4 : (
+                      selectedPeriod.minutes === 720 ? 6 : (
+                      selectedPeriod.minutes === 1440 ? 12 : (
+                      selectedPeriod.minutes === 10080 ? 8 : (
+                      selectedPeriod.minutes === 43200 ? 8 : 5
+                    ))))}
+                    minTickGap={20}
+                    tickMargin={15}
                     domain={[zoomState.left, zoomState.right]}
                     allowDataOverflow
                   />
