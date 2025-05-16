@@ -218,8 +218,9 @@ export default function SensorGraphDHT21() {
         const roundedMinutes = Math.floor(date.getMinutes() / 5) * 5;
         return `${hours}:${roundedMinutes.toString().padStart(2, '0')}`;
       case 720: // 12 часов
-        // Каждые 30 секунд
-        return `${hours}:${minutes}:${Math.floor(date.getSeconds() / 30) * 30}`;
+        // Каждые 5 минут
+        const roundedMinutes12h = Math.floor(date.getMinutes() / 5) * 5;
+        return `${hours}:${roundedMinutes12h.toString().padStart(2, '0')}`;
       case 1440: // 1 день
         // Каждые 5 минут
         return `${hours}:${Math.floor(date.getMinutes() / 5) * 5}`;
@@ -243,15 +244,11 @@ export default function SensorGraphDHT21() {
       hour12: false,
     };
 
-    if (selectedPeriod.minutes === 60) {
-      // Для часового периода показываем время в формате ЧЧ:ММ
+    if (selectedPeriod.minutes === 60 || selectedPeriod.minutes === 720) {
+      // Для часового и 12-часового периода показываем время в формате ЧЧ:ММ
       const hours = date.getHours().toString().padStart(2, '0');
       const minutes = Math.floor(date.getMinutes() / 5) * 5;
       return `${hours}:${minutes.toString().padStart(2, '0')}`;
-    } else if (selectedPeriod.minutes <= 720) {
-      // Для 12 часов показываем секунды
-      const seconds = date.getSeconds().toString().padStart(2, '0');
-      return `${date.toLocaleString("uk-UA", options)}:${seconds}`;
     }
     
     if (selectedPeriod.minutes > 1440) {
@@ -348,10 +345,10 @@ export default function SensorGraphDHT21() {
     // Корректируем период в зависимости от выбранного временного интервала
     if (selectedPeriod.minutes < 1440) { // Меньше суток
       periodEnd = new Date(Math.min(periodEnd.getTime(), new Date().getTime()));
-      if (selectedPeriod.minutes === 60) {
-        // Для часового периода берем ровно час назад
+      if (selectedPeriod.minutes === 60 || selectedPeriod.minutes === 720) {
+        // Для часового и 12-часового периода
         periodStart = new Date(periodEnd.getTime());
-        periodStart.setMinutes(periodStart.getMinutes() - 60);
+        periodStart.setMinutes(periodStart.getMinutes() - selectedPeriod.minutes);
         // Округляем до ближайших 5 минут
         periodStart.setMinutes(Math.floor(periodStart.getMinutes() / 5) * 5);
         periodStart.setSeconds(0);
@@ -373,8 +370,8 @@ export default function SensorGraphDHT21() {
       .orderBy(['timestamp'], ['asc'])
       .value();
 
-    // Для часового периода группируем по 5-минутным интервалам
-    if (selectedPeriod.minutes === 60) {
+    // Для часового и 12-часового периода группируем по 5-минутным интервалам
+    if (selectedPeriod.minutes === 60 || selectedPeriod.minutes === 720) {
       const groupedByTime = _.groupBy(filtered, point => {
         const date = new Date(point.timestamp);
         const minutes = Math.floor(date.getMinutes() / 5) * 5;
