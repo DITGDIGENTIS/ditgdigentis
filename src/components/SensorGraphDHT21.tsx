@@ -78,12 +78,12 @@ const generateColors = (
 const COLORS = generateColors(SENSOR_IDS);
 
 const PERIOD_OPTIONS = [
-  { label: "1 година", minutes: 60, format: "HH:mm:ss" },
-  { label: "12 годин", minutes: 720, format: "HH:mm" },
-  { label: "1 день", minutes: 1440, format: "HH:mm" },
-  { label: "1 тиждень", minutes: 10080, format: "dd HH:mm" },
-  { label: "1 місяць", minutes: 43200, format: "dd HH:mm" },
-  { label: "1 рік", minutes: 525600, format: "dd.MM HH:mm" },
+  { label: "1 година", minutes: 60, groupBySeconds: 3, tickMinutes: 5 },
+  { label: "12 годин", minutes: 720, groupBySeconds: 1800, tickMinutes: 30 },
+  { label: "1 день", minutes: 1440, groupBySeconds: 300, tickMinutes: 60 },
+  { label: "1 тиждень", minutes: 10080, groupBySeconds: 1800, tickHours: 3 },
+  { label: "1 місяць", minutes: 43200, groupBySeconds: 10800, tickHours: 6 },
+  { label: "1 рік", minutes: 525600, groupByDays: 1, tickDays: 7 }
 ];
 
 // Определяем тип для параметров линии
@@ -193,19 +193,28 @@ export default function SensorGraphDHT21() {
       try {
         setIsLoading(true);
         
-        const isToday = selectedDate === new Date().toISOString().split("T")[0];
-        const now = new Date();
+        const today = new Date().toISOString().split('T')[0];
+        const isToday = selectedDate === today;
         
-        // Рассчитываем даты для запроса
-        let endDate = isToday ? now : new Date(selectedDate);
-        if (!isToday) {
-          endDate.setHours(23, 59, 59, 999);
-        }
+        // Устанавливаем начало и конец периода
+        let startDate = new Date(selectedDate);
+        startDate.setHours(0, 0, 0, 0);
         
-        // Для часового периода берем чуть больше данных для плавности
-        const startDate = new Date(endDate.getTime() - (selectedPeriod.minutes + 5) * 60 * 1000);
+        let endDate = new Date(selectedDate);
+        endDate.setDate(endDate.getDate() + 1);
+        endDate.setHours(0, 0, 0, 0);
 
-        // Оптимизируем параметры запроса
+        if (isToday) {
+          endDate = new Date();
+        }
+
+        // Для часового периода берем последний час
+        if (selectedPeriod.minutes === 60) {
+          startDate = new Date(endDate.getTime() - 60 * 60 * 1000);
+        } else if (selectedPeriod.minutes === 720) {
+          startDate = new Date(endDate.getTime() - 12 * 60 * 60 * 1000);
+        }
+
         const queryParams = new URLSearchParams({
           startDate: startDate.toISOString(),
           endDate: endDate.toISOString(),
@@ -271,8 +280,8 @@ export default function SensorGraphDHT21() {
 
     fetchData();
 
-    const isToday = selectedDate === new Date().toISOString().split("T")[0];
-    const updateInterval = selectedPeriod.minutes <= 60 ? 3000 : 15000;
+    const isToday = selectedDate === new Date().toISOString().split('T')[0];
+    const updateInterval = selectedPeriod.minutes === 60 ? 3000 : 15000;
     const interval = isToday ? setInterval(fetchData, updateInterval) : null;
 
     return () => {
@@ -318,39 +327,28 @@ export default function SensorGraphDHT21() {
 
     if (selectedPeriod.minutes === 60) {
       // Для часового периода показываем время в формате ЧЧ:ММ
-      const hours = date.getHours().toString().padStart(2, '0');
-      const minutes = date.getMinutes().toString().padStart(2, '0');
-      return `${hours}:${minutes}`;
-    } else if (selectedPeriod.minutes <= 10080) {
-      // Для периодов до недели включительно показываем время в формате ДД.ММ ЧЧ:ММ или ЧЧ:ММ
-      const hours = date.getHours().toString().padStart(2, '0');
-      
-      if (selectedPeriod.minutes === 10080) {
-        // Для недели показываем только часы
-        const day = date.getDate().toString().padStart(2, '0');
-        const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        return `${day}.${month} ${hours}:00`;
-      }
-      
-      // Для остальных периодов показываем минуты
       const minutes = Math.floor(date.getMinutes() / 5) * 5;
-      const timeStr = `${hours}:${minutes.toString().padStart(2, '0')}`;
-      
-      if (selectedPeriod.minutes > 1440) {
-        // Для периодов больше суток добавляем дату
-        const day = date.getDate().toString().padStart(2, '0');
-        const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        return `${day}.${month} ${timeStr}`;
-      }
-      return timeStr;
-    } else if (selectedPeriod.minutes === 43200) {
-      // Для месяца показываем дату и часы
+      return `${date.getHours().toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    } else if (selectedPeriod.minutes <= 1440) {
+      // Для периодов до суток включительно
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = Math.floor(date.getMinutes() / (selectedPeriod.minutes === 720 ? 30 : 5)) * (selectedPeriod.minutes === 720 ? 30 : 5);
+      return `${hours}:${minutes.toString().padStart(2, '0')}`;
+    } else if (selectedPeriod.minutes <= 10080) {
+      // Для недели
       const day = date.getDate().toString().padStart(2, '0');
       const month = (date.getMonth() + 1).toString().padStart(2, '0');
       const hours = date.getHours().toString().padStart(2, '0');
-      return `${day}.${month} ${hours}:00`;
+      const minutes = Math.floor(date.getMinutes() / 30) * 30;
+      return `${day}.${month} ${hours}:${minutes.toString().padStart(2, '0')}`;
+    } else if (selectedPeriod.minutes === 43200) {
+      // Для месяца
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const hours = Math.floor(date.getHours() / 3) * 3;
+      return `${day}.${month} ${hours.toString().padStart(2, '0')}:00`;
     } else {
-      // Для года показываем только дату
+      // Для года
       const day = date.getDate().toString().padStart(2, '0');
       const month = (date.getMonth() + 1).toString().padStart(2, '0');
       return `${day}.${month}`;
@@ -359,213 +357,69 @@ export default function SensorGraphDHT21() {
 
   // Мемоизируем функцию форматирования данных
   const formatData = useCallback((): ChartDataPoint[] => {
-    const selectedDateStart = new Date(selectedDate);
-    selectedDateStart.setHours(0, 0, 0, 0);
-
-    const selectedDateEnd = new Date(selectedDate);
-    selectedDateEnd.setHours(23, 59, 59, 999);
-
-    // Определяем период для фильтрации
-    let periodEnd = new Date();
-    let periodStart = new Date();
-
-    const today = new Date().toISOString().split('T')[0];
-    const isToday = selectedDate === today;
-
-    if (isToday) {
-      periodStart = new Date(today);
-      periodStart.setHours(0, 0, 0, 0);
-      periodEnd = new Date();
-    } else {
-      periodStart = new Date(selectedDate);
-      periodStart.setHours(0, 0, 0, 0);
-      periodEnd = new Date(selectedDate);
-      periodEnd.setDate(periodEnd.getDate() + 1);
-      periodEnd.setHours(0, 0, 0, 0);
-    }
-
-    // Корректируем период в зависимости от выбранного временного интервала
-    if (selectedPeriod.minutes === 60) {
-      // Для часового периода
-      periodEnd = new Date();
-      // Округляем конец периода до ближайших 5 секунд
-      periodEnd.setMilliseconds(0);
-      periodEnd.setSeconds(Math.ceil(periodEnd.getSeconds() / 5) * 5);
-      
-      // Начало периода ровно час назад
-      periodStart = new Date(periodEnd.getTime() - 60 * 60 * 1000);
-      // Округляем начало периода до ближайших 5 секунд
-      periodStart.setMilliseconds(0);
-      periodStart.setSeconds(Math.floor(periodStart.getSeconds() / 5) * 5);
-    } else if (selectedPeriod.minutes <= 10080) {
-      // Для периодов до недели включительно
-      periodEnd = new Date(Math.min(periodEnd.getTime(), new Date().getTime()));
-      if (selectedPeriod.minutes <= 1440) {
-        // Для периодов до суток
-        periodStart = new Date(periodEnd.getTime());
-        periodStart.setMinutes(periodStart.getMinutes() - selectedPeriod.minutes);
-        // Округляем до ближайших 5 минут
-        periodStart.setMinutes(Math.floor(periodStart.getMinutes() / 5) * 5);
-        periodStart.setSeconds(0);
-        periodEnd.setMinutes(Math.ceil(periodEnd.getMinutes() / 5) * 5);
-        periodEnd.setSeconds(0);
-      } else {
-        // Для недели
-        periodStart = new Date(periodEnd.getTime() - selectedPeriod.minutes * 60 * 1000);
-        // Округляем до часов для недели
-        periodStart.setMinutes(0);
-        periodStart.setSeconds(0);
-        periodEnd.setMinutes(0);
-        periodEnd.setSeconds(0);
-      }
-    } else {
-      periodStart = new Date(periodEnd.getTime() - selectedPeriod.minutes * 60 * 1000);
-    }
-
-    // Фильтруем и сортируем данные
     const filtered = _.chain(historicalData)
       .filter(d => {
         const timestamp = new Date(d.timestamp).getTime();
-        return timestamp >= periodStart.getTime() &&
-               timestamp <= periodEnd.getTime() &&
-               selectedSensors.includes(d.sensor_id);
+        return selectedSensors.includes(d.sensor_id);
       })
       .orderBy(['timestamp'], ['asc'])
       .value();
 
-    if (selectedPeriod.minutes === 60) {
-      // Для часового периода группируем по 5 секунд
-      const groupedByTime = _.groupBy(filtered, point => {
-        const date = new Date(point.timestamp);
-        date.setMilliseconds(0);
-        const seconds = Math.floor(date.getSeconds() / 5) * 5;
+    // Группируем данные в зависимости от периода
+    const groupedByTime = _.groupBy(filtered, point => {
+      const date = new Date(point.timestamp);
+      date.setMilliseconds(0);
+
+      if (selectedPeriod.minutes === 60) {
+        // Группировка по 3 секунды
+        const seconds = Math.floor(date.getSeconds() / 3) * 3;
         date.setSeconds(seconds);
-        return date.getTime();
-      });
-
-      return _.map(groupedByTime, (points, timeKey) => {
-        const timestamp = Number(timeKey);
-        const date = new Date(timestamp);
-        const showLabel = date.getMinutes() % 5 === 0 && date.getSeconds() === 0;
-
-        const dataPoint: ChartDataPoint = {
-          timestamp,
-          time: showLabel ? formatTime(timestamp) : '',
-        };
-
-        selectedSensors.forEach(sensorId => {
-          const sensorPoints = points.filter(p => p.sensor_id === sensorId);
-          if (sensorPoints.length > 0) {
-            const humidityValues = sensorPoints.map(p => p.humidity);
-            const tempValues = sensorPoints.map(p => p.temperature);
-
-            dataPoint[`${sensorId}_humidity`] = _.round(_.mean(humidityValues), 1);
-            dataPoint[`${sensorId}_temperature`] = _.round(_.mean(tempValues), 1);
-          }
-        });
-
-        return dataPoint;
-      });
-    } else if (selectedPeriod.minutes <= 10080) {
-      const groupedByTime = _.groupBy(filtered, point => {
-        const date = new Date(point.timestamp);
-        if (selectedPeriod.minutes === 10080) {
-          // Для недели группируем по часам
-          date.setMinutes(0);
-          date.setSeconds(0);
-        } else {
-          // Для остальных периодов по 5 минут
-          const minutes = Math.floor(date.getMinutes() / 5) * 5;
-          date.setMinutes(minutes);
-          date.setSeconds(0);
-        }
-        return date.getTime();
-      });
-
-      return _.map(groupedByTime, (points, timeKey) => {
-        const timestamp = Number(timeKey);
-        const dataPoint: ChartDataPoint = {
-          timestamp,
-          time: formatTime(timestamp),
-        };
-
-        selectedSensors.forEach(sensorId => {
-          const sensorPoints = points.filter(p => p.sensor_id === sensorId);
-          if (sensorPoints.length > 0) {
-            const humidityValues = sensorPoints.map(p => p.humidity);
-            const tempValues = sensorPoints.map(p => p.temperature);
-
-            dataPoint[`${sensorId}_humidity`] = _.round(_.mean(humidityValues), 1);
-            dataPoint[`${sensorId}_temperature`] = _.round(_.mean(tempValues), 1);
-          }
-        });
-
-        return dataPoint;
-      });
-    } else if (selectedPeriod.minutes === 43200) {
-      // Для месяца группируем по 12 часов
-      const groupedByTime = _.groupBy(filtered, point => {
-        const date = new Date(point.timestamp);
-        date.setHours(Math.floor(date.getHours() / 12) * 12);
+      } else if (selectedPeriod.minutes === 720) {
+        // Группировка по 30 секунд
+        date.setSeconds(Math.floor(date.getSeconds() / 30) * 30);
+      } else if (selectedPeriod.minutes === 1440) {
+        // Группировка по 5 минут
+        date.setMinutes(Math.floor(date.getMinutes() / 5) * 5);
+        date.setSeconds(0);
+      } else if (selectedPeriod.minutes === 10080) {
+        // Группировка по 30 минут
+        date.setMinutes(Math.floor(date.getMinutes() / 30) * 30);
+        date.setSeconds(0);
+      } else if (selectedPeriod.minutes === 43200) {
+        // Группировка по 3 часа
+        date.setHours(Math.floor(date.getHours() / 3) * 3);
         date.setMinutes(0);
         date.setSeconds(0);
-        return date.getTime();
+      } else {
+        // Группировка по дням
+        date.setHours(0);
+        date.setMinutes(0);
+        date.setSeconds(0);
+      }
+      return date.getTime();
+    });
+
+    return _.map(groupedByTime, (points, timeKey) => {
+      const timestamp = Number(timeKey);
+      const dataPoint: ChartDataPoint = {
+        timestamp,
+        time: formatTime(timestamp),
+      };
+
+      selectedSensors.forEach(sensorId => {
+        const sensorPoints = points.filter(p => p.sensor_id === sensorId);
+        if (sensorPoints.length > 0) {
+          const humidityValues = sensorPoints.map(p => p.humidity);
+          const tempValues = sensorPoints.map(p => p.temperature);
+
+          dataPoint[`${sensorId}_humidity`] = _.round(_.mean(humidityValues), 1);
+          dataPoint[`${sensorId}_temperature`] = _.round(_.mean(tempValues), 1);
+        }
       });
 
-      return _.map(groupedByTime, (points, timeKey) => {
-        const timestamp = Number(timeKey);
-        const dataPoint: ChartDataPoint = {
-          timestamp,
-          time: formatTime(timestamp),
-        };
-
-        selectedSensors.forEach(sensorId => {
-          const sensorPoints = points.filter(p => p.sensor_id === sensorId);
-          if (sensorPoints.length > 0) {
-            const humidityValues = sensorPoints.map(p => p.humidity);
-            const tempValues = sensorPoints.map(p => p.temperature);
-
-            dataPoint[`${sensorId}_humidity`] = _.round(_.mean(humidityValues), 1);
-            dataPoint[`${sensorId}_temperature`] = _.round(_.mean(tempValues), 1);
-          }
-        });
-
-        return dataPoint;
-      });
-    } else {
-      // Для года группируем по 5 дней
-      const groupedByTime = _.groupBy(filtered, point => {
-        const date = new Date(point.timestamp);
-        const startOfYear = new Date(date.getFullYear(), 0, 1);
-        const dayOfYear = Math.floor((date.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
-        const groupDay = Math.floor(dayOfYear / 5) * 5;
-        const resultDate = new Date(startOfYear.getTime() + groupDay * 24 * 60 * 60 * 1000);
-        resultDate.setHours(0, 0, 0, 0);
-        return resultDate.getTime();
-      });
-
-      return _.map(groupedByTime, (points, timeKey) => {
-        const timestamp = Number(timeKey);
-        const dataPoint: ChartDataPoint = {
-          timestamp,
-          time: formatTime(timestamp),
-        };
-
-        selectedSensors.forEach(sensorId => {
-          const sensorPoints = points.filter(p => p.sensor_id === sensorId);
-          if (sensorPoints.length > 0) {
-            const humidityValues = sensorPoints.map(p => p.humidity);
-            const tempValues = sensorPoints.map(p => p.temperature);
-
-            dataPoint[`${sensorId}_humidity`] = _.round(_.mean(humidityValues), 1);
-            dataPoint[`${sensorId}_temperature`] = _.round(_.mean(tempValues), 1);
-          }
-        });
-
-        return dataPoint;
-      });
-    }
-  }, [historicalData, liveData, selectedPeriod, selectedSensors, selectedDate]);
+      return dataPoint;
+    });
+  }, [historicalData, selectedPeriod, selectedSensors]);
 
   // Мемоизируем отформатированные данные
   const chartData = useMemo(() => formatData(), [formatData]);
