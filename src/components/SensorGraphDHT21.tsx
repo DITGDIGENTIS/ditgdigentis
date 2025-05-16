@@ -786,23 +786,6 @@ export default function SensorGraphDHT21() {
             min-width: 100%;
             height: 100%;
           }
-          .zoom-button {
-            position: absolute;
-            top: 10px;
-            right: 50px;
-            z-index: 1000;
-            background-color: rgba(255, 255, 255, 0.1);
-            border: 1px solid #666;
-            color: #fff;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: all 0.2s ease;
-          }
-          .zoom-button:hover {
-            background-color: rgba(255, 255, 255, 0.2);
-          }
           .time-range-display {
             position: absolute;
             bottom: 10px;
@@ -849,10 +832,6 @@ export default function SensorGraphDHT21() {
             }
           }
         `}</style>
-
-        <button className="zoom-button" onClick={zoomOut}>
-          Сбросить масштаб
-        </button>
 
         <div className="chart-container">
           <div className="y-axis-left">
@@ -961,7 +940,7 @@ export default function SensorGraphDHT21() {
                         yAxisId="left"
                         type="monotone"
                         dataKey={`${sensorId}_humidity`}
-                        name={`${sensorId} Вологість`}
+                        name="Вологість"
                         stroke={COLORS[`${sensorId}_humidity` as ColorKey]}
                         strokeWidth={2}
                         dot={selectedPeriod.minutes >= 10080 ? { r: 2 } : false}
@@ -974,7 +953,7 @@ export default function SensorGraphDHT21() {
                         yAxisId="right"
                         type="monotone"
                         dataKey={`${sensorId}_temperature`}
-                        name={`${sensorId} Температура`}
+                        name="Температура"
                         stroke={COLORS[`${sensorId}_temperature` as ColorKey]}
                         strokeWidth={2}
                         dot={selectedPeriod.minutes >= 10080 ? { r: 2 } : false}
