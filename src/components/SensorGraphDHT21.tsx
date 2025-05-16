@@ -214,8 +214,8 @@ export default function SensorGraphDHT21() {
     // Форматируем время в зависимости от периода для точной аналитики
     switch(selectedPeriod.minutes) {
       case 60: // 1 час
-        // Каждые 3 секунды для максимальной точности
-        return `${hours}:${minutes}:${Math.floor(date.getSeconds() / 3) * 3}`;
+        // Каждые 5 секунд для максимальной точности
+        return `${hours}:${minutes}:${Math.floor(date.getSeconds() / 5) * 5}`;
       case 720: // 12 часов
         // Каждые 30 секунд
         return `${hours}:${minutes}:${Math.floor(date.getSeconds() / 30) * 30}`;
@@ -243,8 +243,9 @@ export default function SensorGraphDHT21() {
     };
 
     if (selectedPeriod.minutes <= 720) {
-      // Для 1 часа и 12 часов показываем секунды
-      options.second = "2-digit";
+      // Для 1 часа и 12 часов показываем секунды с ведущим нулем
+      const seconds = date.getSeconds().toString().padStart(2, '0');
+      return `${date.toLocaleString("uk-UA", options)}:${seconds}`;
     }
     
     if (selectedPeriod.minutes > 1440) {
@@ -341,7 +342,16 @@ export default function SensorGraphDHT21() {
     // Корректируем период в зависимости от выбранного временного интервала
     if (selectedPeriod.minutes < 1440) { // Меньше суток
       periodEnd = new Date(Math.min(periodEnd.getTime(), new Date().getTime()));
-      periodStart = new Date(periodEnd.getTime() - selectedPeriod.minutes * 60 * 1000);
+      if (selectedPeriod.minutes === 60) {
+        // Для часового периода берем ровно час назад
+        periodStart = new Date(periodEnd.getTime());
+        periodStart.setMinutes(periodStart.getMinutes() - 60);
+        // Округляем до ближайших 5 секунд
+        periodStart.setSeconds(Math.floor(periodStart.getSeconds() / 5) * 5);
+        periodEnd.setSeconds(Math.floor(periodEnd.getSeconds() / 5) * 5);
+      } else {
+        periodStart = new Date(periodEnd.getTime() - selectedPeriod.minutes * 60 * 1000);
+      }
     }
 
     // Фильтруем и сортируем данные
@@ -355,17 +365,38 @@ export default function SensorGraphDHT21() {
       .orderBy(['timestamp'], ['asc'])
       .value();
 
-    // Для часового периода не группируем данные, берем как есть
-    if (selectedPeriod.minutes <= 60) {
-      return filtered.map(point => ({
-        timestamp: point.timestamp,
-        time: formatTime(point.timestamp),
-        [`${point.sensor_id}_humidity`]: point.humidity,
-        [`${point.sensor_id}_temperature`]: point.temperature
-      }));
+    // Для часового периода группируем по 5-секундным интервалам
+    if (selectedPeriod.minutes === 60) {
+      const groupedByTime = _.groupBy(filtered, point => {
+        const date = new Date(point.timestamp);
+        const seconds = Math.floor(date.getSeconds() / 5) * 5;
+        date.setSeconds(seconds);
+        return date.getTime();
+      });
+
+      return _.map(groupedByTime, (points, timeKey) => {
+        const timestamp = Number(timeKey);
+        const dataPoint: ChartDataPoint = {
+          timestamp,
+          time: formatTime(timestamp),
+        };
+
+        selectedSensors.forEach(sensorId => {
+          const sensorPoints = points.filter(p => p.sensor_id === sensorId);
+          if (sensorPoints.length > 0) {
+            const humidityValues = sensorPoints.map(p => p.humidity);
+            const tempValues = sensorPoints.map(p => p.temperature);
+
+            dataPoint[`${sensorId}_humidity`] = _.round(_.mean(humidityValues), 1);
+            dataPoint[`${sensorId}_temperature`] = _.round(_.mean(tempValues), 1);
+          }
+        });
+
+        return dataPoint;
+      });
     }
 
-    // Для остальных периодов используем группировку
+    // Для остальных периодов используем стандартную группировку
     const groupedByTime = _.groupBy(filtered, point => getTimeKey(new Date(point.timestamp)));
 
     return _.map(groupedByTime, (points, timeKey) => {
