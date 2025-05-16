@@ -226,8 +226,9 @@ export default function SensorGraphDHT21() {
         const roundedMinutes24h = Math.floor(date.getMinutes() / 5) * 5;
         return `${hours}:${roundedMinutes24h.toString().padStart(2, '0')}`;
       case 10080: // 1 неделя
-        // Каждые 30 минут
-        return `${day} ${hours}:${Math.floor(date.getMinutes() / 30) * 30}`;
+        // Каждые 5 минут
+        const roundedMinutesWeek = Math.floor(date.getMinutes() / 5) * 5;
+        return `${day}.${month} ${hours}:${roundedMinutesWeek.toString().padStart(2, '0')}`;
       case 43200: // 1 месяц
         // Каждые 3 часа
         return `${day} ${Math.floor(date.getHours() / 3) * 3}:00`;
@@ -239,26 +240,30 @@ export default function SensorGraphDHT21() {
 
   const formatTime = (ts: number) => {
     const date = new Date(ts);
+
+    if (selectedPeriod.minutes <= 10080) {
+      // Для периодов до недели включительно показываем время в формате ДД.ММ ЧЧ:ММ
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = Math.floor(date.getMinutes() / 5) * 5;
+      if (selectedPeriod.minutes <= 1440) {
+        // Для периодов до суток не показываем дату
+        return `${hours}:${minutes.toString().padStart(2, '0')}`;
+      }
+      return `${day}.${month} ${hours}:${minutes.toString().padStart(2, '0')}`;
+    }
+    
     const options: Intl.DateTimeFormatOptions = {
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
+      day: "2-digit",
     };
 
-    if (selectedPeriod.minutes <= 1440) {
-      // Для периодов до суток включительно показываем время в формате ЧЧ:ММ
-      const hours = date.getHours().toString().padStart(2, '0');
-      const minutes = Math.floor(date.getMinutes() / 5) * 5;
-      return `${hours}:${minutes.toString().padStart(2, '0')}`;
-    }
-    
-    if (selectedPeriod.minutes > 1440) {
-      // Для периодов больше суток показываем дату
-      options.day = "2-digit";
-      if (selectedPeriod.minutes > 43200) {
-        // Для месяца и года показываем месяц
-        options.month = "2-digit";
-      }
+    if (selectedPeriod.minutes > 43200) {
+      // Для месяца и года показываем месяц
+      options.month = "2-digit";
     }
 
     return date.toLocaleString("uk-UA", options);
@@ -344,20 +349,23 @@ export default function SensorGraphDHT21() {
     }
 
     // Корректируем период в зависимости от выбранного временного интервала
-    if (selectedPeriod.minutes < 1440) { // Меньше суток
+    if (selectedPeriod.minutes <= 10080) { // До недели включительно
       periodEnd = new Date(Math.min(periodEnd.getTime(), new Date().getTime()));
-      if (selectedPeriod.minutes === 60 || selectedPeriod.minutes === 720) {
-        // Для часового и 12-часового периода
+      if (selectedPeriod.minutes <= 1440) { // До суток
+        // Для периодов до суток
         periodStart = new Date(periodEnd.getTime());
         periodStart.setMinutes(periodStart.getMinutes() - selectedPeriod.minutes);
-        // Округляем до ближайших 5 минут
-        periodStart.setMinutes(Math.floor(periodStart.getMinutes() / 5) * 5);
-        periodStart.setSeconds(0);
-        periodEnd.setMinutes(Math.ceil(periodEnd.getMinutes() / 5) * 5);
-        periodEnd.setSeconds(0);
-      } else {
+      } else { // Неделя
+        // Для недели берем полный период
         periodStart = new Date(periodEnd.getTime() - selectedPeriod.minutes * 60 * 1000);
       }
+      // Округляем до ближайших 5 минут
+      periodStart.setMinutes(Math.floor(periodStart.getMinutes() / 5) * 5);
+      periodStart.setSeconds(0);
+      periodEnd.setMinutes(Math.ceil(periodEnd.getMinutes() / 5) * 5);
+      periodEnd.setSeconds(0);
+    } else {
+      periodStart = new Date(periodEnd.getTime() - selectedPeriod.minutes * 60 * 1000);
     }
 
     // Фильтруем и сортируем данные
@@ -371,8 +379,8 @@ export default function SensorGraphDHT21() {
       .orderBy(['timestamp'], ['asc'])
       .value();
 
-    // Для периодов до суток включительно группируем по 5-минутным интервалам
-    if (selectedPeriod.minutes <= 1440) {
+    // Для периодов до недели включительно группируем по 5-минутным интервалам
+    if (selectedPeriod.minutes <= 10080) {
       const groupedByTime = _.groupBy(filtered, point => {
         const date = new Date(point.timestamp);
         const minutes = Math.floor(date.getMinutes() / 5) * 5;
