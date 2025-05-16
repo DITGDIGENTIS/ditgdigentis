@@ -835,9 +835,9 @@ export default function SensorGraphDHT21() {
                       angle={-45}
                       textAnchor="end"
                       height={80}
-                      interval={selectedPeriod.minutes === 60 ? 12 : (selectedPeriod.minutes >= 10080 ? 48 : (selectedPeriod.minutes <= 60 ? (window.innerWidth <= 768 ? 3 : 2) : "preserveStartEnd"))}
-                      minTickGap={selectedPeriod.minutes === 60 ? 30 : (selectedPeriod.minutes >= 10080 ? 200 : (window.innerWidth <= 768 ? 40 : (selectedPeriod.minutes <= 720 ? 15 : 30)))}
-                      tickMargin={selectedPeriod.minutes === 60 ? 20 : (selectedPeriod.minutes >= 10080 ? 35 : (window.innerWidth <= 768 ? 15 : 10))}
+                      interval={selectedPeriod.minutes === 60 ? 1 : (selectedPeriod.minutes >= 10080 ? 48 : (selectedPeriod.minutes <= 60 ? (window.innerWidth <= 768 ? 3 : 2) : "preserveStartEnd"))}
+                      minTickGap={selectedPeriod.minutes === 60 ? 20 : (selectedPeriod.minutes >= 10080 ? 200 : (window.innerWidth <= 768 ? 40 : (selectedPeriod.minutes <= 720 ? 15 : 30)))}
+                      tickMargin={selectedPeriod.minutes === 60 ? 15 : (selectedPeriod.minutes >= 10080 ? 35 : (window.innerWidth <= 768 ? 15 : 10))}
                     />
                     <YAxis
                       yAxisId="left"
