@@ -223,7 +223,8 @@ export default function SensorGraphDHT21() {
         return `${hours}:${roundedMinutes12h.toString().padStart(2, '0')}`;
       case 1440: // 1 день
         // Каждые 5 минут
-        return `${hours}:${Math.floor(date.getMinutes() / 5) * 5}`;
+        const roundedMinutes24h = Math.floor(date.getMinutes() / 5) * 5;
+        return `${hours}:${roundedMinutes24h.toString().padStart(2, '0')}`;
       case 10080: // 1 неделя
         // Каждые 30 минут
         return `${day} ${hours}:${Math.floor(date.getMinutes() / 30) * 30}`;
@@ -244,8 +245,8 @@ export default function SensorGraphDHT21() {
       hour12: false,
     };
 
-    if (selectedPeriod.minutes === 60 || selectedPeriod.minutes === 720) {
-      // Для часового и 12-часового периода показываем время в формате ЧЧ:ММ
+    if (selectedPeriod.minutes <= 1440) {
+      // Для периодов до суток включительно показываем время в формате ЧЧ:ММ
       const hours = date.getHours().toString().padStart(2, '0');
       const minutes = Math.floor(date.getMinutes() / 5) * 5;
       return `${hours}:${minutes.toString().padStart(2, '0')}`;
@@ -370,8 +371,8 @@ export default function SensorGraphDHT21() {
       .orderBy(['timestamp'], ['asc'])
       .value();
 
-    // Для часового и 12-часового периода группируем по 5-минутным интервалам
-    if (selectedPeriod.minutes === 60 || selectedPeriod.minutes === 720) {
+    // Для периодов до суток включительно группируем по 5-минутным интервалам
+    if (selectedPeriod.minutes <= 1440) {
       const groupedByTime = _.groupBy(filtered, point => {
         const date = new Date(point.timestamp);
         const minutes = Math.floor(date.getMinutes() / 5) * 5;
