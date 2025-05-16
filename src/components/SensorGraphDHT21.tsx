@@ -657,7 +657,7 @@ export default function SensorGraphDHT21() {
           }
           @media (max-width: 768px) {
             .chart-content {
-              min-width: 1200px;
+              min-width: ${selectedPeriod.minutes === 10080 ? '2000px' : '1200px'};
             }
             .time-label {
               font-size: 12px;
@@ -751,9 +751,9 @@ export default function SensorGraphDHT21() {
                       angle={-45}
                       textAnchor="end"
                       height={80}
-                      interval={selectedPeriod.minutes === 10080 ? 6 : (selectedPeriod.minutes <= 60 ? (window.innerWidth <= 768 ? 3 : 2) : "preserveStartEnd")}
-                      minTickGap={window.innerWidth <= 768 ? 40 : (selectedPeriod.minutes <= 720 ? 15 : 30)}
-                      tickMargin={window.innerWidth <= 768 ? 15 : 10}
+                      interval={selectedPeriod.minutes === 10080 ? 24 : (selectedPeriod.minutes <= 60 ? (window.innerWidth <= 768 ? 3 : 2) : "preserveStartEnd")}
+                      minTickGap={selectedPeriod.minutes === 10080 ? 100 : (window.innerWidth <= 768 ? 40 : (selectedPeriod.minutes <= 720 ? 15 : 30))}
+                      tickMargin={selectedPeriod.minutes === 10080 ? 25 : (window.innerWidth <= 768 ? 15 : 10)}
                     />
                     <YAxis
                       yAxisId="left"
