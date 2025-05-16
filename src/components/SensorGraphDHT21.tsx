@@ -586,12 +586,6 @@ export default function SensorGraphDHT21() {
             .tooltip-value {
               font-weight: 500;
             }
-            .tooltip-stats {
-              margin-top: 8px;
-              padding-top: 8px;
-              border-top: 1px solid #555;
-              font-size: 12px;
-            }
           `}</style>
           <div className="tooltip-header text-white">
             {date && date.toLocaleString('uk-UA', {
@@ -604,45 +598,16 @@ export default function SensorGraphDHT21() {
               hour12: false
             })}
           </div>
-          {payload.map((entry: any, index: number) => {
-            const stats = statistics[entry.dataKey];
-            return (
-              <div key={index}>
-                <div className="tooltip-row">
-                  <span className="tooltip-label" style={{ color: entry.color }}>
-                    {entry.name}:
-                  </span>
-                  <span className="tooltip-value" style={{ color: entry.color }}>
-                    {entry.value.toFixed(2)}{entry.unit}
-                  </span>
-                </div>
-                {stats && (
-                  <div className="tooltip-stats">
-                    <div className="tooltip-row">
-                      <span className="tooltip-label">Мінімум:</span>
-                      <span className="tooltip-value">{stats.min.toFixed(1)}{entry.unit}</span>
-                    </div>
-                    <div className="tooltip-row">
-                      <span className="tooltip-label">Максимум:</span>
-                      <span className="tooltip-value">{stats.max.toFixed(1)}{entry.unit}</span>
-                    </div>
-                    <div className="tooltip-row">
-                      <span className="tooltip-label">Середнє:</span>
-                      <span className="tooltip-value">{stats.avg.toFixed(1)}{entry.unit}</span>
-                    </div>
-                    <div className="tooltip-row">
-                      <span className="tooltip-label">Медіана:</span>
-                      <span className="tooltip-value">{stats.median.toFixed(1)}{entry.unit}</span>
-                    </div>
-                    <div className="tooltip-row">
-                      <span className="tooltip-label">Відхилення:</span>
-                      <span className="tooltip-value">±{stats.stdDev.toFixed(1)}{entry.unit}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+          {payload.map((entry: any, index: number) => (
+            <div key={index} className="tooltip-row">
+              <span className="tooltip-label" style={{ color: entry.color }}>
+                {entry.name}:
+              </span>
+              <span className="tooltip-value" style={{ color: entry.color }}>
+                {entry.value.toFixed(2)}{entry.unit}
+              </span>
+            </div>
+          ))}
         </div>
       );
     }
