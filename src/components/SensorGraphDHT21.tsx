@@ -240,11 +240,10 @@ export default function SensorGraphDHT21() {
     const date = new Date(ts);
 
     if (selectedPeriod.minutes === 60) {
-      // Для часового периода показываем время в формате ЧЧ:ММ:СС
+      // Для часового периода показываем время в формате ЧЧ:ММ
       const hours = date.getHours().toString().padStart(2, '0');
       const minutes = date.getMinutes().toString().padStart(2, '0');
-      const seconds = date.getSeconds().toString().padStart(2, '0');
-      return `${hours}:${minutes}:${seconds}`;
+      return `${hours}:${minutes}`;
     } else if (selectedPeriod.minutes <= 10080) {
       // Для периодов до недели включительно показываем время в формате ДД.ММ ЧЧ:ММ или ЧЧ:ММ
       const hours = date.getHours().toString().padStart(2, '0');
@@ -327,9 +326,12 @@ export default function SensorGraphDHT21() {
           return pointTime.getTime() === timeKey;
         });
 
+        // Показываем метку только если это начало 5-минутного интервала
+        const showLabel = currentTime.getMinutes() % 5 === 0 && currentTime.getSeconds() === 0;
+
         const dataPoint: ChartDataPoint = {
           timestamp: timeKey,
-          time: formatTime(timeKey),
+          time: showLabel ? formatTime(timeKey) : '',
         };
 
         selectedSensors.forEach(sensorId => {
@@ -863,8 +865,8 @@ export default function SensorGraphDHT21() {
                       angle={-45}
                       textAnchor="end"
                       height={60}
-                      interval={selectedPeriod.minutes === 60 ? 2 : (selectedPeriod.minutes >= 10080 ? 48 : (selectedPeriod.minutes <= 60 ? (window.innerWidth <= 768 ? 3 : 2) : "preserveStartEnd"))}
-                      minTickGap={selectedPeriod.minutes === 60 ? 40 : (selectedPeriod.minutes >= 10080 ? 200 : (window.innerWidth <= 768 ? 40 : (selectedPeriod.minutes <= 720 ? 15 : 30)))}
+                      interval={0}
+                      minTickGap={selectedPeriod.minutes === 60 ? 30 : (selectedPeriod.minutes >= 10080 ? 200 : (window.innerWidth <= 768 ? 40 : (selectedPeriod.minutes <= 720 ? 15 : 30)))}
                       tickMargin={selectedPeriod.minutes === 60 ? 15 : (selectedPeriod.minutes >= 10080 ? 35 : (window.innerWidth <= 768 ? 15 : 10))}
                     />
                     <YAxis
