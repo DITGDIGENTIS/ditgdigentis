@@ -240,6 +240,7 @@ export default function SensorGraphDHT21() {
     const humidityValues: number[] = [];
     const temperatureValues: number[] = [];
 
+    // Собираем все значения
     data.forEach(point => {
       selectedSensors.forEach(sensorId => {
         const humidityKey = `${sensorId}_humidity`;
@@ -254,19 +255,32 @@ export default function SensorGraphDHT21() {
       });
     });
 
-    // Используем значения по умолчанию, если нет данных
     if (humidityValues.length === 0 || temperatureValues.length === 0) {
       return DEFAULT_RANGES;
     }
 
-    const humidityMin = Math.max(0, Math.min(...humidityValues) - 5);
-    const humidityMax = Math.min(100, Math.max(...humidityValues) + 5);
-    const tempMin = Math.max(-10, Math.min(...temperatureValues) - 2);
-    const tempMax = Math.min(50, Math.max(...temperatureValues) + 2);
+    // Находим минимальные и максимальные значения
+    const humidityMin = Math.min(...humidityValues);
+    const humidityMax = Math.max(...humidityValues);
+    const tempMin = Math.min(...temperatureValues);
+    const tempMax = Math.max(...temperatureValues);
+
+    // Добавляем отступы для лучшей визуализации
+    const humidityPadding = (humidityMax - humidityMin) * 0.1;
+    const tempPadding = (tempMax - tempMin) * 0.1;
+
+    // Округляем значения для более красивых шкал
+    const roundToNearest = (value: number, step: number) => Math.round(value / step) * step;
 
     return {
-      humidity: [Math.floor(humidityMin), Math.ceil(humidityMax)],
-      temperature: [Math.floor(tempMin), Math.ceil(tempMax)]
+      humidity: [
+        Math.max(0, roundToNearest(humidityMin - humidityPadding, 5)),
+        Math.min(100, roundToNearest(humidityMax + humidityPadding, 5))
+      ],
+      temperature: [
+        roundToNearest(tempMin - tempPadding, 2),
+        roundToNearest(tempMax + tempPadding, 2)
+      ]
     };
   };
 
@@ -345,8 +359,9 @@ export default function SensorGraphDHT21() {
     });
   };
 
-  const data = formatData();
-  const axisRanges = calculateAxisRanges(data);
+  // Получаем данные и вычисляем диапазоны
+  const chartData = formatData();
+  const axisRanges = calculateAxisRanges(chartData);
 
   const downloadCSV = (sensorId: string) => {
     const filtered = historicalData.filter((d) => d.sensor_id === sensorId);
@@ -547,7 +562,7 @@ export default function SensorGraphDHT21() {
         <div className="chart-container">
           <div className="y-axis-left">
             <LineChart
-              data={data}
+              data={chartData}
               margin={{ top: 5, right: 0, left: 0, bottom: 5 }}
               width={40}
               height={400}
@@ -565,7 +580,7 @@ export default function SensorGraphDHT21() {
                   style: { fontSize: "10px" },
                   className: "y-axis-label"
                 }}
-                domain={[0, 100]}
+                domain={axisRanges.humidity}
                 allowDataOverflow={true}
                 tickCount={6}
                 tickFormatter={(value) => `${value}%`}
@@ -584,7 +599,7 @@ export default function SensorGraphDHT21() {
               <div className="chart-main">
                 <ResponsiveContainer width="100%" height={400}>
                   <LineChart
-                    data={data}
+                    data={chartData}
                     margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke="#444" />
@@ -598,16 +613,19 @@ export default function SensorGraphDHT21() {
                       interval="preserveStartEnd"
                       minTickGap={30}
                     />
-                    <Tooltip 
-                      content={<CustomTooltip />}
-                      wrapperStyle={{
-                        backgroundColor: "#2b2b2b",
-                        border: "1px solid #444",
-                        borderRadius: "4px",
-                        padding: "8px",
-                        zIndex: 1001
-                      }}
+                    <YAxis
+                      yAxisId="left"
+                      orientation="left"
+                      domain={axisRanges.humidity}
+                      hide={true}
                     />
+                    <YAxis
+                      yAxisId="right"
+                      orientation="right"
+                      domain={axisRanges.temperature}
+                      hide={true}
+                    />
+                    <Tooltip content={<CustomTooltip />} />
                     {selectedSensors.map((sensorId) => (
                       <React.Fragment key={sensorId}>
                         <Line
@@ -640,7 +658,7 @@ export default function SensorGraphDHT21() {
 
           <div className="y-axis-right">
             <LineChart
-              data={data}
+              data={chartData}
               margin={{ top: 5, right: 0, left: 0, bottom: 5 }}
               width={40}
               height={400}
@@ -658,7 +676,7 @@ export default function SensorGraphDHT21() {
                   style: { fontSize: "10px" },
                   className: "y-axis-label"
                 }}
-                domain={[-10, 50]}
+                domain={axisRanges.temperature}
                 allowDataOverflow={true}
                 tickCount={6}
                 tickFormatter={(value) => `${value}°C`}
