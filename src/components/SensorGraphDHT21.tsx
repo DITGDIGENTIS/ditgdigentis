@@ -106,29 +106,41 @@ export default function SensorGraphDHT21() {
       try {
         setIsLoading(true);
         
-        // Calculate the end date based on selected date
-        const endDate = new Date(selectedDate);
-        endDate.setHours(23, 59, 59, 999);
+        // Оптимизация для текущей даты
+        const isToday = selectedDate === new Date().toISOString().split("T")[0];
+        const now = new Date();
         
-        // Calculate start date based on selected period
+        // Рассчитываем даты для запроса
+        const endDate = isToday ? now : new Date(selectedDate);
+        if (!isToday) {
+          endDate.setHours(23, 59, 59, 999);
+        }
+        
+        // Оптимизируем период запроса
         const startDate = new Date(endDate.getTime() - selectedPeriod.minutes * 60 * 1000);
 
-        // Если выбрана текущая дата, используем текущее время как конец периода
-        const isToday = selectedDate === new Date().toISOString().split("T")[0];
-        if (isToday) {
-          endDate.setTime(new Date().getTime());
-        }
+        // Кэшируем запросы для исторических данных
+        const cacheOptions: RequestInit = isToday ? {
+          cache: 'no-store' as RequestCache,
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        } : {
+          cache: 'force-cache' as RequestCache
+        };
+
+        // Оптимизируем параметры запроса
+        const queryParams = new URLSearchParams({
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+          sensorIds: selectedSensors.join(',')
+        });
 
         const [historicalRes, liveRes] = await Promise.all([
-          fetch(`/api/humidity-readings?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}&sensorIds=${selectedSensors.join(',')}`, { 
-            cache: "no-store",
-            headers: {
-              'Cache-Control': 'no-cache',
-              'Pragma': 'no-cache'
-            }
-          }),
-          isToday ? fetch("/api/humidity", { 
-            cache: "no-store",
+          fetch(`/api/humidity-readings?${queryParams}`, cacheOptions),
+          isToday ? fetch("/api/humidity", {
+            cache: 'no-store' as RequestCache,
             headers: {
               'Cache-Control': 'no-cache',
               'Pragma': 'no-cache'
@@ -136,40 +148,41 @@ export default function SensorGraphDHT21() {
           }) : Promise.resolve(new Response(JSON.stringify({ sensors: {} })))
         ]);
 
-        if (!historicalRes.ok || !liveRes.ok) {
+        if (!historicalRes.ok || (isToday && !liveRes.ok)) {
           throw new Error(
-            `Failed to fetch data: Historical ${historicalRes.status}, Live ${liveRes.status}`
+            `Failed to fetch data: Historical ${historicalRes.status}${isToday ? `, Live ${liveRes.status}` : ''}`
           );
         }
 
-        const readings = await historicalRes.json();
-        const live = await liveRes.json();
+        const [readings, live] = await Promise.all([
+          historicalRes.json(),
+          isToday ? liveRes.json() : { sensors: {} }
+        ]);
 
-        // Форматируем исторические данные
-        const formattedHistorical = _.map(readings, (r) => ({
+        // Оптимизируем обработку данных
+        const formattedHistorical = readings.map((r: any) => ({
           sensor_id: r.sensor_id,
           timestamp: new Date(r.timestamp).getTime(),
           humidity: _.round(Number(r.humidity), 1),
           temperature: _.round(Number(r.temperature), 1),
         }));
 
-        // Форматируем живые данные только если это текущий день
-        const formattedLive = isToday ? _.mapValues(live.sensors, (s) => ({
-          sensor_id: s.id,
-          timestamp: Number(s.timestamp),
-          humidity: _.round(Number(s.humidity), 1),
-          temperature: _.round(Number(s.temperature), 1),
-        })) : {};
+        // Обрабатываем живые данные только для текущей даты
+        const formattedLive = isToday ? 
+          Object.entries(live.sensors).reduce((acc: Record<string, SensorPoint>, [id, data]: [string, any]) => {
+            acc[id] = {
+              sensor_id: data.id,
+              timestamp: Number(data.timestamp),
+              humidity: _.round(Number(data.humidity), 1),
+              temperature: _.round(Number(data.temperature), 1),
+            };
+            return acc;
+          }, {}) : {};
 
         setHistoricalData(formattedHistorical);
         setLiveData(formattedLive);
       } catch (e) {
-        const errorMessage = e instanceof Error ? e.message : "Unknown error occurred";
         console.error("Failed to fetch sensor data:", e);
-        console.error("Error details:", {
-          message: errorMessage,
-          stack: e instanceof Error ? e.stack : undefined,
-        });
       } finally {
         setIsLoading(false);
       }
@@ -177,14 +190,18 @@ export default function SensorGraphDHT21() {
 
     fetchData();
 
-    // Only set up polling interval if we're looking at today's data
+    // Оптимизируем интервал обновления
     const isToday = selectedDate === new Date().toISOString().split("T")[0];
-    let updateInterval = 5000; // По умолчанию 5 секунд
+    let updateInterval = 5000;
 
-    if (selectedPeriod.minutes <= 60) {
-      updateInterval = 3000; // Для часового графика обновляем каждые 3 секунды
-    } else if (selectedPeriod.minutes <= 720) {
-      updateInterval = 10000; // Для 12-часового графика обновляем каждые 10 секунд
+    if (isToday) {
+      if (selectedPeriod.minutes <= 60) {
+        updateInterval = 3000;
+      } else if (selectedPeriod.minutes <= 720) {
+        updateInterval = 10000;
+      } else {
+        updateInterval = 30000;
+      }
     }
 
     const interval = isToday ? setInterval(fetchData, updateInterval) : null;
