@@ -556,30 +556,39 @@ export default function SensorGraphDHT21() {
         <div className="custom-tooltip">
           <style jsx>{`
             .custom-tooltip {
-              background-color: rgba(35, 35, 35, 0.95);
-              border: 1px solid #666;
-              border-radius: 4px;
-              padding: 8px;
-              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-              font-size: 11px;
+              background: rgba(35, 35, 35, 0.95);
+              backdrop-filter: blur(8px);
+              border: 1px solid rgba(255, 255, 255, 0.1);
+              border-radius: 8px;
+              padding: 12px;
+              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+              font-size: 12px;
+              transition: all 0.2s ease;
             }
             .tooltip-header {
-              margin-bottom: 4px;
-              padding-bottom: 4px;
-              border-bottom: 1px solid #555;
+              margin-bottom: 8px;
+              padding-bottom: 8px;
+              border-bottom: 1px solid rgba(255, 255, 255, 0.1);
               font-weight: 500;
+              color: #fff;
             }
             .tooltip-row {
               display: flex;
               justify-content: space-between;
-              gap: 8px;
+              align-items: center;
+              gap: 16px;
+              padding: 4px 0;
               white-space: nowrap;
             }
+            .tooltip-label {
+              opacity: 0.7;
+            }
             .tooltip-value {
-              font-weight: 500;
+              font-weight: 600;
+              font-family: monospace;
             }
           `}</style>
-          <div className="tooltip-header text-white">
+          <div className="tooltip-header">
             {date && date.toLocaleString('uk-UA', {
               hour: '2-digit',
               minute: '2-digit',
@@ -589,7 +598,10 @@ export default function SensorGraphDHT21() {
           </div>
           {payload.map((entry: any, index: number) => (
             <div key={index} className="tooltip-row">
-              <span style={{ color: entry.color }}>
+              <span className="tooltip-label" style={{ color: entry.color }}>
+                {entry.name}:
+              </span>
+              <span className="tooltip-value" style={{ color: entry.color }}>
                 {entry.value.toFixed(1)}{entry.unit}
               </span>
             </div>
@@ -662,21 +674,142 @@ export default function SensorGraphDHT21() {
   };
 
   return (
-    <div
-      className="container-fluid py-4"
-      style={{ backgroundColor: "#2b2b2b", color: "#fff", borderRadius: 5 }}
-    >
-      <div className="d-flex flex-wrap gap-3 mb-3 align-items-center justify-content-between">
-        <h5 className="text-warning mb-0">
-          Графік DHT21 (Температура/Вологість)
-        </h5>
-        <div className="d-flex gap-2 flex-wrap">
+    <div className="sensor-graph">
+      <style jsx>{`
+        .sensor-graph {
+          background: linear-gradient(to bottom, #2b2b2b, #232323);
+          color: #fff;
+          border-radius: 12px;
+          padding: 20px;
+          box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+        }
+        
+        .controls-wrapper {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+          margin-bottom: 20px;
+          align-items: center;
+        }
+        
+        .title {
+          font-size: 1.25rem;
+          font-weight: 600;
+          color: #ffd700;
+          margin: 0;
+          padding: 0;
+          flex: 1 1 100%;
+        }
+        
+        .control-group {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          align-items: center;
+        }
+        
+        .sensor-checkbox {
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 6px;
+          padding: 6px 12px;
+          transition: all 0.2s ease;
+        }
+        
+        .sensor-checkbox:hover {
+          background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .form-control, .form-select {
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          color: #fff;
+          border-radius: 6px;
+          padding: 8px 12px;
+          transition: all 0.2s ease;
+        }
+        
+        .form-control:focus, .form-select:focus {
+          background: rgba(255, 255, 255, 0.1);
+          border-color: rgba(255, 255, 255, 0.2);
+          box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
+        }
+        
+        .btn-download {
+          background: rgba(255, 255, 255, 0.05);
+          color: #fff;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 6px;
+          padding: 8px 16px;
+          font-size: 0.875rem;
+          transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        
+        .btn-download:hover {
+          background: rgba(255, 255, 255, 0.1);
+          border-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .chart-container {
+          position: relative;
+          width: 100%;
+          height: calc(100vh - 250px);
+          min-height: 400px;
+          background: rgba(0, 0, 0, 0.2);
+          border-radius: 8px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          overflow: hidden;
+        }
+        
+        @media (max-width: 768px) {
+          .sensor-graph {
+            padding: 12px;
+            border-radius: 8px;
+          }
+          
+          .title {
+            font-size: 1rem;
+          }
+          
+          .controls-wrapper {
+            gap: 8px;
+          }
+          
+          .chart-container {
+            height: calc(100vh - 200px);
+            min-height: 300px;
+          }
+          
+          .sensor-checkbox {
+            padding: 4px 8px;
+            font-size: 0.875rem;
+          }
+          
+          .form-control, .form-select, .btn-download {
+            padding: 6px 10px;
+            font-size: 0.875rem;
+          }
+        }
+        
+        @media (min-width: 769px) {
+          .control-group {
+            flex: 1;
+            justify-content: flex-end;
+          }
+        }
+      `}</style>
+
+      <div className="controls-wrapper">
+        <h5 className="title">Графік DHT21 (Температура/Вологість)</h5>
+        
+        <div className="control-group">
           {SENSOR_IDS.map((id) => (
-            <div key={id} className="form-check form-check-inline">
+            <label key={id} className="sensor-checkbox">
               <input
                 type="checkbox"
-                className="form-check-input"
-                id={`sensor-${id}`}
+                className="form-check-input me-2"
                 checked={selectedSensors.includes(id)}
                 onChange={(e) => {
                   const updated = e.target.checked
@@ -685,11 +818,12 @@ export default function SensorGraphDHT21() {
                   setSelectedSensors(updated);
                 }}
               />
-              <label className="form-check-label text-light" htmlFor={`sensor-${id}`}>
-                {id}
-              </label>
-            </div>
+              {id}
+            </label>
           ))}
+        </div>
+
+        <div className="control-group">
           <input
             type="date"
             className="form-control"
@@ -697,6 +831,7 @@ export default function SensorGraphDHT21() {
             onChange={(e) => setSelectedDate(e.target.value)}
             max={new Date().toISOString().split("T")[0]}
           />
+          
           <select
             className="form-select"
             value={selectedPeriod.label}
@@ -711,269 +846,198 @@ export default function SensorGraphDHT21() {
               </option>
             ))}
           </select>
+
           {selectedSensors.map((id) => (
             <button
               key={id}
-              className="btn btn-outline-light btn-sm"
+              className="btn-download"
               onClick={() => downloadCSV(id)}
             >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M8 12L3 7H13L8 12Z" fill="currentColor"/>
+                <path d="M8 2V9" stroke="currentColor" strokeWidth="2"/>
+                <path d="M3 14H13" stroke="currentColor" strokeWidth="2"/>
+              </svg>
               CSV {id}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="text-warning mb-3">
-        Вибрана дата: {new Date(selectedDate).toLocaleDateString("uk-UA")}
-        {isLoading && <span className="ms-2">(Завантаження...)</span>}
+      <div className="text-warning mb-3 d-flex align-items-center gap-2">
+        <span>Вибрана дата: {new Date(selectedDate).toLocaleDateString("uk-UA")}</span>
+        {isLoading && (
+          <div className="spinner-border spinner-border-sm text-warning" role="status">
+            <span className="visually-hidden">Завантаження...</span>
+          </div>
+        )}
       </div>
 
-      <div className="chart-wrapper">
-        <style jsx>{`
-          .chart-wrapper {
-            position: relative;
-            width: 100%;
-            height: calc(100vh - 250px);
-            min-height: 400px;
-            background-color: #2b2b2b;
-            overflow: hidden;
-            border-radius: 8px;
-            border: 1px solid #444;
-          }
-          .chart-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            display: flex;
-          }
-          .scroll-container {
-            flex: 1;
-            overflow-x: auto;
-            overflow-y: hidden;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: thin;
-            scrollbar-color: #666 #2b2b2b;
-            margin: 0 40px;
-          }
-          .scroll-container::-webkit-scrollbar {
-            height: 8px;
-          }
-          .scroll-container::-webkit-scrollbar-track {
-            background: #2b2b2b;
-            border-radius: 4px;
-          }
-          .scroll-container::-webkit-scrollbar-thumb {
-            background-color: #666;
-            border-radius: 4px;
-            border: 2px solid #2b2b2b;
-          }
-          .chart-content {
-            position: relative;
-            min-width: 100%;
-            height: 100%;
-          }
-
-          @media (max-width: 768px) {
-            .chart-wrapper {
-              height: calc(100vh - 200px);
-            }
-            .chart-content {
-              min-width: ${selectedPeriod.minutes === 60 ? '2000px' : (selectedPeriod.minutes >= 10080 ? '3000px' : '1200px')};
-            }
-            .time-label {
-              font-size: 10px;
-              transform: rotate(-45deg);
-              transform-origin: top right;
-            }
-            .zoom-button {
-              top: 5px;
-              right: 45px;
-              padding: 4px 8px;
-              font-size: 11px;
-            }
-            .time-range-display {
-              font-size: 11px;
-              padding: 4px 8px;
-            }
-          }
-          @media (min-width: 769px) {
-            .chart-content {
-              min-width: ${selectedPeriod.minutes === 60 ? '1800px' : (selectedPeriod.minutes >= 10080 ? '2400px' : '100%')};
-            }
-            .time-label {
-              font-size: 12px;
-            }
-          }
-        `}</style>
-
-        <div className="chart-container">
-          <div className="y-axis-left">
-            <LineChart
-              data={chartData}
-              margin={{ top: 5, right: 0, left: 0, bottom: 5 }}
+      <div className="chart-container">
+        <div className="y-axis-left">
+          <LineChart
+            data={chartData}
+            margin={{ top: 5, right: 0, left: 0, bottom: 5 }}
+            width={40}
+            height={400}
+          >
+            <YAxis
+              yAxisId="left"
+              orientation="left"
+              stroke="#44c0ff"
+              tick={{ fill: "#44c0ff", fontSize: 11 }}
+              label={{
+                value: "Вологість (%)",
+                angle: -90,
+                position: "insideLeft",
+                fill: "#44c0ff",
+                style: { fontSize: "12px" }
+              }}
+              domain={axisRanges.humidity}
+              allowDataOverflow={true}
+              tickCount={8}
+              tickFormatter={(value) => `${value}%`}
+              scale="linear"
+              allowDecimals={true}
+              tickMargin={5}
               width={40}
-              height={400}
-            >
-              <YAxis
-                yAxisId="left"
-                orientation="left"
-                stroke="#44c0ff"
-                tick={{ fill: "#44c0ff", fontSize: 11 }}
-                label={{
-                  value: "Вологість (%)",
-                  angle: -90,
-                  position: "insideLeft",
-                  fill: "#44c0ff",
-                  style: { fontSize: "12px" }
-                }}
-                domain={axisRanges.humidity}
-                allowDataOverflow={true}
-                tickCount={8}
-                tickFormatter={(value) => `${value}%`}
-                scale="linear"
-                allowDecimals={true}
-                tickMargin={5}
-                width={40}
-                axisLine={{ stroke: "#44c0ff" }}
-                tickLine={{ stroke: "#44c0ff" }}
-              />
-            </LineChart>
-          </div>
+              axisLine={{ stroke: "#44c0ff" }}
+              tickLine={{ stroke: "#44c0ff" }}
+            />
+          </LineChart>
+        </div>
 
-          <div className="scroll-container">
-            <div className="chart-content">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={chartData}
-                  margin={{ top: 20, right: 5, left: 5, bottom: 40 }}
-                  onMouseDown={(e) => e?.activeLabel && setZoomState({ ...zoomState, refAreaLeft: e.activeLabel })}
-                  onMouseMove={(e) => e?.activeLabel && zoomState.refAreaLeft && setZoomState({ ...zoomState, refAreaRight: e.activeLabel })}
-                  onMouseUp={zoom}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                  <XAxis
-                    dataKey="time"
-                    stroke="#999"
-                    tick={{ 
-                      fill: "#999",
-                      className: "time-label"
-                    }}
-                    angle={-45}
-                    textAnchor="end"
-                    height={60}
-                    interval={selectedPeriod.minutes === 60 ? 4 : (
-                      selectedPeriod.minutes === 720 ? 6 : (
-                      selectedPeriod.minutes === 1440 ? 12 : (
-                      selectedPeriod.minutes === 10080 ? 8 : (
-                      selectedPeriod.minutes === 43200 ? 8 : 5
-                    ))))}
-                    minTickGap={20}
-                    tickMargin={15}
-                    domain={[zoomState.left, zoomState.right]}
-                    allowDataOverflow
-                  />
-                  <YAxis
-                    yAxisId="left"
-                    orientation="left"
-                    domain={axisRanges.humidity}
-                    hide={true}
-                  />
-                  <YAxis
-                    yAxisId="right"
-                    orientation="right"
-                    domain={axisRanges.temperature}
-                    hide={true}
-                  />
-                  <Tooltip 
-                    content={<CustomTooltip />}
-                    wrapperStyle={{
-                      backgroundColor: "rgba(35, 35, 35, 0.95)",
-                      border: "1px solid #666",
-                      borderRadius: "4px",
-                      padding: "8px",
-                      zIndex: 1001
-                    }}
-                  />
-                  {selectedSensors.map((sensorId) => (
-                    <React.Fragment key={sensorId}>
-                      <Line
-                        yAxisId="left"
-                        type="monotone"
-                        dataKey={`${sensorId}_humidity`}
-                        name="Вологість"
-                        stroke={COLORS[`${sensorId}_humidity` as ColorKey]}
-                        strokeWidth={2}
-                        dot={selectedPeriod.minutes >= 10080 ? { r: 2 } : false}
-                        activeDot={{ r: 6, strokeWidth: 1 }}
-                        unit="%"
-                        connectNulls={true}
-                        isAnimationActive={selectedPeriod.minutes !== 60}
-                      />
-                      <Line
-                        yAxisId="right"
-                        type="monotone"
-                        dataKey={`${sensorId}_temperature`}
-                        name="Температура"
-                        stroke={COLORS[`${sensorId}_temperature` as ColorKey]}
-                        strokeWidth={2}
-                        dot={selectedPeriod.minutes >= 10080 ? { r: 2 } : false}
-                        activeDot={{ r: 6, strokeWidth: 1 }}
-                        unit="°C"
-                        connectNulls={true}
-                        isAnimationActive={selectedPeriod.minutes !== 60}
-                      />
-                    </React.Fragment>
-                  ))}
-                  {zoomState.refAreaLeft && zoomState.refAreaRight ? (
-                    <ReferenceArea
+        <div className="scroll-container">
+          <div className="chart-content">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={chartData}
+                margin={{ top: 20, right: 5, left: 5, bottom: 40 }}
+                onMouseDown={(e) => e?.activeLabel && setZoomState({ ...zoomState, refAreaLeft: e.activeLabel })}
+                onMouseMove={(e) => e?.activeLabel && zoomState.refAreaLeft && setZoomState({ ...zoomState, refAreaRight: e.activeLabel })}
+                onMouseUp={zoom}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                <XAxis
+                  dataKey="time"
+                  stroke="#999"
+                  tick={{ 
+                    fill: "#999",
+                    className: "time-label"
+                  }}
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
+                  interval={selectedPeriod.minutes === 60 ? 4 : (
+                    selectedPeriod.minutes === 720 ? 6 : (
+                    selectedPeriod.minutes === 1440 ? 12 : (
+                    selectedPeriod.minutes === 10080 ? 8 : (
+                    selectedPeriod.minutes === 43200 ? 8 : 5
+                  ))))}
+                  minTickGap={20}
+                  tickMargin={15}
+                  domain={[zoomState.left, zoomState.right]}
+                  allowDataOverflow
+                />
+                <YAxis
+                  yAxisId="left"
+                  orientation="left"
+                  domain={axisRanges.humidity}
+                  hide={true}
+                />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  domain={axisRanges.temperature}
+                  hide={true}
+                />
+                <Tooltip 
+                  content={<CustomTooltip />}
+                  wrapperStyle={{
+                    backgroundColor: "rgba(35, 35, 35, 0.95)",
+                    border: "1px solid #666",
+                    borderRadius: "4px",
+                    padding: "8px",
+                    zIndex: 1001
+                  }}
+                />
+                {selectedSensors.map((sensorId) => (
+                  <React.Fragment key={sensorId}>
+                    <Line
                       yAxisId="left"
-                      x1={zoomState.refAreaLeft}
-                      x2={zoomState.refAreaRight}
-                      strokeOpacity={0.3}
-                      fill="#fff"
-                      fillOpacity={0.1}
+                      type="monotone"
+                      dataKey={`${sensorId}_humidity`}
+                      name="Вологість"
+                      stroke={COLORS[`${sensorId}_humidity` as ColorKey]}
+                      strokeWidth={2}
+                      dot={selectedPeriod.minutes >= 10080 ? { r: 2 } : false}
+                      activeDot={{ r: 6, strokeWidth: 1 }}
+                      unit="%"
+                      connectNulls={true}
+                      isAnimationActive={selectedPeriod.minutes !== 60}
                     />
-                  ) : null}
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="y-axis-right">
-            <LineChart
-              data={chartData}
-              margin={{ top: 5, right: 0, left: 0, bottom: 5 }}
-              width={40}
-              height={400}
-            >
-              <YAxis
-                yAxisId="right"
-                orientation="right"
-                stroke="#ffa500"
-                tick={{ fill: "#ffa500", fontSize: 11 }}
-                label={{
-                  value: "Температура (°C)",
-                  angle: 90,
-                  position: "insideRight",
-                  fill: "#ffa500",
-                  style: { fontSize: "12px" }
-                }}
-                domain={axisRanges.temperature}
-                allowDataOverflow={true}
-                tickCount={8}
-                tickFormatter={(value) => `${value}°C`}
-                scale="linear"
-                allowDecimals={true}
-                tickMargin={5}
-                width={40}
-                axisLine={{ stroke: "#ffa500" }}
-                tickLine={{ stroke: "#ffa500" }}
-              />
-            </LineChart>
+                    <Line
+                      yAxisId="right"
+                      type="monotone"
+                      dataKey={`${sensorId}_temperature`}
+                      name="Температура"
+                      stroke={COLORS[`${sensorId}_temperature` as ColorKey]}
+                      strokeWidth={2}
+                      dot={selectedPeriod.minutes >= 10080 ? { r: 2 } : false}
+                      activeDot={{ r: 6, strokeWidth: 1 }}
+                      unit="°C"
+                      connectNulls={true}
+                      isAnimationActive={selectedPeriod.minutes !== 60}
+                    />
+                  </React.Fragment>
+                ))}
+                {zoomState.refAreaLeft && zoomState.refAreaRight ? (
+                  <ReferenceArea
+                    yAxisId="left"
+                    x1={zoomState.refAreaLeft}
+                    x2={zoomState.refAreaRight}
+                    strokeOpacity={0.3}
+                    fill="#fff"
+                    fillOpacity={0.1}
+                  />
+                ) : null}
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
-
+        <div className="y-axis-right">
+          <LineChart
+            data={chartData}
+            margin={{ top: 5, right: 0, left: 0, bottom: 5 }}
+            width={40}
+            height={400}
+          >
+            <YAxis
+              yAxisId="right"
+              orientation="right"
+              stroke="#ffa500"
+              tick={{ fill: "#ffa500", fontSize: 11 }}
+              label={{
+                value: "Температура (°C)",
+                angle: 90,
+                position: "insideRight",
+                fill: "#ffa500",
+                style: { fontSize: "12px" }
+              }}
+              domain={axisRanges.temperature}
+              allowDataOverflow={true}
+              tickCount={8}
+              tickFormatter={(value) => `${value}°C`}
+              scale="linear"
+              allowDecimals={true}
+              tickMargin={5}
+              width={40}
+              axisLine={{ stroke: "#ffa500" }}
+              tickLine={{ stroke: "#ffa500" }}
+            />
+          </LineChart>
+        </div>
       </div>
     </div>
   );
