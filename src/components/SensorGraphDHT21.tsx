@@ -318,11 +318,31 @@ export default function SensorGraphDHT21() {
     selectedDateEnd.setHours(23, 59, 59, 999);
 
     // Определяем период для фильтрации
-    const periodEnd = new Date(selectedDateEnd);
-    if (selectedDate === new Date().toISOString().split("T")[0]) {
-      periodEnd.setTime(new Date().getTime());
+    let periodEnd = new Date();
+    let periodStart = new Date();
+
+    const today = new Date().toISOString().split('T')[0];
+    const isToday = selectedDate === today;
+
+    if (isToday) {
+      // Для текущего дня - от 00:00 до текущего момента
+      periodStart = new Date(today);
+      periodStart.setHours(0, 0, 0, 0);
+      periodEnd = new Date();
+    } else {
+      // Для выбранной даты всегда от 00:00 до 00:00 следующего дня
+      periodStart = new Date(selectedDate);
+      periodStart.setHours(0, 0, 0, 0);
+      periodEnd = new Date(selectedDate);
+      periodEnd.setDate(periodEnd.getDate() + 1);
+      periodEnd.setHours(0, 0, 0, 0);
     }
-    const periodStart = new Date(periodEnd.getTime() - selectedPeriod.minutes * 60 * 1000);
+
+    // Корректируем период в зависимости от выбранного временного интервала
+    if (selectedPeriod.minutes < 1440) { // Меньше суток
+      periodEnd = new Date(Math.min(periodEnd.getTime(), new Date().getTime()));
+      periodStart = new Date(periodEnd.getTime() - selectedPeriod.minutes * 60 * 1000);
+    }
 
     // Фильтруем и сортируем данные
     const filtered = _.chain(historicalData)
@@ -433,36 +453,20 @@ export default function SensorGraphDHT21() {
     const baseProps = {
       type: "monotone" as const,
       strokeWidth: 2,
-      connectNulls: true
+      connectNulls: true,
+      dot: false,
+      activeDot: { r: 4 }
     };
 
-    switch(selectedPeriod.minutes) {
-      case 60: // 1 час
-        return {
-          ...baseProps,
-          dot: { r: 3 },
-          activeDot: { r: 5 },
-          isAnimationActive: false // Отключаем анимацию для часового графика
-        };
-      case 720: // 12 часов
-        return {
-          ...baseProps,
-          dot: { r: 2 },
-          activeDot: { r: 4 }
-        };
-      case 1440: // 1 день
-        return {
-          ...baseProps,
-          dot: false,
-          activeDot: { r: 4 }
-        };
-      default:
-        return {
-          ...baseProps,
-          dot: false,
-          activeDot: { r: 3 }
-        };
+    // Отключаем анимацию только для часового графика
+    if (selectedPeriod.minutes === 60) {
+      return {
+        ...baseProps,
+        isAnimationActive: false
+      };
     }
+
+    return baseProps;
   };
 
   // Получаем параметры линий
