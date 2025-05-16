@@ -11,7 +11,9 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceArea,
-  Brush
+  Brush,
+  ReferenceLine,
+  Legend
 } from "recharts";
 
 interface SensorPoint {
@@ -94,6 +96,19 @@ interface LineProperties {
   isAnimationActive?: boolean;
 }
 
+// Добавляем интерфейс для статистических данных
+interface Statistics {
+  min: number;
+  max: number;
+  avg: number;
+  median: number;
+  stdDev: number;
+}
+
+interface StatisticsMap {
+  [key: string]: Statistics;
+}
+
 export default function SensorGraphDHT21() {
   const [historicalData, setHistoricalData] = useState<SensorPoint[]>([]);
   const [liveData, setLiveData] = useState<Record<string, SensorPoint>>({});
@@ -123,6 +138,9 @@ export default function SensorGraphDHT21() {
     humidity: [0, 100],
     temperature: [-10, 50]
   };
+
+  // Добавляем состояние для статистики
+  const [statistics, setStatistics] = useState<StatisticsMap>({});
 
   // Добавляем функцию форматирования диапазона времени
   const formatTimeRange = useCallback((startTime: number, endTime: number) => {
@@ -630,45 +648,161 @@ export default function SensorGraphDHT21() {
     URL.revokeObjectURL(url);
   };
 
+  // Функция расчета статистики
+  const calculateStatistics = useCallback((data: ChartDataPoint[], sensorId: string) => {
+    const humidityKey = `${sensorId}_humidity`;
+    const tempKey = `${sensorId}_temperature`;
+    
+    const calculateStatsForKey = (key: string) => {
+      const values = data
+        .map(point => Number(point[key]))
+        .filter(val => !isNaN(val));
+
+      if (values.length === 0) return null;
+
+      const sorted = [...values].sort((a, b) => a - b);
+      const sum = values.reduce((a, b) => a + b, 0);
+      const avg = sum / values.length;
+      const median = sorted.length % 2 === 0
+        ? (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
+        : sorted[Math.floor(sorted.length / 2)];
+      
+      // Расчет стандартного отклонения
+      const squareDiffs = values.map(value => Math.pow(value - avg, 2));
+      const avgSquareDiff = squareDiffs.reduce((a, b) => a + b, 0) / values.length;
+      const stdDev = Math.sqrt(avgSquareDiff);
+
+      return {
+        min: Math.min(...values),
+        max: Math.max(...values),
+        avg,
+        median,
+        stdDev
+      };
+    };
+
+    return {
+      [`${sensorId}_humidity`]: calculateStatsForKey(humidityKey),
+      [`${sensorId}_temperature`]: calculateStatsForKey(tempKey)
+    };
+  }, []);
+
+  // Обновляем статистику при изменении данных
+  useEffect(() => {
+    const newStats: StatisticsMap = {};
+    selectedSensors.forEach(sensorId => {
+      const sensorStats = calculateStatistics(chartData, sensorId);
+      Object.assign(newStats, sensorStats);
+    });
+    setStatistics(newStats);
+  }, [chartData, selectedSensors, calculateStatistics]);
+
+  // Кастомный тултип с дополнительной статистикой
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const timestamp = payload[0]?.payload?.timestamp;
       const date = timestamp ? new Date(timestamp) : null;
       
       return (
-        <div className="bg-dark p-2 border border-secondary rounded">
-          {date && (
-            <p className="mb-1 text-white">
-              {date.toLocaleString('uk-UA', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: selectedPeriod.minutes <= 720 ? '2-digit' : undefined,
-                hour12: false
-              })}
-            </p>
-          )}
-          {payload.map((entry: any, index: number) => (
-            <p key={index} style={{ color: entry.color }} className="mb-0">
-              {entry.name}: {entry.value.toFixed(2)}{entry.unit}
-            </p>
-          ))}
+        <div className="custom-tooltip">
+          <style jsx>{`
+            .custom-tooltip {
+              background-color: rgba(35, 35, 35, 0.95);
+              border: 1px solid #666;
+              border-radius: 4px;
+              padding: 12px;
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            }
+            .tooltip-header {
+              margin-bottom: 8px;
+              padding-bottom: 8px;
+              border-bottom: 1px solid #555;
+              font-weight: bold;
+            }
+            .tooltip-row {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 4px;
+              font-size: 13px;
+            }
+            .tooltip-label {
+              margin-right: 12px;
+              color: #999;
+            }
+            .tooltip-value {
+              font-weight: 500;
+            }
+            .tooltip-stats {
+              margin-top: 8px;
+              padding-top: 8px;
+              border-top: 1px solid #555;
+              font-size: 12px;
+            }
+          `}</style>
+          <div className="tooltip-header text-white">
+            {date && date.toLocaleString('uk-UA', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: selectedPeriod.minutes <= 720 ? '2-digit' : undefined,
+              hour12: false
+            })}
+          </div>
+          {payload.map((entry: any, index: number) => {
+            const stats = statistics[entry.dataKey];
+            return (
+              <div key={index}>
+                <div className="tooltip-row">
+                  <span className="tooltip-label" style={{ color: entry.color }}>
+                    {entry.name}:
+                  </span>
+                  <span className="tooltip-value" style={{ color: entry.color }}>
+                    {entry.value.toFixed(2)}{entry.unit}
+                  </span>
+                </div>
+                {stats && (
+                  <div className="tooltip-stats">
+                    <div className="tooltip-row">
+                      <span className="tooltip-label">Мінімум:</span>
+                      <span className="tooltip-value">{stats.min.toFixed(1)}{entry.unit}</span>
+                    </div>
+                    <div className="tooltip-row">
+                      <span className="tooltip-label">Максимум:</span>
+                      <span className="tooltip-value">{stats.max.toFixed(1)}{entry.unit}</span>
+                    </div>
+                    <div className="tooltip-row">
+                      <span className="tooltip-label">Середнє:</span>
+                      <span className="tooltip-value">{stats.avg.toFixed(1)}{entry.unit}</span>
+                    </div>
+                    <div className="tooltip-row">
+                      <span className="tooltip-label">Медіана:</span>
+                      <span className="tooltip-value">{stats.median.toFixed(1)}{entry.unit}</span>
+                    </div>
+                    <div className="tooltip-row">
+                      <span className="tooltip-label">Відхилення:</span>
+                      <span className="tooltip-value">±{stats.stdDev.toFixed(1)}{entry.unit}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       );
     }
     return null;
   };
 
-  // Функция для определения параметров отображения линий
+  // Функция для определения параметров линий с улучшенной визуализацией
   const getLineProps = useCallback((): LineProperties => {
     const baseProps = {
       type: "monotone" as const,
       strokeWidth: 2,
       connectNulls: true,
-      dot: false,
-      activeDot: { r: 4 }
+      dot: selectedPeriod.minutes >= 10080 ? { r: 2 } : false,
+      activeDot: { r: 6, strokeWidth: 1 }
     };
 
     // Отключаем анимацию только для часового графика
@@ -935,11 +1069,89 @@ export default function SensorGraphDHT21() {
             font-size: 12px;
             font-weight: bold;
           }
+          .statistics-panel {
+            background-color: rgba(35, 35, 35, 0.95);
+            border: 1px solid #666;
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+          }
+          .stat-group {
+            flex: 1;
+            min-width: 200px;
+          }
+          .stat-header {
+            font-weight: bold;
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #555;
+          }
+          .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            font-size: 13px;
+          }
+          .stat-label {
+            color: #999;
+          }
+          @media (max-width: 768px) {
+            .statistics-panel {
+              flex-direction: column;
+            }
+            .stat-group {
+              min-width: 100%;
+            }
+          }
         `}</style>
 
         <button className="zoom-button" onClick={zoomOut}>
           Сбросить масштаб
         </button>
+
+        <div className="statistics-panel">
+          {selectedSensors.map((sensorId) => (
+            <React.Fragment key={sensorId}>
+              {['humidity', 'temperature'].map((type) => {
+                const key = `${sensorId}_${type}` as keyof typeof statistics;
+                const stats = statistics[key];
+                const unit = type === 'humidity' ? '%' : '°C';
+                const color = COLORS[key as ColorKey];
+
+                return stats ? (
+                  <div key={key} className="stat-group">
+                    <div className="stat-header" style={{ color }}>
+                      {sensorId} {type === 'humidity' ? 'Вологість' : 'Температура'}
+                    </div>
+                    <div className="stat-row">
+                      <span className="stat-label">Мінімум:</span>
+                      <span>{stats.min.toFixed(1)}{unit}</span>
+                    </div>
+                    <div className="stat-row">
+                      <span className="stat-label">Максимум:</span>
+                      <span>{stats.max.toFixed(1)}{unit}</span>
+                    </div>
+                    <div className="stat-row">
+                      <span className="stat-label">Середнє:</span>
+                      <span>{stats.avg.toFixed(1)}{unit}</span>
+                    </div>
+                    <div className="stat-row">
+                      <span className="stat-label">Медіана:</span>
+                      <span>{stats.median.toFixed(1)}{unit}</span>
+                    </div>
+                    <div className="stat-row">
+                      <span className="stat-label">Відхилення:</span>
+                      <span>±{stats.stdDev.toFixed(1)}{unit}</span>
+                    </div>
+                  </div>
+                ) : null;
+              })}
+            </React.Fragment>
+          ))}
+        </div>
 
         <div className="chart-container">
           <div className="y-axis-left">
@@ -1020,13 +1232,102 @@ export default function SensorGraphDHT21() {
                     <Tooltip 
                       content={<CustomTooltip />}
                       wrapperStyle={{
-                        backgroundColor: "#2b2b2b",
-                        border: "1px solid #444",
-                        borderRadius: "4px",
-                        padding: "8px",
                         zIndex: 1001
                       }}
                     />
+                    <Legend 
+                      verticalAlign="top"
+                      height={36}
+                      formatter={(value) => {
+                        const [sensorId, type] = value.split(' ');
+                        return <span style={{ color: '#fff', fontSize: '12px' }}>{value}</span>;
+                      }}
+                    />
+                    {selectedSensors.map((sensorId) => {
+                      const humidityStats = statistics[`${sensorId}_humidity`];
+                      const tempStats = statistics[`${sensorId}_temperature`];
+                      
+                      return (
+                        <React.Fragment key={sensorId}>
+                          <Line
+                            yAxisId="left"
+                            type={lineProps.type}
+                            dataKey={`${sensorId}_humidity`}
+                            name={`${sensorId} Вологість`}
+                            stroke={COLORS[`${sensorId}_humidity` as ColorKey]}
+                            dot={lineProps.dot}
+                            activeDot={lineProps.activeDot}
+                            unit="%"
+                            strokeWidth={lineProps.strokeWidth}
+                            connectNulls={lineProps.connectNulls}
+                            isAnimationActive={lineProps.isAnimationActive}
+                          />
+                          {humidityStats && (
+                            <>
+                              <ReferenceLine
+                                y={humidityStats.avg}
+                                yAxisId="left"
+                                stroke={COLORS[`${sensorId}_humidity` as ColorKey]}
+                                strokeDasharray="3 3"
+                                strokeOpacity={0.5}
+                              />
+                              <ReferenceLine
+                                y={humidityStats.max}
+                                yAxisId="left"
+                                stroke={COLORS[`${sensorId}_humidity` as ColorKey]}
+                                strokeDasharray="2 2"
+                                strokeOpacity={0.3}
+                              />
+                              <ReferenceLine
+                                y={humidityStats.min}
+                                yAxisId="left"
+                                stroke={COLORS[`${sensorId}_humidity` as ColorKey]}
+                                strokeDasharray="2 2"
+                                strokeOpacity={0.3}
+                              />
+                            </>
+                          )}
+                          <Line
+                            yAxisId="right"
+                            type={lineProps.type}
+                            dataKey={`${sensorId}_temperature`}
+                            name={`${sensorId} Температура`}
+                            stroke={COLORS[`${sensorId}_temperature` as ColorKey]}
+                            dot={lineProps.dot}
+                            activeDot={lineProps.activeDot}
+                            unit="°C"
+                            strokeWidth={lineProps.strokeWidth}
+                            connectNulls={lineProps.connectNulls}
+                            isAnimationActive={lineProps.isAnimationActive}
+                          />
+                          {tempStats && (
+                            <>
+                              <ReferenceLine
+                                y={tempStats.avg}
+                                yAxisId="right"
+                                stroke={COLORS[`${sensorId}_temperature` as ColorKey]}
+                                strokeDasharray="3 3"
+                                strokeOpacity={0.5}
+                              />
+                              <ReferenceLine
+                                y={tempStats.max}
+                                yAxisId="right"
+                                stroke={COLORS[`${sensorId}_temperature` as ColorKey]}
+                                strokeDasharray="2 2"
+                                strokeOpacity={0.3}
+                              />
+                              <ReferenceLine
+                                y={tempStats.min}
+                                yAxisId="right"
+                                stroke={COLORS[`${sensorId}_temperature` as ColorKey]}
+                                strokeDasharray="2 2"
+                                strokeOpacity={0.3}
+                              />
+                            </>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
                     <Brush
                       className="brush-custom"
                       dataKey="time"
@@ -1040,36 +1341,6 @@ export default function SensorGraphDHT21() {
                       y={10}
                       strokeWidth={1}
                     />
-                    {selectedSensors.map((sensorId) => (
-                      <React.Fragment key={sensorId}>
-                        <Line
-                          yAxisId="left"
-                          type={lineProps.type}
-                          dataKey={`${sensorId}_humidity`}
-                          name={`${sensorId} Вологість`}
-                          stroke={COLORS[`${sensorId}_humidity` as ColorKey]}
-                          dot={lineProps.dot}
-                          activeDot={lineProps.activeDot}
-                          unit="%"
-                          strokeWidth={lineProps.strokeWidth}
-                          connectNulls={lineProps.connectNulls}
-                          isAnimationActive={lineProps.isAnimationActive}
-                        />
-                        <Line
-                          yAxisId="right"
-                          type={lineProps.type}
-                          dataKey={`${sensorId}_temperature`}
-                          name={`${sensorId} Температура`}
-                          stroke={COLORS[`${sensorId}_temperature` as ColorKey]}
-                          dot={lineProps.dot}
-                          activeDot={lineProps.activeDot}
-                          unit="°C"
-                          strokeWidth={lineProps.strokeWidth}
-                          connectNulls={lineProps.connectNulls}
-                          isAnimationActive={lineProps.isAnimationActive}
-                        />
-                      </React.Fragment>
-                    ))}
                     {zoomState.refAreaLeft && zoomState.refAreaRight ? (
                       <ReferenceArea
                         yAxisId="left"
