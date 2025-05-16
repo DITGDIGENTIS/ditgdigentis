@@ -100,7 +100,11 @@ export default function SensorGraphDHT21() {
       try {
         setIsLoading(true);
         
-        const endDate = new Date();
+        // Calculate the end date based on selected date
+        const endDate = new Date(selectedDate);
+        endDate.setHours(23, 59, 59, 999);
+        
+        // Calculate start date based on selected period
         const startDate = new Date(endDate.getTime() - selectedPeriod.minutes * 60 * 1000);
 
         const [historicalRes, liveRes] = await Promise.all([
@@ -160,10 +164,14 @@ export default function SensorGraphDHT21() {
     };
 
     fetchData();
-    // Увеличиваем частоту обновления для часового графика
-    const interval = setInterval(fetchData, selectedPeriod.minutes <= 60 ? 3000 : 5000);
-    return () => clearInterval(interval);
-  }, [selectedPeriod, selectedSensors]);
+
+    // Only set up polling interval if we're looking at today's data
+    const isToday = selectedDate === new Date().toISOString().split("T")[0];
+    const interval = isToday ? setInterval(fetchData, selectedPeriod.minutes <= 60 ? 3000 : 5000) : null;
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [selectedPeriod, selectedSensors, selectedDate]);
 
   const formatTime = (ts: number) => {
     const date = new Date(ts);
