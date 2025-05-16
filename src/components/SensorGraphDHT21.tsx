@@ -238,18 +238,13 @@ export default function SensorGraphDHT21() {
 
   const formatTime = (ts: number) => {
     const date = new Date(ts);
-    const options: Intl.DateTimeFormatOptions = {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    };
 
     if (selectedPeriod.minutes === 60) {
       // Для часового периода показываем время в формате ЧЧ:ММ:СС
       const hours = date.getHours().toString().padStart(2, '0');
       const minutes = date.getMinutes().toString().padStart(2, '0');
-      const seconds = Math.floor(date.getSeconds() / 5) * 5;
-      return `${hours}:${minutes}:${seconds.toString().padStart(2, '0')}`;
+      const seconds = date.getSeconds().toString().padStart(2, '0');
+      return `${hours}:${minutes}:${seconds}`;
     } else if (selectedPeriod.minutes <= 10080) {
       // Для периодов до недели включительно показываем время в формате ДД.ММ ЧЧ:ММ или ЧЧ:ММ
       const hours = date.getHours().toString().padStart(2, '0');
@@ -302,12 +297,10 @@ export default function SensorGraphDHT21() {
     const isToday = selectedDate === today;
 
     if (isToday) {
-      // Для текущего дня - от 00:00 до текущего момента
       periodStart = new Date(today);
       periodStart.setHours(0, 0, 0, 0);
       periodEnd = new Date();
     } else {
-      // Для выбранной даты всегда от 00:00 до 00:00 следующего дня
       periodStart = new Date(selectedDate);
       periodStart.setHours(0, 0, 0, 0);
       periodEnd = new Date(selectedDate);
@@ -316,7 +309,19 @@ export default function SensorGraphDHT21() {
     }
 
     // Корректируем период в зависимости от выбранного временного интервала
-    if (selectedPeriod.minutes <= 10080) { // До недели включительно
+    if (selectedPeriod.minutes === 60) {
+      // Для часового периода
+      periodEnd = new Date(Math.min(periodEnd.getTime(), new Date().getTime()));
+      periodStart = new Date(periodEnd.getTime() - selectedPeriod.minutes * 60 * 1000);
+      
+      // Округляем до 5 секунд
+      periodStart.setMilliseconds(0);
+      periodStart.setSeconds(Math.floor(periodStart.getSeconds() / 5) * 5);
+      
+      periodEnd.setMilliseconds(0);
+      periodEnd.setSeconds(Math.ceil(periodEnd.getSeconds() / 5) * 5);
+    } else if (selectedPeriod.minutes <= 10080) {
+      // Для периодов до недели включительно
       periodEnd = new Date(Math.min(periodEnd.getTime(), new Date().getTime()));
       if (selectedPeriod.minutes <= 1440) {
         // Для периодов до суток
@@ -351,11 +356,11 @@ export default function SensorGraphDHT21() {
       .orderBy(['timestamp'], ['asc'])
       .value();
 
-    // Для периодов до недели включительно группируем данные
+    // Для часового периода группируем строго по 5 секунд
     if (selectedPeriod.minutes === 60) {
-      // Для часового периода группируем по 5 секунд
       const groupedByTime = _.groupBy(filtered, point => {
         const date = new Date(point.timestamp);
+        date.setMilliseconds(0);
         const seconds = Math.floor(date.getSeconds() / 5) * 5;
         date.setSeconds(seconds);
         return date.getTime();
@@ -480,7 +485,7 @@ export default function SensorGraphDHT21() {
         return dataPoint;
       });
     }
-  }, [historicalData, liveData, selectedPeriod, selectedSensors]);
+  }, [historicalData, liveData, selectedPeriod, selectedSensors, selectedDate]);
 
   // Мемоизируем отформатированные данные
   const chartData = useMemo(() => formatData(), [formatData]);
