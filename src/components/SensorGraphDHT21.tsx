@@ -95,6 +95,12 @@ export default function SensorGraphDHT21() {
   const [isLoading, setIsLoading] = useState(false);
   const chartRef = useRef<HTMLDivElement>(null);
 
+  // Добавляем константы для шкал
+  const DEFAULT_RANGES = {
+    humidity: [0, 100],
+    temperature: [-10, 50]
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -210,95 +216,9 @@ export default function SensorGraphDHT21() {
     return date.toLocaleString("uk-UA", options);
   };
 
-  const formatData = (): ChartDataPoint[] => {
-    // Создаем объект даты из выбранной даты в начале дня
-    const selectedDateStart = new Date(selectedDate);
-    selectedDateStart.setHours(0, 0, 0, 0);
-
-    // Создаем объект даты из выбранной даты в конце дня
-    const selectedDateEnd = new Date(selectedDate);
-    selectedDateEnd.setHours(23, 59, 59, 999);
-
-    // Фильтруем данные по выбранной дате и периоду
-    const currentTime = new Date().getTime();
-    const periodStart = new Date(selectedDateEnd.getTime() - selectedPeriod.minutes * 60 * 1000);
-
-    const filtered = historicalData.filter((d) => {
-      const timestamp = new Date(d.timestamp).getTime();
-      // Проверяем, что данные входят в выбранный период
-      return timestamp >= periodStart.getTime() && 
-             timestamp <= selectedDateEnd.getTime() && 
-             selectedSensors.includes(d.sensor_id);
-    });
-
-    if (filtered.length === 0) {
-      console.log('No data found for selected date:', selectedDate);
-      return [];
-    }
-
-    // Сортируем данные по времени
-    const sortedData = _.orderBy(filtered, ['timestamp'], ['asc']);
-
-    const groupedByTime = _.groupBy(sortedData, (point) => {
-      const date = new Date(point.timestamp);
-      if (selectedPeriod.minutes <= 60) {
-        // Для часового графика группируем по минутам
-        return `${date.getHours()}:${date.getMinutes()}`;
-      } else if (selectedPeriod.minutes <= 720) {
-        // Для 12-часового графика группируем по 5 минут
-        return `${date.getHours()}:${Math.floor(date.getMinutes() / 5) * 5}`;
-      } else if (selectedPeriod.minutes <= 1440) {
-        return `${date.getHours()}:${Math.floor(date.getMinutes() / 15) * 15}`;
-      } else if (selectedPeriod.minutes <= 10080) {
-        return `${date.getDate()} ${date.getHours()}:00`;
-      } else if (selectedPeriod.minutes <= 43200) {
-        return `${date.getDate()} ${date.getHours()}:00`;
-      } else {
-        return `${date.getDate()}.${date.getMonth() + 1} ${date.getHours()}:00`;
-      }
-    });
-
-    // Преобразуем в формат для графика с улучшенной обработкой данных
-    const chartData = _.map(groupedByTime, (points, timeKey) => {
-      const dataPoint: ChartDataPoint = {
-        timestamp: points[0].timestamp,
-        time: formatTime(points[0].timestamp),
-      };
-
-      // Улучшенное вычисление средних значений
-      points.forEach((point) => {
-        const humidityKey = `${point.sensor_id}_humidity`;
-        const tempKey = `${point.sensor_id}_temperature`;
-
-        if (!dataPoint[humidityKey]) {
-          dataPoint[humidityKey] = point.humidity;
-        } else {
-          // Используем взвешенное среднее для более точных данных
-          dataPoint[humidityKey] = _.round(
-            (Number(dataPoint[humidityKey]) + point.humidity) / 2,
-            1
-          );
-        }
-
-        if (!dataPoint[tempKey]) {
-          dataPoint[tempKey] = point.temperature;
-        } else {
-          dataPoint[tempKey] = _.round(
-            (Number(dataPoint[tempKey]) + point.temperature) / 2,
-            1
-          );
-        }
-      });
-
-      return dataPoint;
-    });
-
-    return _.orderBy(chartData, ["timestamp"], ["asc"]);
-  };
-
-  // Добавляем функцию для вычисления диапазонов осей
+  // Функция для вычисления диапазонов осей с учетом минимальных значений
   const calculateAxisRanges = (data: ChartDataPoint[]) => {
-    if (!data.length) return { humidity: [0, 100], temperature: [0, 100] };
+    if (!data.length) return DEFAULT_RANGES;
 
     const humidityValues: number[] = [];
     const temperatureValues: number[] = [];
@@ -317,51 +237,95 @@ export default function SensorGraphDHT21() {
       });
     });
 
-    // Добавляем небольшой запас для лучшей визуализации
-    const addPadding = (min: number, max: number, padding: number = 0.1): [number, number] => {
-      const range = max - min;
-      const paddingValue = range * padding;
-      return [Math.max(0, min - paddingValue), max + paddingValue];
-    };
+    // Используем значения по умолчанию, если нет данных
+    if (humidityValues.length === 0 || temperatureValues.length === 0) {
+      return DEFAULT_RANGES;
+    }
 
-    // Вычисляем минимальные и максимальные значения
-    const humidityMin = Math.min(...humidityValues);
-    const humidityMax = Math.max(...humidityValues);
-    const tempMin = Math.min(...temperatureValues);
-    const tempMax = Math.max(...temperatureValues);
-
-    // Вычисляем диапазоны с учетом интервалов и добавляем отступы
-    const humidityRange = calculateNiceRange(humidityMin, humidityMax, 5);
-    const temperatureRange = calculateNiceRange(tempMin, tempMax, 5);
+    const humidityMin = Math.max(0, Math.min(...humidityValues) - 5);
+    const humidityMax = Math.min(100, Math.max(...humidityValues) + 5);
+    const tempMin = Math.max(-10, Math.min(...temperatureValues) - 2);
+    const tempMax = Math.min(50, Math.max(...temperatureValues) + 2);
 
     return {
-      humidity: addPadding(humidityRange[0], humidityRange[1]),
-      temperature: addPadding(temperatureRange[0], temperatureRange[1])
+      humidity: [Math.floor(humidityMin), Math.ceil(humidityMax)],
+      temperature: [Math.floor(tempMin), Math.ceil(tempMax)]
     };
   };
 
-  // Функция для вычисления "красивых" границ диапазона
-  const calculateNiceRange = (min: number, max: number, ticks: number): [number, number] => {
-    const range = max - min;
-    const step = range / (ticks - 1);
-    
-    // Округляем шаг до "красивого" числа
-    const magnitude = Math.pow(10, Math.floor(Math.log10(step)));
-    const normalizedStep = step / magnitude;
-    
-    let niceStep: number;
-    if (normalizedStep < 1.5) niceStep = 1;
-    else if (normalizedStep < 3) niceStep = 2;
-    else if (normalizedStep < 7.5) niceStep = 5;
-    else niceStep = 10;
-    
-    niceStep *= magnitude;
-    
-    // Вычисляем новые границы с округлением
-    const niceMin = Math.floor(min / niceStep) * niceStep;
-    const niceMax = Math.ceil(max / niceStep) * niceStep;
-    
-    return [niceMin, niceMax];
+  const formatData = (): ChartDataPoint[] => {
+    // Создаем объект даты из выбранной даты в начале дня
+    const selectedDateStart = new Date(selectedDate);
+    selectedDateStart.setHours(0, 0, 0, 0);
+
+    // Создаем объект даты из выбранной даты в конце дня
+    const selectedDateEnd = new Date(selectedDate);
+    selectedDateEnd.setHours(23, 59, 59, 999);
+
+    // Определяем период для фильтрации
+    const periodStart = new Date(selectedDateEnd.getTime() - selectedPeriod.minutes * 60 * 1000);
+    const periodEnd = selectedDateEnd;
+
+    // Фильтруем и сортируем данные
+    const filtered = _.chain(historicalData)
+      .filter(d => {
+        const timestamp = new Date(d.timestamp).getTime();
+        return timestamp >= periodStart.getTime() &&
+               timestamp <= periodEnd.getTime() &&
+               selectedSensors.includes(d.sensor_id);
+      })
+      .orderBy(['timestamp'], ['asc'])
+      .value();
+
+    // Группируем данные по временным интервалам в зависимости от периода
+    const getTimeKey = (date: Date) => {
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      const seconds = date.getSeconds().toString().padStart(2, '0');
+
+      if (selectedPeriod.minutes <= 60) {
+        // Для часового графика - каждую минуту
+        return `${hours}:${minutes}`;
+      } else if (selectedPeriod.minutes <= 720) {
+        // Для 12-часового графика - каждые 5 минут
+        const roundedMinutes = (Math.floor(date.getMinutes() / 5) * 5).toString().padStart(2, '0');
+        return `${hours}:${roundedMinutes}`;
+      } else if (selectedPeriod.minutes <= 1440) {
+        // Для суточного графика - каждые 15 минут
+        const roundedMinutes = (Math.floor(date.getMinutes() / 15) * 15).toString().padStart(2, '0');
+        return `${hours}:${roundedMinutes}`;
+      } else {
+        // Для более длительных периодов - по часам
+        return `${date.getDate().toString().padStart(2, '0')} ${hours}:00`;
+      }
+    };
+
+    const groupedByTime = _.groupBy(filtered, point => {
+      const date = new Date(point.timestamp);
+      return getTimeKey(date);
+    });
+
+    // Преобразуем сгруппированные данные в формат для графика
+    return _.map(groupedByTime, (points, timeKey) => {
+      const dataPoint: ChartDataPoint = {
+        timestamp: points[0].timestamp,
+        time: formatTime(points[0].timestamp),
+      };
+
+      // Вычисляем средние значения для каждого сенсора
+      selectedSensors.forEach(sensorId => {
+        const sensorPoints = points.filter(p => p.sensor_id === sensorId);
+        if (sensorPoints.length > 0) {
+          const humidityValues = sensorPoints.map(p => p.humidity);
+          const tempValues = sensorPoints.map(p => p.temperature);
+
+          dataPoint[`${sensorId}_humidity`] = _.round(_.mean(humidityValues), 1);
+          dataPoint[`${sensorId}_temperature`] = _.round(_.mean(tempValues), 1);
+        }
+      });
+
+      return dataPoint;
+    });
   };
 
   const data = formatData();
@@ -584,9 +548,9 @@ export default function SensorGraphDHT21() {
                   style: { fontSize: "10px" },
                   className: "y-axis-label"
                 }}
-                domain={axisRanges.humidity}
-                allowDataOverflow={false}
-                tickCount={5}
+                domain={[0, 100]}
+                allowDataOverflow={true}
+                tickCount={6}
                 tickFormatter={(value) => `${value}%`}
                 scale="linear"
                 allowDecimals={true}
@@ -677,9 +641,9 @@ export default function SensorGraphDHT21() {
                   style: { fontSize: "10px" },
                   className: "y-axis-label"
                 }}
-                domain={axisRanges.temperature}
-                allowDataOverflow={false}
-                tickCount={5}
+                domain={[-10, 50]}
+                allowDataOverflow={true}
+                tickCount={6}
                 tickFormatter={(value) => `${value}°C`}
                 scale="linear"
                 allowDecimals={true}
