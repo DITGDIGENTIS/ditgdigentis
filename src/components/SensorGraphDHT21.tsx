@@ -12,8 +12,7 @@ import {
   ResponsiveContainer,
   ReferenceArea,
   Brush,
-  ReferenceLine,
-  Legend
+  ReferenceLine
 } from "recharts";
 
 interface SensorPoint {
@@ -915,24 +914,6 @@ export default function SensorGraphDHT21() {
                       padding: "8px",
                       zIndex: 1001
                     }}
-                  />
-                  <Legend 
-                    verticalAlign="top"
-                    height={36}
-                    wrapperStyle={{
-                      paddingBottom: "10px"
-                    }}
-                    formatter={(value) => (
-                      <span style={{ 
-                        color: '#fff', 
-                        fontSize: '12px',
-                        padding: '4px 8px',
-                        backgroundColor: 'rgba(0, 0, 0, 0.3)',
-                        borderRadius: '4px'
-                      }}>
-                        {value}
-                      </span>
-                    )}
                   />
                   {selectedSensors.map((sensorId) => (
                     <React.Fragment key={sensorId}>
