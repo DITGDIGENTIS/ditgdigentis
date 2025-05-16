@@ -315,19 +315,20 @@ export default function SensorGraphDHT21() {
       const seconds = date.getSeconds().toString().padStart(2, '0');
 
       if (selectedPeriod.minutes <= 60) {
-        // Для часового графика - каждую минуту
-        return `${hours}:${minutes}`;
+        // Для часового графика - каждые 30 секунд
+        const roundedSeconds = (Math.floor(date.getSeconds() / 30) * 30).toString().padStart(2, '0');
+        return `${hours}:${minutes}:${roundedSeconds}`;
       } else if (selectedPeriod.minutes <= 720) {
-        // Для 12-часового графика - каждые 5 минут
+        // Для 12-часового графика - каждую минуту
+        return `${hours}:${minutes}`;
+      } else if (selectedPeriod.minutes <= 1440) {
+        // Для суточного графика - каждые 5 минут
         const roundedMinutes = (Math.floor(date.getMinutes() / 5) * 5).toString().padStart(2, '0');
         return `${hours}:${roundedMinutes}`;
-      } else if (selectedPeriod.minutes <= 1440) {
-        // Для суточного графика - каждые 15 минут
-        const roundedMinutes = (Math.floor(date.getMinutes() / 15) * 15).toString().padStart(2, '0');
-        return `${hours}:${roundedMinutes}`;
       } else {
-        // Для более длительных периодов - по часам
-        return `${date.getDate().toString().padStart(2, '0')} ${hours}:00`;
+        // Для более длительных периодов - каждые 30 минут
+        const roundedMinutes = (Math.floor(date.getMinutes() / 30) * 30).toString().padStart(2, '0');
+        return `${date.getDate().toString().padStart(2, '0')} ${hours}:${roundedMinutes}`;
       }
     };
 
@@ -404,6 +405,35 @@ export default function SensorGraphDHT21() {
     }
     return null;
   };
+
+  // Функция для определения параметров отображения линий в зависимости от периода
+  const getLineProps = () => {
+    if (selectedPeriod.minutes <= 60) {
+      return {
+        strokeWidth: 2,
+        dot: true,
+        activeDot: { r: 4 },
+        type: "monotone" as const
+      };
+    } else if (selectedPeriod.minutes <= 720) {
+      return {
+        strokeWidth: 2,
+        dot: false,
+        activeDot: { r: 4 },
+        type: "monotone" as const
+      };
+    } else {
+      return {
+        strokeWidth: 1.5,
+        dot: false,
+        activeDot: { r: 3 },
+        type: "monotone" as const
+      };
+    }
+  };
+
+  // Получаем параметры линий
+  const lineProps = getLineProps();
 
   return (
     <div
@@ -610,8 +640,8 @@ export default function SensorGraphDHT21() {
                       angle={-45}
                       textAnchor="end"
                       height={80}
-                      interval="preserveStartEnd"
-                      minTickGap={30}
+                      interval={selectedPeriod.minutes <= 60 ? 0 : "preserveStartEnd"}
+                      minTickGap={selectedPeriod.minutes <= 720 ? 15 : 30}
                     />
                     <YAxis
                       yAxisId="left"
@@ -625,28 +655,41 @@ export default function SensorGraphDHT21() {
                       domain={axisRanges.temperature}
                       hide={true}
                     />
-                    <Tooltip content={<CustomTooltip />} />
+                    <Tooltip 
+                      content={<CustomTooltip />}
+                      wrapperStyle={{
+                        backgroundColor: "#2b2b2b",
+                        border: "1px solid #444",
+                        borderRadius: "4px",
+                        padding: "8px",
+                        zIndex: 1001
+                      }}
+                    />
                     {selectedSensors.map((sensorId) => (
                       <React.Fragment key={sensorId}>
                         <Line
                           yAxisId="left"
-                          type="monotone"
+                          type={lineProps.type}
                           dataKey={`${sensorId}_humidity`}
                           name={`${sensorId} Вологість`}
                           stroke={COLORS[`${sensorId}_humidity` as ColorKey]}
-                          dot={false}
+                          dot={lineProps.dot}
+                          activeDot={lineProps.activeDot}
                           unit="%"
-                          strokeWidth={2}
+                          strokeWidth={lineProps.strokeWidth}
+                          connectNulls={true}
                         />
                         <Line
                           yAxisId="right"
-                          type="monotone"
+                          type={lineProps.type}
                           dataKey={`${sensorId}_temperature`}
                           name={`${sensorId} Температура`}
                           stroke={COLORS[`${sensorId}_temperature` as ColorKey]}
-                          dot={false}
+                          dot={lineProps.dot}
+                          activeDot={lineProps.activeDot}
                           unit="°C"
-                          strokeWidth={2}
+                          strokeWidth={lineProps.strokeWidth}
+                          connectNulls={true}
                         />
                       </React.Fragment>
                     ))}
