@@ -10,6 +10,8 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  ReferenceArea,
+  Brush
 } from "recharts";
 
 interface SensorPoint {
@@ -104,6 +106,17 @@ export default function SensorGraphDHT21() {
   );
   const [isLoading, setIsLoading] = useState(false);
   const chartRef = useRef<HTMLDivElement>(null);
+  
+  // Добавляем состояния для зума
+  const [zoomState, setZoomState] = useState({
+    refAreaLeft: '',
+    refAreaRight: '',
+    left: 'dataMin',
+    right: 'dataMax',
+    top: 'dataMax+1',
+    bottom: 'dataMin-1',
+    animation: true
+  });
 
   // Добавляем константы для шкал
   const DEFAULT_RANGES = {
@@ -626,6 +639,43 @@ export default function SensorGraphDHT21() {
   // Мемоизируем параметры линий
   const lineProps = useMemo(() => getLineProps(), [selectedPeriod.minutes]);
 
+  // Добавляем функции для управления зумом
+  const zoom = () => {
+    let { refAreaLeft, refAreaRight } = zoomState;
+    
+    if (refAreaLeft === refAreaRight || !refAreaRight) {
+      setZoomState({
+        ...zoomState,
+        refAreaLeft: '',
+        refAreaRight: ''
+      });
+      return;
+    }
+
+    // Убеждаемся, что left меньше right
+    if (Number(refAreaLeft) > Number(refAreaRight)) {
+      [refAreaLeft, refAreaRight] = [refAreaRight, refAreaLeft];
+    }
+
+    setZoomState({
+      ...zoomState,
+      refAreaLeft: '',
+      refAreaRight: '',
+      left: refAreaLeft,
+      right: refAreaRight
+    });
+  };
+
+  const zoomOut = () => {
+    setZoomState({
+      ...zoomState,
+      refAreaLeft: '',
+      refAreaRight: '',
+      left: 'dataMin',
+      right: 'dataMax'
+    });
+  };
+
   return (
     <div
       className="container-fluid py-4"
@@ -786,7 +836,26 @@ export default function SensorGraphDHT21() {
             width: 100%;
             height: 100%;
           }
+          .zoom-button {
+            position: absolute;
+            top: 10px;
+            right: 50px;
+            z-index: 1000;
+            background-color: rgba(255, 255, 255, 0.2);
+            border: 1px solid #666;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+          }
+          .zoom-button:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+          }
         `}</style>
+
+        <button className="zoom-button" onClick={zoomOut}>
+          Сбросить масштаб
+        </button>
 
         <div className="chart-container">
           <div className="y-axis-left">
@@ -830,6 +899,9 @@ export default function SensorGraphDHT21() {
                   <LineChart
                     data={chartData}
                     margin={{ top: 5, right: 5, left: 5, bottom: 25 }}
+                    onMouseDown={(e) => e?.activeLabel && setZoomState({ ...zoomState, refAreaLeft: e.activeLabel })}
+                    onMouseMove={(e) => e?.activeLabel && zoomState.refAreaLeft && setZoomState({ ...zoomState, refAreaRight: e.activeLabel })}
+                    onMouseUp={zoom}
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke="#444" />
                     <XAxis
@@ -846,6 +918,8 @@ export default function SensorGraphDHT21() {
                       interval={0}
                       minTickGap={selectedPeriod.minutes === 60 ? 30 : (selectedPeriod.minutes >= 10080 ? 200 : (window.innerWidth <= 768 ? 40 : (selectedPeriod.minutes <= 720 ? 15 : 30)))}
                       tickMargin={selectedPeriod.minutes === 60 ? 15 : (selectedPeriod.minutes >= 10080 ? 35 : (window.innerWidth <= 768 ? 15 : 10))}
+                      domain={[zoomState.left, zoomState.right]}
+                      allowDataOverflow
                     />
                     <YAxis
                       yAxisId="left"
@@ -868,6 +942,14 @@ export default function SensorGraphDHT21() {
                         padding: "8px",
                         zIndex: 1001
                       }}
+                    />
+                    <Brush
+                      dataKey="time"
+                      height={30}
+                      stroke="#666"
+                      fill="#2b2b2b"
+                      tickFormatter={(time) => time}
+                      startIndex={Math.max(0, chartData.length - (selectedPeriod.minutes === 60 ? 60 : 30))}
                     />
                     {selectedSensors.map((sensorId) => (
                       <React.Fragment key={sensorId}>
@@ -899,6 +981,16 @@ export default function SensorGraphDHT21() {
                         />
                       </React.Fragment>
                     ))}
+                    {zoomState.refAreaLeft && zoomState.refAreaRight ? (
+                      <ReferenceArea
+                        yAxisId="left"
+                        x1={zoomState.refAreaLeft}
+                        x2={zoomState.refAreaRight}
+                        strokeOpacity={0.3}
+                        fill="#fff"
+                        fillOpacity={0.1}
+                      />
+                    ) : null}
                   </LineChart>
                 </ResponsiveContainer>
               </div>
