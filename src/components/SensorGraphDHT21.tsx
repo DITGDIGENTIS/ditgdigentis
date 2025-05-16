@@ -559,24 +559,21 @@ export default function SensorGraphDHT21() {
               background-color: rgba(35, 35, 35, 0.95);
               border: 1px solid #666;
               border-radius: 4px;
-              padding: 12px;
+              padding: 8px;
               box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+              font-size: 11px;
             }
             .tooltip-header {
-              margin-bottom: 8px;
-              padding-bottom: 8px;
+              margin-bottom: 4px;
+              padding-bottom: 4px;
               border-bottom: 1px solid #555;
-              font-weight: bold;
+              font-weight: 500;
             }
             .tooltip-row {
               display: flex;
               justify-content: space-between;
-              margin-bottom: 4px;
-              font-size: 13px;
-            }
-            .tooltip-label {
-              margin-right: 12px;
-              color: #999;
+              gap: 8px;
+              white-space: nowrap;
             }
             .tooltip-value {
               font-weight: 500;
@@ -584,9 +581,6 @@ export default function SensorGraphDHT21() {
           `}</style>
           <div className="tooltip-header text-white">
             {date && date.toLocaleString('uk-UA', {
-              year: 'numeric',
-              month: '2-digit',
-              day: '2-digit',
               hour: '2-digit',
               minute: '2-digit',
               second: selectedPeriod.minutes <= 720 ? '2-digit' : undefined,
@@ -595,11 +589,8 @@ export default function SensorGraphDHT21() {
           </div>
           {payload.map((entry: any, index: number) => (
             <div key={index} className="tooltip-row">
-              <span className="tooltip-label" style={{ color: entry.color }}>
-                {entry.name}:
-              </span>
-              <span className="tooltip-value" style={{ color: entry.color }}>
-                {entry.value.toFixed(2)}{entry.unit}
+              <span style={{ color: entry.color }}>
+                {entry.value.toFixed(1)}{entry.unit}
               </span>
             </div>
           ))}
