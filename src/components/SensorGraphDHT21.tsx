@@ -633,10 +633,10 @@ export default function SensorGraphDHT21() {
           }
           @media (max-width: 768px) {
             .chart-content {
-              min-width: 1200px;
+              min-width: ${selectedPeriod.minutes === 10080 ? '2000px' : '1200px'};
             }
             .time-label {
-              font-size: 12px;
+              font-size: ${selectedPeriod.minutes === 10080 ? '11px' : '10px'};
               transform: rotate(-45deg);
               transform-origin: top right;
               white-space: nowrap;
@@ -722,14 +722,24 @@ export default function SensorGraphDHT21() {
                       tick={{ 
                         fill: "#999", 
                         className: "time-label",
-                        fontSize: window.innerWidth <= 768 ? 10 : 12
+                        fontSize: window.innerWidth <= 768 ? (selectedPeriod.minutes === 10080 ? 11 : 10) : 12
                       }}
                       angle={-45}
                       textAnchor="end"
                       height={80}
-                      interval={selectedPeriod.minutes <= 60 ? (window.innerWidth <= 768 ? 3 : 2) : "preserveStartEnd"}
-                      minTickGap={window.innerWidth <= 768 ? 40 : (selectedPeriod.minutes <= 720 ? 15 : 30)}
-                      tickMargin={window.innerWidth <= 768 ? 15 : 10}
+                      interval={
+                        selectedPeriod.minutes <= 60 
+                          ? (window.innerWidth <= 768 ? 3 : 2) 
+                          : selectedPeriod.minutes === 10080 && window.innerWidth <= 768 
+                            ? 4 
+                            : "preserveStartEnd"
+                      }
+                      minTickGap={
+                        window.innerWidth <= 768 
+                          ? (selectedPeriod.minutes === 10080 ? 60 : 40)
+                          : (selectedPeriod.minutes <= 720 ? 15 : 30)
+                      }
+                      tickMargin={window.innerWidth <= 768 ? 20 : 10}
                     />
                     <YAxis
                       yAxisId="left"
