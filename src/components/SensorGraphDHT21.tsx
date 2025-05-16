@@ -108,17 +108,14 @@ interface StatisticsMap {
   [key: string]: Statistics;
 }
 
-export default function SensorGraphDHT21() {
+const SensorGraphDHT21 = () => {
   const [historicalData, setHistoricalData] = useState<SensorPoint[]>([]);
   const [liveData, setLiveData] = useState<Record<string, SensorPoint>>({});
   const [selectedPeriod, setSelectedPeriod] = useState(PERIOD_OPTIONS[0]);
-  const [selectedSensors, setSelectedSensors] = useState<string[]>([
-    ...SENSOR_IDS,
-  ]);
-  const [selectedDate, setSelectedDate] = useState<string>(
-    new Date().toISOString().split("T")[0]
-  );
+  const [selectedSensors, setSelectedSensors] = useState<string[]>([...SENSOR_IDS]);
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split("T")[0]);
   const [isLoading, setIsLoading] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
   const chartRef = useRef<HTMLDivElement>(null);
   
   // Добавляем состояния для зума
@@ -140,6 +137,21 @@ export default function SensorGraphDHT21() {
 
   // Добавляем состояние для статистики
   const [statistics, setStatistics] = useState<StatisticsMap>({});
+
+  // Add window resize listener
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleResize = _.debounce(() => {
+      setWindowWidth(window.innerWidth);
+    }, 250);
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Replace all window.innerWidth with windowWidth state
+  const isMobile = windowWidth <= 768;
 
   // Добавляем функцию форматирования диапазона времени
   const formatTimeRange = useCallback((startTime: number, endTime: number) => {
@@ -172,8 +184,6 @@ export default function SensorGraphDHT21() {
              end.toLocaleString('uk-UA', formatOptions);
     }
   }, [selectedPeriod.minutes]);
-
-
 
   useEffect(() => {
     const fetchData = async () => {
@@ -666,146 +676,203 @@ export default function SensorGraphDHT21() {
       className="container-fluid py-4"
       style={{ backgroundColor: "#2b2b2b", color: "#fff", borderRadius: 5 }}
     >
-      <div className="d-flex flex-wrap gap-3 mb-3 align-items-center justify-content-between">
+      <style jsx global>{`
+        .chart-controls {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+          margin-bottom: 1rem;
+        }
+
+        .chart-controls select,
+        .chart-controls input,
+        .chart-controls button {
+          min-width: auto;
+          max-width: 100%;
+        }
+
+        .chart-controls .form-select,
+        .chart-controls .form-control {
+          width: auto;
+          min-width: 120px;
+        }
+
+        @media (max-width: 576px) {
+          .chart-controls {
+            flex-direction: column;
+          }
+          
+          .chart-controls .form-select,
+          .chart-controls .form-control,
+          .chart-controls button {
+            width: 100%;
+          }
+
+          .sensor-checkboxes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 0.5rem;
+          }
+        }
+
+        .chart-wrapper {
+          position: relative;
+          width: 100%;
+          height: min(calc(100vh - 250px), 600px);
+          min-height: 300px;
+          background-color: #2b2b2b;
+          border-radius: 8px;
+          border: 1px solid #444;
+          overflow: hidden;
+        }
+
+        @media (max-width: 768px) {
+          .chart-wrapper {
+            height: min(calc(100vh - 200px), 400px);
+          }
+        }
+
+        .chart-container {
+          position: relative;
+          width: 100%;
+          height: 100%;
+          display: flex;
+        }
+
+        .scroll-container {
+          flex: 1;
+          overflow-x: auto;
+          overflow-y: hidden;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: thin;
+          scrollbar-color: #666 #2b2b2b;
+          margin: 0 40px;
+        }
+
+        .scroll-container::-webkit-scrollbar {
+          height: 8px;
+        }
+
+        .scroll-container::-webkit-scrollbar-track {
+          background: #2b2b2b;
+          border-radius: 4px;
+        }
+
+        .scroll-container::-webkit-scrollbar-thumb {
+          background-color: #666;
+          border-radius: 4px;
+          border: 2px solid #2b2b2b;
+        }
+
+        .chart-content {
+          position: relative;
+          min-width: 100%;
+          height: 100%;
+        }
+
+        .custom-tooltip {
+          background-color: rgba(35, 35, 35, 0.95) !important;
+          border: 1px solid #666 !important;
+          border-radius: 4px !important;
+          padding: 8px !important;
+          font-size: 12px !important;
+          color: #fff !important;
+        }
+
+        .time-label {
+          font-size: 12px;
+        }
+
+        @media (max-width: 768px) {
+          .time-label {
+            font-size: 10px;
+          }
+
+          .chart-content {
+            min-width: ${selectedPeriod.minutes <= 720 ? '800px' : 
+                       selectedPeriod.minutes <= 1440 ? '1000px' :
+                       selectedPeriod.minutes <= 10080 ? '1200px' : '1500px'};
+          }
+        }
+
+        @media (min-width: 769px) {
+          .chart-content {
+            min-width: ${selectedPeriod.minutes <= 720 ? '1000px' : 
+                       selectedPeriod.minutes <= 1440 ? '1200px' :
+                       selectedPeriod.minutes <= 10080 ? '1500px' : '2000px'};
+          }
+        }
+      `}</style>
+
+      <div className="d-flex flex-column gap-3">
         <h5 className="text-warning mb-0">
           Графік DHT21 (Температура/Вологість)
         </h5>
-        <div className="d-flex gap-2 flex-wrap">
-          {SENSOR_IDS.map((id) => (
-            <div key={id} className="form-check form-check-inline">
-              <input
-                type="checkbox"
-                className="form-check-input"
-                id={`sensor-${id}`}
-                checked={selectedSensors.includes(id)}
-                onChange={(e) => {
-                  const updated = e.target.checked
-                    ? [...selectedSensors, id]
-                    : selectedSensors.filter((s) => s !== id);
-                  setSelectedSensors(updated);
-                }}
-              />
-              <label className="form-check-label text-light" htmlFor={`sensor-${id}`}>
-                {id}
-              </label>
-            </div>
-          ))}
-          <input
-            type="date"
-            className="form-control"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            max={new Date().toISOString().split("T")[0]}
-          />
-          <select
-            className="form-select"
-            value={selectedPeriod.label}
-            onChange={(e) => {
-              const period = PERIOD_OPTIONS.find((p) => p.label === e.target.value) || PERIOD_OPTIONS[0];
-              setSelectedPeriod(period);
-            }}
-          >
-            {PERIOD_OPTIONS.map((p) => (
-              <option key={p.label} value={p.label}>
-                {p.label}
-              </option>
+        
+        <div className="chart-controls">
+          <div className="sensor-checkboxes">
+            {SENSOR_IDS.map((id) => (
+              <div key={id} className="form-check">
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  id={`sensor-${id}`}
+                  checked={selectedSensors.includes(id)}
+                  onChange={(e) => {
+                    const updated = e.target.checked
+                      ? [...selectedSensors, id]
+                      : selectedSensors.filter((s) => s !== id);
+                    setSelectedSensors(updated);
+                  }}
+                />
+                <label className="form-check-label text-light" htmlFor={`sensor-${id}`}>
+                  {id}
+                </label>
+              </div>
             ))}
-          </select>
-          {selectedSensors.map((id) => (
-            <button
-              key={id}
-              className="btn btn-outline-light btn-sm"
-              onClick={() => downloadCSV(id)}
+          </div>
+
+          <div className="d-flex flex-wrap gap-2">
+            <input
+              type="date"
+              className="form-control"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              max={new Date().toISOString().split("T")[0]}
+            />
+            <select
+              className="form-select"
+              value={selectedPeriod.label}
+              onChange={(e) => {
+                const period = PERIOD_OPTIONS.find((p) => p.label === e.target.value) || PERIOD_OPTIONS[0];
+                setSelectedPeriod(period);
+              }}
             >
-              CSV {id}
-            </button>
-          ))}
+              {PERIOD_OPTIONS.map((p) => (
+                <option key={p.label} value={p.label}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+            {selectedSensors.map((id) => (
+              <button
+                key={id}
+                className="btn btn-outline-light btn-sm"
+                onClick={() => downloadCSV(id)}
+              >
+                CSV {id}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="text-warning">
+          Вибрана дата: {new Date(selectedDate).toLocaleDateString("uk-UA")}
+          {isLoading && <span className="ms-2">(Завантаження...)</span>}
         </div>
       </div>
 
-      <div className="text-warning mb-3">
-        Вибрана дата: {new Date(selectedDate).toLocaleDateString("uk-UA")}
-        {isLoading && <span className="ms-2">(Завантаження...)</span>}
-      </div>
-
       <div className="chart-wrapper">
-        <style jsx>{`
-          .chart-wrapper {
-            position: relative;
-            width: 100%;
-            height: calc(100vh - 250px);
-            min-height: 400px;
-            background-color: #2b2b2b;
-            overflow: hidden;
-            border-radius: 8px;
-            border: 1px solid #444;
-          }
-          .chart-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            display: flex;
-          }
-          .scroll-container {
-            flex: 1;
-            overflow-x: auto;
-            overflow-y: hidden;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: thin;
-            scrollbar-color: #666 #2b2b2b;
-            margin: 0 40px;
-          }
-          .scroll-container::-webkit-scrollbar {
-            height: 8px;
-          }
-          .scroll-container::-webkit-scrollbar-track {
-            background: #2b2b2b;
-            border-radius: 4px;
-          }
-          .scroll-container::-webkit-scrollbar-thumb {
-            background-color: #666;
-            border-radius: 4px;
-            border: 2px solid #2b2b2b;
-          }
-          .chart-content {
-            position: relative;
-            min-width: 100%;
-            height: 100%;
-          }
-
-          @media (max-width: 768px) {
-            .chart-wrapper {
-              height: calc(100vh - 200px);
-            }
-            .chart-content {
-              min-width: ${selectedPeriod.minutes === 60 ? '2000px' : (selectedPeriod.minutes >= 10080 ? '3000px' : '1200px')};
-            }
-            .time-label {
-              font-size: 10px;
-              transform: rotate(-45deg);
-              transform-origin: top right;
-            }
-            .zoom-button {
-              top: 5px;
-              right: 45px;
-              padding: 4px 8px;
-              font-size: 11px;
-            }
-            .time-range-display {
-              font-size: 11px;
-              padding: 4px 8px;
-            }
-          }
-          @media (min-width: 769px) {
-            .chart-content {
-              min-width: ${selectedPeriod.minutes === 60 ? '1800px' : (selectedPeriod.minutes >= 10080 ? '2400px' : '100%')};
-            }
-            .time-label {
-              font-size: 12px;
-            }
-          }
-        `}</style>
-
         <div className="chart-container">
           <div className="y-axis-left">
             <LineChart
@@ -856,17 +923,21 @@ export default function SensorGraphDHT21() {
                     stroke="#999"
                     tick={{ 
                       fill: "#999",
-                      className: "time-label"
+                      className: "time-label",
+                      fontSize: isMobile ? 10 : 12
                     }}
                     angle={-45}
                     textAnchor="end"
                     height={60}
-                    interval={selectedPeriod.minutes === 60 ? 4 : (
-                      selectedPeriod.minutes === 720 ? 6 : (
-                      selectedPeriod.minutes === 1440 ? 12 : (
-                      selectedPeriod.minutes === 10080 ? 8 : (
-                      selectedPeriod.minutes === 43200 ? 8 : 5
-                    ))))}
+                    interval={isMobile ? (
+                      selectedPeriod.minutes <= 720 ? 8 : 
+                      selectedPeriod.minutes <= 1440 ? 12 : 
+                      selectedPeriod.minutes <= 10080 ? 16 : 24
+                    ) : (
+                      selectedPeriod.minutes <= 720 ? 4 : 
+                      selectedPeriod.minutes <= 1440 ? 8 : 
+                      selectedPeriod.minutes <= 10080 ? 12 : 16
+                    )}
                     minTickGap={20}
                     tickMargin={15}
                     domain={[zoomState.left, zoomState.right]}
@@ -902,9 +973,9 @@ export default function SensorGraphDHT21() {
                         dataKey={`${sensorId}_humidity`}
                         name="Вологість"
                         stroke={COLORS[`${sensorId}_humidity` as ColorKey]}
-                        strokeWidth={2}
-                        dot={selectedPeriod.minutes >= 10080 ? { r: 2 } : false}
-                        activeDot={{ r: 6, strokeWidth: 1 }}
+                        strokeWidth={isMobile ? 1.5 : 2}
+                        dot={selectedPeriod.minutes >= 10080 ? { r: isMobile ? 1.5 : 2 } : false}
+                        activeDot={{ r: isMobile ? 4 : 6, strokeWidth: 1 }}
                         unit="%"
                         connectNulls={true}
                         isAnimationActive={selectedPeriod.minutes !== 60}
@@ -915,9 +986,9 @@ export default function SensorGraphDHT21() {
                         dataKey={`${sensorId}_temperature`}
                         name="Температура"
                         stroke={COLORS[`${sensorId}_temperature` as ColorKey]}
-                        strokeWidth={2}
-                        dot={selectedPeriod.minutes >= 10080 ? { r: 2 } : false}
-                        activeDot={{ r: 6, strokeWidth: 1 }}
+                        strokeWidth={isMobile ? 1.5 : 2}
+                        dot={selectedPeriod.minutes >= 10080 ? { r: isMobile ? 1.5 : 2 } : false}
+                        activeDot={{ r: isMobile ? 4 : 6, strokeWidth: 1 }}
                         unit="°C"
                         connectNulls={true}
                         isAnimationActive={selectedPeriod.minutes !== 60}
@@ -975,4 +1046,6 @@ export default function SensorGraphDHT21() {
       </div>
     </div>
   );
-}
+};
+
+export default SensorGraphDHT21;
