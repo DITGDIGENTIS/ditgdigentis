@@ -11,8 +11,8 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceArea,
-  Brush,
-  ReferenceLine
+  ReferenceLine,
+  Brush
 } from "recharts";
 
 interface SensorPoint {
@@ -173,19 +173,7 @@ export default function SensorGraphDHT21() {
     }
   }, [selectedPeriod.minutes]);
 
-  // Добавляем состояние для текущего диапазона времени
-  const [timeRange, setTimeRange] = useState<{ start: number; end: number } | null>(null);
 
-  // Обработчик изменения диапазона в Brush
-  const handleBrushChange = (brushRange: any) => {
-    if (brushRange && brushRange.startIndex !== undefined && brushRange.endIndex !== undefined) {
-      const start = chartData[brushRange.startIndex]?.timestamp;
-      const end = chartData[brushRange.endIndex]?.timestamp;
-      if (start && end) {
-        setTimeRange({ start, end });
-      }
-    }
-  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -785,20 +773,7 @@ export default function SensorGraphDHT21() {
             min-width: 100%;
             height: 100%;
           }
-          .time-range-display {
-            position: absolute;
-            bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: rgba(0, 0, 0, 0.7);
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-size: 12px;
-            color: #fff;
-            z-index: 1000;
-            white-space: nowrap;
-            border: 1px solid #666;
-          }
+
           @media (max-width: 768px) {
             .chart-wrapper {
               height: calc(100vh - 200px);
@@ -945,18 +920,6 @@ export default function SensorGraphDHT21() {
                       />
                     </React.Fragment>
                   ))}
-                  <Brush
-                    className="brush-custom"
-                    dataKey="time"
-                    height={30}
-                    stroke="#888"
-                    fill="#2b2b2b"
-                    tickFormatter={(time) => time}
-                    startIndex={Math.max(0, chartData.length - (selectedPeriod.minutes === 60 ? 60 : 30))}
-                    onChange={handleBrushChange}
-                    travellerWidth={8}
-                    y={10}
-                  />
                   {zoomState.refAreaLeft && zoomState.refAreaRight ? (
                     <ReferenceArea
                       yAxisId="left"
@@ -1006,11 +969,7 @@ export default function SensorGraphDHT21() {
           </div>
         </div>
 
-        {timeRange && (
-          <div className="time-range-display">
-            Діапазон: {formatTimeRange(timeRange.start, timeRange.end)}
-          </div>
-        )}
+
       </div>
     </div>
   );
