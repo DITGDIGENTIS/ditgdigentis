@@ -229,8 +229,8 @@ export default function SensorGraphDHT21() {
         // Каждый час
         return `${day}.${month} ${hours}:00`;
       case 43200: // 1 месяц
-        // Каждые 3 часа
-        return `${day} ${Math.floor(date.getHours() / 3) * 3}:00`;
+        // Каждые 12 часов
+        return `${day}.${month} ${hours}:00`;
       default: // 1 год
         // По дням
         return `${day}.${month}`;
@@ -267,15 +267,18 @@ export default function SensorGraphDHT21() {
         return `${day}.${month} ${timeStr}`;
       }
       return timeStr;
+    } else if (selectedPeriod.minutes === 43200) {
+      // Для месяца показываем дату и часы
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const hours = date.getHours().toString().padStart(2, '0');
+      return `${day}.${month} ${hours}:00`;
     }
     
-    if (selectedPeriod.minutes > 10080) {
-      // Для периодов больше недели показываем дату
-      options.day = "2-digit";
-      if (selectedPeriod.minutes > 43200) {
-        // Для месяца и года показываем месяц
-        options.month = "2-digit";
-      }
+    // Для остальных периодов
+    options.day = "2-digit";
+    if (selectedPeriod.minutes > 43200) {
+      options.month = "2-digit";
     }
 
     return date.toLocaleString("uk-UA", options);
@@ -410,6 +413,36 @@ export default function SensorGraphDHT21() {
           date.setMinutes(minutes);
           date.setSeconds(0);
         }
+        return date.getTime();
+      });
+
+      return _.map(groupedByTime, (points, timeKey) => {
+        const timestamp = Number(timeKey);
+        const dataPoint: ChartDataPoint = {
+          timestamp,
+          time: formatTime(timestamp),
+        };
+
+        selectedSensors.forEach(sensorId => {
+          const sensorPoints = points.filter(p => p.sensor_id === sensorId);
+          if (sensorPoints.length > 0) {
+            const humidityValues = sensorPoints.map(p => p.humidity);
+            const tempValues = sensorPoints.map(p => p.temperature);
+
+            dataPoint[`${sensorId}_humidity`] = _.round(_.mean(humidityValues), 1);
+            dataPoint[`${sensorId}_temperature`] = _.round(_.mean(tempValues), 1);
+          }
+        });
+
+        return dataPoint;
+      });
+    } else if (selectedPeriod.minutes === 43200) {
+      // Для месяца группируем по 12 часов
+      const groupedByTime = _.groupBy(filtered, point => {
+        const date = new Date(point.timestamp);
+        date.setHours(Math.floor(date.getHours() / 12) * 12);
+        date.setMinutes(0);
+        date.setSeconds(0);
         return date.getTime();
       });
 
@@ -657,10 +690,10 @@ export default function SensorGraphDHT21() {
           }
           @media (max-width: 768px) {
             .chart-content {
-              min-width: ${selectedPeriod.minutes === 10080 ? '3000px' : '1200px'};
+              min-width: ${(selectedPeriod.minutes === 10080 || selectedPeriod.minutes === 43200) ? '3000px' : '1200px'};
             }
             .time-label {
-              font-size: ${selectedPeriod.minutes === 10080 ? '14px' : '12px'};
+              font-size: ${(selectedPeriod.minutes === 10080 || selectedPeriod.minutes === 43200) ? '14px' : '12px'};
               transform: rotate(-45deg);
               transform-origin: top right;
               white-space: nowrap;
@@ -671,10 +704,10 @@ export default function SensorGraphDHT21() {
           }
           @media (min-width: 769px) {
             .chart-content {
-              min-width: ${selectedPeriod.minutes === 10080 ? '2400px' : '100%'};
+              min-width: ${(selectedPeriod.minutes === 10080 || selectedPeriod.minutes === 43200) ? '2400px' : '100%'};
             }
             .time-label {
-              font-size: ${selectedPeriod.minutes === 10080 ? '14px' : '12px'};
+              font-size: ${(selectedPeriod.minutes === 10080 || selectedPeriod.minutes === 43200) ? '14px' : '12px'};
             }
           }
           .y-axis-left {
@@ -759,9 +792,9 @@ export default function SensorGraphDHT21() {
                       angle={-45}
                       textAnchor="end"
                       height={80}
-                      interval={selectedPeriod.minutes === 10080 ? 48 : (selectedPeriod.minutes <= 60 ? (window.innerWidth <= 768 ? 3 : 2) : "preserveStartEnd")}
-                      minTickGap={selectedPeriod.minutes === 10080 ? 200 : (window.innerWidth <= 768 ? 40 : (selectedPeriod.minutes <= 720 ? 15 : 30))}
-                      tickMargin={selectedPeriod.minutes === 10080 ? 35 : (window.innerWidth <= 768 ? 15 : 10)}
+                      interval={(selectedPeriod.minutes === 10080 || selectedPeriod.minutes === 43200) ? 48 : (selectedPeriod.minutes <= 60 ? (window.innerWidth <= 768 ? 3 : 2) : "preserveStartEnd")}
+                      minTickGap={(selectedPeriod.minutes === 10080 || selectedPeriod.minutes === 43200) ? 200 : (window.innerWidth <= 768 ? 40 : (selectedPeriod.minutes <= 720 ? 15 : 30))}
+                      tickMargin={(selectedPeriod.minutes === 10080 || selectedPeriod.minutes === 43200) ? 35 : (window.innerWidth <= 768 ? 15 : 10)}
                     />
                     <YAxis
                       yAxisId="left"
