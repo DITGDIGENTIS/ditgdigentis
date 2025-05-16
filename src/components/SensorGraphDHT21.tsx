@@ -192,15 +192,17 @@ export default function SensorGraphDHT21() {
 
     // Оптимизируем интервал обновления
     const isToday = selectedDate === new Date().toISOString().split("T")[0];
-    let updateInterval = 5000;
+    let updateInterval = 30000; // По умолчанию 30 секунд
 
     if (isToday) {
       if (selectedPeriod.minutes <= 60) {
-        updateInterval = 3000;
+        updateInterval = 3000; // Для часа обновляем каждые 3 секунды
       } else if (selectedPeriod.minutes <= 720) {
-        updateInterval = 10000;
+        updateInterval = 15000; // Для 12 часов каждые 15 секунд
+      } else if (selectedPeriod.minutes <= 1440) {
+        updateInterval = 30000; // Для суток каждые 30 секунд
       } else {
-        updateInterval = 30000;
+        updateInterval = 60000; // Для остальных периодов каждую минуту
       }
     }
 
@@ -210,6 +212,39 @@ export default function SensorGraphDHT21() {
     };
   }, [selectedPeriod, selectedSensors, selectedDate]);
 
+  const getTimeKey = (date: Date) => {
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const seconds = date.getSeconds().toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+
+    if (selectedPeriod.minutes <= 60) {
+      // 1 час - каждые 3 секунды
+      const roundedSeconds = (Math.floor(date.getSeconds() / 3) * 3).toString().padStart(2, '0');
+      return `${hours}:${minutes}:${roundedSeconds}`;
+    } else if (selectedPeriod.minutes <= 720) {
+      // 12 часов - каждые 30 секунд
+      const roundedSeconds = (Math.floor(date.getSeconds() / 30) * 30).toString().padStart(2, '0');
+      return `${hours}:${minutes}:${roundedSeconds}`;
+    } else if (selectedPeriod.minutes <= 1440) {
+      // 1 день - каждые 5 минут
+      const roundedMinutes = (Math.floor(date.getMinutes() / 5) * 5).toString().padStart(2, '0');
+      return `${hours}:${roundedMinutes}`;
+    } else if (selectedPeriod.minutes <= 10080) {
+      // 1 неделя - каждые 30 минут
+      const roundedMinutes = (Math.floor(date.getMinutes() / 30) * 30).toString().padStart(2, '0');
+      return `${day} ${hours}:${roundedMinutes}`;
+    } else if (selectedPeriod.minutes <= 43200) {
+      // 1 месяц - каждые 3 часа
+      const roundedHours = (Math.floor(date.getHours() / 3) * 3).toString().padStart(2, '0');
+      return `${day} ${roundedHours}:00`;
+    } else {
+      // 1 год - по дням
+      return `${day}.${month}`;
+    }
+  };
+
   const formatTime = (ts: number) => {
     const date = new Date(ts);
     const options: Intl.DateTimeFormatOptions = {
@@ -218,16 +253,18 @@ export default function SensorGraphDHT21() {
       hour12: false,
     };
 
-    if (selectedPeriod.minutes <= 60) {
+    if (selectedPeriod.minutes <= 720) {
+      // Для 1 часа и 12 часов показываем секунды
       options.second = "2-digit";
     }
     
-    if (selectedPeriod.format.includes("dd")) {
+    if (selectedPeriod.minutes > 1440) {
+      // Для периодов больше суток показываем дату
       options.day = "2-digit";
-    }
-    
-    if (selectedPeriod.format.includes("MM")) {
-      options.month = "2-digit";
+      if (selectedPeriod.minutes > 43200) {
+        // Для месяца и года показываем месяц
+        options.month = "2-digit";
+      }
     }
 
     return date.toLocaleString("uk-UA", options);
@@ -309,29 +346,6 @@ export default function SensorGraphDHT21() {
       .value();
 
     // Группируем данные по временным интервалам в зависимости от периода
-    const getTimeKey = (date: Date) => {
-      const hours = date.getHours().toString().padStart(2, '0');
-      const minutes = date.getMinutes().toString().padStart(2, '0');
-      const seconds = date.getSeconds().toString().padStart(2, '0');
-
-      if (selectedPeriod.minutes <= 60) {
-        // Для часового графика - каждые 30 секунд
-        const roundedSeconds = (Math.floor(date.getSeconds() / 30) * 30).toString().padStart(2, '0');
-        return `${hours}:${minutes}:${roundedSeconds}`;
-      } else if (selectedPeriod.minutes <= 720) {
-        // Для 12-часового графика - каждую минуту
-        return `${hours}:${minutes}`;
-      } else if (selectedPeriod.minutes <= 1440) {
-        // Для суточного графика - каждые 5 минут
-        const roundedMinutes = (Math.floor(date.getMinutes() / 5) * 5).toString().padStart(2, '0');
-        return `${hours}:${roundedMinutes}`;
-      } else {
-        // Для более длительных периодов - каждые 30 минут
-        const roundedMinutes = (Math.floor(date.getMinutes() / 30) * 30).toString().padStart(2, '0');
-        return `${date.getDate().toString().padStart(2, '0')} ${hours}:${roundedMinutes}`;
-      }
-    };
-
     const groupedByTime = _.groupBy(filtered, point => {
       const date = new Date(point.timestamp);
       return getTimeKey(date);
@@ -416,6 +430,13 @@ export default function SensorGraphDHT21() {
         type: "monotone" as const
       };
     } else if (selectedPeriod.minutes <= 720) {
+      return {
+        strokeWidth: 2,
+        dot: true,
+        activeDot: { r: 4 },
+        type: "monotone" as const
+      };
+    } else if (selectedPeriod.minutes <= 1440) {
       return {
         strokeWidth: 2,
         dot: false,
