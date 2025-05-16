@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import _ from "lodash";
 import {
   LineChart,
@@ -111,6 +111,21 @@ export default function SensorGraphDHT21() {
     temperature: [-10, 50]
   };
 
+  // Добавляем состояние для отслеживания ширины экрана
+  const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 768);
+
+  // Отслеживаем изменение размера экрана
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleResize = _.debounce(() => {
+      setScreenWidth(window.innerWidth);
+    }, 250);
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -194,13 +209,36 @@ export default function SensorGraphDHT21() {
 
     fetchData();
 
-    // Для часового графика обновляем чаще
     const isToday = selectedDate === new Date().toISOString().split("T")[0];
-    const updateInterval = selectedPeriod.minutes <= 60 ? 3000 : 15000;
-    const interval = isToday ? setInterval(fetchData, updateInterval) : null;
+    const isHourlyView = selectedPeriod.minutes === 60;
+    
+    // Для часового графика используем RAF для более плавного обновления
+    let animationFrameId: number;
+    let lastUpdate = Date.now();
+    
+    const updateIfNeeded = () => {
+      const now = Date.now();
+      if (isHourlyView && isToday && now - lastUpdate >= 3000) {
+        fetchData();
+        lastUpdate = now;
+      }
+      animationFrameId = requestAnimationFrame(updateIfNeeded);
+    };
+
+    if (isHourlyView && isToday) {
+      animationFrameId = requestAnimationFrame(updateIfNeeded);
+    } else {
+      // Для других периодов используем обычный интервал
+      const interval = isToday ? setInterval(fetchData, 15000) : null;
+      return () => {
+        if (interval) clearInterval(interval);
+      };
+    }
 
     return () => {
-      if (interval) clearInterval(interval);
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
     };
   }, [selectedPeriod, selectedSensors, selectedDate]);
 
@@ -214,9 +252,9 @@ export default function SensorGraphDHT21() {
     // Форматируем время в зависимости от периода для точной аналитики
     switch(selectedPeriod.minutes) {
       case 60: // 1 час
-        // Каждые 5 минут
-        const roundedMinutes = Math.floor(date.getMinutes() / 5) * 5;
-        return `${hours}:${roundedMinutes.toString().padStart(2, '0')}`;
+        // Каждые 5 секунд
+        const roundedSeconds = Math.floor(date.getSeconds() / 5) * 5;
+        return `${hours}:${minutes}:${roundedSeconds.toString().padStart(2, '0')}`;
       case 720: // 12 часов
         // Каждые 5 минут
         const roundedMinutes12h = Math.floor(date.getMinutes() / 5) * 5;
@@ -232,7 +270,7 @@ export default function SensorGraphDHT21() {
         // Каждые 12 часов
         return `${day}.${month} ${hours}:00`;
       default: // 1 год
-        // По дням
+        // По 5 дней
         return `${day}.${month}`;
     }
   };
@@ -245,7 +283,13 @@ export default function SensorGraphDHT21() {
       hour12: false,
     };
 
-    if (selectedPeriod.minutes <= 10080) {
+    if (selectedPeriod.minutes === 60) {
+      // Для часового периода показываем время в формате ЧЧ:ММ:СС
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      const seconds = Math.floor(date.getSeconds() / 5) * 5;
+      return `${hours}:${minutes}:${seconds.toString().padStart(2, '0')}`;
+    } else if (selectedPeriod.minutes <= 10080) {
       // Для периодов до недели включительно показываем время в формате ДД.ММ ЧЧ:ММ или ЧЧ:ММ
       const hours = date.getHours().toString().padStart(2, '0');
       
@@ -273,69 +317,16 @@ export default function SensorGraphDHT21() {
       const month = (date.getMonth() + 1).toString().padStart(2, '0');
       const hours = date.getHours().toString().padStart(2, '0');
       return `${day}.${month} ${hours}:00`;
+    } else {
+      // Для года показываем только дату
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      return `${day}.${month}`;
     }
-    
-    // Для остальных периодов
-    options.day = "2-digit";
-    if (selectedPeriod.minutes > 43200) {
-      options.month = "2-digit";
-    }
-
-    return date.toLocaleString("uk-UA", options);
   };
 
-  // Функция для вычисления диапазонов осей с учетом минимальных значений
-  const calculateAxisRanges = (data: ChartDataPoint[]) => {
-    if (!data.length) return DEFAULT_RANGES;
-
-    const humidityValues: number[] = [];
-    const temperatureValues: number[] = [];
-
-    // Собираем все значения
-    data.forEach(point => {
-      selectedSensors.forEach(sensorId => {
-        const humidityKey = `${sensorId}_humidity`;
-        const tempKey = `${sensorId}_temperature`;
-        
-        if (point[humidityKey] !== undefined) {
-          humidityValues.push(Number(point[humidityKey]));
-        }
-        if (point[tempKey] !== undefined) {
-          temperatureValues.push(Number(point[tempKey]));
-        }
-      });
-    });
-
-    if (humidityValues.length === 0 || temperatureValues.length === 0) {
-      return DEFAULT_RANGES;
-    }
-
-    // Находим минимальные и максимальные значения
-    const humidityMin = Math.min(...humidityValues);
-    const humidityMax = Math.max(...humidityValues);
-    const tempMin = Math.min(...temperatureValues);
-    const tempMax = Math.max(...temperatureValues);
-
-    // Добавляем отступы для лучшей визуализации
-    const humidityPadding = (humidityMax - humidityMin) * 0.1;
-    const tempPadding = (tempMax - tempMin) * 0.1;
-
-    // Округляем значения для более красивых шкал
-    const roundToNearest = (value: number, step: number) => Math.round(value / step) * step;
-
-    return {
-      humidity: [
-        Math.max(0, roundToNearest(humidityMin - humidityPadding, 5)),
-        Math.min(100, roundToNearest(humidityMax + humidityPadding, 5))
-      ],
-      temperature: [
-        roundToNearest(tempMin - tempPadding, 2),
-        roundToNearest(tempMax + tempPadding, 2)
-      ]
-    };
-  };
-
-  const formatData = (): ChartDataPoint[] => {
+  // Мемоизируем функцию форматирования данных
+  const formatData = useCallback((): ChartDataPoint[] => {
     const selectedDateStart = new Date(selectedDate);
     selectedDateStart.setHours(0, 0, 0, 0);
 
@@ -400,7 +391,36 @@ export default function SensorGraphDHT21() {
       .value();
 
     // Для периодов до недели включительно группируем данные
-    if (selectedPeriod.minutes <= 10080) {
+    if (selectedPeriod.minutes === 60) {
+      // Для часового периода группируем по 5 секунд
+      const groupedByTime = _.groupBy(filtered, point => {
+        const date = new Date(point.timestamp);
+        const seconds = Math.floor(date.getSeconds() / 5) * 5;
+        date.setSeconds(seconds);
+        return date.getTime();
+      });
+
+      return _.map(groupedByTime, (points, timeKey) => {
+        const timestamp = Number(timeKey);
+        const dataPoint: ChartDataPoint = {
+          timestamp,
+          time: formatTime(timestamp),
+        };
+
+        selectedSensors.forEach(sensorId => {
+          const sensorPoints = points.filter(p => p.sensor_id === sensorId);
+          if (sensorPoints.length > 0) {
+            const humidityValues = sensorPoints.map(p => p.humidity);
+            const tempValues = sensorPoints.map(p => p.temperature);
+
+            dataPoint[`${sensorId}_humidity`] = _.round(_.mean(humidityValues), 1);
+            dataPoint[`${sensorId}_temperature`] = _.round(_.mean(tempValues), 1);
+          }
+        });
+
+        return dataPoint;
+      });
+    } else if (selectedPeriod.minutes <= 10080) {
       const groupedByTime = _.groupBy(filtered, point => {
         const date = new Date(point.timestamp);
         if (selectedPeriod.minutes === 10080) {
@@ -466,35 +486,97 @@ export default function SensorGraphDHT21() {
 
         return dataPoint;
       });
-    }
-
-    // Для остальных периодов используем стандартную группировку
-    const groupedByTime = _.groupBy(filtered, point => getTimeKey(new Date(point.timestamp)));
-
-    return _.map(groupedByTime, (points, timeKey) => {
-      const dataPoint: ChartDataPoint = {
-        timestamp: points[0].timestamp,
-        time: formatTime(points[0].timestamp),
-      };
-
-      selectedSensors.forEach(sensorId => {
-        const sensorPoints = points.filter(p => p.sensor_id === sensorId);
-        if (sensorPoints.length > 0) {
-          const humidityValues = sensorPoints.map(p => p.humidity);
-          const tempValues = sensorPoints.map(p => p.temperature);
-
-          dataPoint[`${sensorId}_humidity`] = _.round(_.mean(humidityValues), 1);
-          dataPoint[`${sensorId}_temperature`] = _.round(_.mean(tempValues), 1);
-        }
+    } else {
+      // Для года группируем по 5 дней
+      const groupedByTime = _.groupBy(filtered, point => {
+        const date = new Date(point.timestamp);
+        const startOfYear = new Date(date.getFullYear(), 0, 1);
+        const dayOfYear = Math.floor((date.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
+        const groupDay = Math.floor(dayOfYear / 5) * 5;
+        const resultDate = new Date(startOfYear.getTime() + groupDay * 24 * 60 * 60 * 1000);
+        resultDate.setHours(0, 0, 0, 0);
+        return resultDate.getTime();
       });
 
-      return dataPoint;
-    });
-  };
+      return _.map(groupedByTime, (points, timeKey) => {
+        const timestamp = Number(timeKey);
+        const dataPoint: ChartDataPoint = {
+          timestamp,
+          time: formatTime(timestamp),
+        };
 
-  // Получаем данные и вычисляем диапазоны
-  const chartData = formatData();
-  const axisRanges = calculateAxisRanges(chartData);
+        selectedSensors.forEach(sensorId => {
+          const sensorPoints = points.filter(p => p.sensor_id === sensorId);
+          if (sensorPoints.length > 0) {
+            const humidityValues = sensorPoints.map(p => p.humidity);
+            const tempValues = sensorPoints.map(p => p.temperature);
+
+            dataPoint[`${sensorId}_humidity`] = _.round(_.mean(humidityValues), 1);
+            dataPoint[`${sensorId}_temperature`] = _.round(_.mean(tempValues), 1);
+          }
+        });
+
+        return dataPoint;
+      });
+    }
+  }, [historicalData, liveData, selectedPeriod, selectedSensors]);
+
+  // Мемоизируем отформатированные данные
+  const chartData = useMemo(() => formatData(), [formatData]);
+
+  // Мемоизируем функцию расчета диапазонов осей
+  const calculateAxisRanges = useCallback((data: ChartDataPoint[]) => {
+    if (!data.length) return DEFAULT_RANGES;
+
+    const humidityValues: number[] = [];
+    const temperatureValues: number[] = [];
+
+    // Собираем все значения
+    data.forEach(point => {
+      selectedSensors.forEach(sensorId => {
+        const humidityKey = `${sensorId}_humidity`;
+        const tempKey = `${sensorId}_temperature`;
+        
+        if (point[humidityKey] !== undefined) {
+          humidityValues.push(Number(point[humidityKey]));
+        }
+        if (point[tempKey] !== undefined) {
+          temperatureValues.push(Number(point[tempKey]));
+        }
+      });
+    });
+
+    if (humidityValues.length === 0 || temperatureValues.length === 0) {
+      return DEFAULT_RANGES;
+    }
+
+    // Находим минимальные и максимальные значения
+    const humidityMin = Math.min(...humidityValues);
+    const humidityMax = Math.max(...humidityValues);
+    const tempMin = Math.min(...temperatureValues);
+    const tempMax = Math.max(...temperatureValues);
+
+    // Добавляем отступы для лучшей визуализации
+    const humidityPadding = (humidityMax - humidityMin) * 0.1;
+    const tempPadding = (tempMax - tempMin) * 0.1;
+
+    // Округляем значения для более красивых шкал
+    const roundToNearest = (value: number, step: number) => Math.round(value / step) * step;
+
+    return {
+      humidity: [
+        Math.max(0, roundToNearest(humidityMin - humidityPadding, 5)),
+        Math.min(100, roundToNearest(humidityMax + humidityPadding, 5))
+      ],
+      temperature: [
+        roundToNearest(tempMin - tempPadding, 2),
+        roundToNearest(tempMax + tempPadding, 2)
+      ]
+    };
+  }, []);
+
+  // Мемоизируем диапазоны осей
+  const axisRanges = useMemo(() => calculateAxisRanges(chartData), [chartData, calculateAxisRanges]);
 
   const downloadCSV = (sensorId: string) => {
     const filtered = historicalData.filter((d) => d.sensor_id === sensorId);
@@ -552,7 +634,7 @@ export default function SensorGraphDHT21() {
   };
 
   // Функция для определения параметров отображения линий
-  const getLineProps = (): LineProperties => {
+  const getLineProps = useCallback((): LineProperties => {
     const baseProps = {
       type: "monotone" as const,
       strokeWidth: 2,
@@ -570,10 +652,36 @@ export default function SensorGraphDHT21() {
     }
 
     return baseProps;
-  };
+  }, [selectedPeriod.minutes]);
 
-  // Получаем параметры линий
-  const lineProps = getLineProps();
+  // Мемоизируем параметры линий
+  const lineProps = useMemo(() => getLineProps(), [selectedPeriod.minutes]);
+
+  // Вычисляем интервал меток времени в зависимости от периода и размера экрана
+  const getTickInterval = useCallback(() => {
+    const isSmallScreen = screenWidth <= 768;
+    
+    switch(selectedPeriod.minutes) {
+      case 60: // 1 час
+        return isSmallScreen ? 15 : 10; // каждые 15/10 точек
+      case 720: // 12 часов
+        return isSmallScreen ? 24 : 18; // каждые 24/18 точек
+      case 1440: // 1 день
+        return isSmallScreen ? 36 : 24; // каждые 36/24 точек
+      case 10080: // 1 неделя
+        return isSmallScreen ? 12 : 8; // каждые 12/8 часов
+      case 43200: // 1 месяц
+        return isSmallScreen ? 48 : 36; // каждые 48/36 часов
+      default: // 1 год
+        return isSmallScreen ? 6 : 4; // каждые 6/4 дня
+    }
+  }, [selectedPeriod.minutes, screenWidth]);
+
+  // Функция для определения, показывать ли метку
+  const shouldShowLabel = useCallback((index: number) => {
+    const interval = getTickInterval();
+    return index % interval === 0;
+  }, [getTickInterval]);
 
   return (
     <div
@@ -690,13 +798,14 @@ export default function SensorGraphDHT21() {
           }
           @media (max-width: 768px) {
             .chart-content {
-              min-width: ${(selectedPeriod.minutes === 10080 || selectedPeriod.minutes === 43200) ? '3000px' : '1200px'};
+              min-width: ${selectedPeriod.minutes >= 10080 ? '3000px' : '1200px'};
             }
             .time-label {
-              font-size: ${(selectedPeriod.minutes === 10080 || selectedPeriod.minutes === 43200) ? '14px' : '12px'};
+              font-size: ${selectedPeriod.minutes >= 10080 ? '14px' : '12px'};
               transform: rotate(-45deg);
               transform-origin: top right;
               white-space: nowrap;
+              margin-top: ${selectedPeriod.minutes >= 10080 ? '15px' : '10px'};
             }
             .y-axis-label {
               font-size: 10px;
@@ -704,10 +813,11 @@ export default function SensorGraphDHT21() {
           }
           @media (min-width: 769px) {
             .chart-content {
-              min-width: ${(selectedPeriod.minutes === 10080 || selectedPeriod.minutes === 43200) ? '2400px' : '100%'};
+              min-width: ${selectedPeriod.minutes >= 10080 ? '2400px' : '100%'};
             }
             .time-label {
-              font-size: ${(selectedPeriod.minutes === 10080 || selectedPeriod.minutes === 43200) ? '14px' : '12px'};
+              font-size: ${selectedPeriod.minutes >= 10080 ? '14px' : '12px'};
+              margin-top: ${selectedPeriod.minutes >= 10080 ? '10px' : '5px'};
             }
           }
           .y-axis-left {
@@ -778,23 +888,32 @@ export default function SensorGraphDHT21() {
                 <ResponsiveContainer width="100%" height={400}>
                   <LineChart
                     data={chartData}
-                    margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+                    margin={{ top: 5, right: 30, left: 30, bottom: screenWidth <= 768 ? 40 : 25 }}
+                    width={selectedPeriod.minutes >= 10080 ? (screenWidth <= 768 ? 3000 : 2400) : (screenWidth <= 768 ? 1200 : 800)}
+                    height={400}
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke="#444" />
                     <XAxis
                       dataKey="time"
-                      stroke="#999"
-                      tick={{ 
-                        fill: "#999", 
-                        className: "time-label",
-                        fontSize: window.innerWidth <= 768 ? 10 : 12
+                      stroke="#888"
+                      tick={(props) => {
+                        const { x, y, payload, index } = props;
+                        if (!shouldShowLabel(index)) return <g />;
+                        return (
+                          <g transform={`translate(${x},${y})`}>
+                            <text
+                              x={0}
+                              y={0}
+                              dy={16}
+                              textAnchor="middle"
+                              fill="#888"
+                              className="time-label"
+                            >
+                              {payload.value}
+                            </text>
+                          </g>
+                        );
                       }}
-                      angle={-45}
-                      textAnchor="end"
-                      height={80}
-                      interval={(selectedPeriod.minutes === 10080 || selectedPeriod.minutes === 43200) ? 48 : (selectedPeriod.minutes <= 60 ? (window.innerWidth <= 768 ? 3 : 2) : "preserveStartEnd")}
-                      minTickGap={(selectedPeriod.minutes === 10080 || selectedPeriod.minutes === 43200) ? 200 : (window.innerWidth <= 768 ? 40 : (selectedPeriod.minutes <= 720 ? 15 : 30))}
-                      tickMargin={(selectedPeriod.minutes === 10080 || selectedPeriod.minutes === 43200) ? 35 : (window.innerWidth <= 768 ? 15 : 10)}
                     />
                     <YAxis
                       yAxisId="left"
