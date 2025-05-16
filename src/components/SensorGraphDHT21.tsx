@@ -657,16 +657,24 @@ export default function SensorGraphDHT21() {
           }
           @media (max-width: 768px) {
             .chart-content {
-              min-width: ${selectedPeriod.minutes === 10080 ? '2000px' : '1200px'};
+              min-width: ${selectedPeriod.minutes === 10080 ? '3000px' : '1200px'};
             }
             .time-label {
-              font-size: 12px;
+              font-size: ${selectedPeriod.minutes === 10080 ? '14px' : '12px'};
               transform: rotate(-45deg);
               transform-origin: top right;
               white-space: nowrap;
             }
             .y-axis-label {
               font-size: 10px;
+            }
+          }
+          @media (min-width: 769px) {
+            .chart-content {
+              min-width: ${selectedPeriod.minutes === 10080 ? '2400px' : '100%'};
+            }
+            .time-label {
+              font-size: ${selectedPeriod.minutes === 10080 ? '14px' : '12px'};
             }
           }
           .y-axis-left {
@@ -751,9 +759,9 @@ export default function SensorGraphDHT21() {
                       angle={-45}
                       textAnchor="end"
                       height={80}
-                      interval={selectedPeriod.minutes === 10080 ? 24 : (selectedPeriod.minutes <= 60 ? (window.innerWidth <= 768 ? 3 : 2) : "preserveStartEnd")}
-                      minTickGap={selectedPeriod.minutes === 10080 ? 100 : (window.innerWidth <= 768 ? 40 : (selectedPeriod.minutes <= 720 ? 15 : 30))}
-                      tickMargin={selectedPeriod.minutes === 10080 ? 25 : (window.innerWidth <= 768 ? 15 : 10)}
+                      interval={selectedPeriod.minutes === 10080 ? 48 : (selectedPeriod.minutes <= 60 ? (window.innerWidth <= 768 ? 3 : 2) : "preserveStartEnd")}
+                      minTickGap={selectedPeriod.minutes === 10080 ? 200 : (window.innerWidth <= 768 ? 40 : (selectedPeriod.minutes <= 720 ? 15 : 30))}
+                      tickMargin={selectedPeriod.minutes === 10080 ? 35 : (window.innerWidth <= 768 ? 15 : 10)}
                     />
                     <YAxis
                       yAxisId="left"
