@@ -107,6 +107,12 @@ export default function SensorGraphDHT21() {
         // Calculate start date based on selected period
         const startDate = new Date(endDate.getTime() - selectedPeriod.minutes * 60 * 1000);
 
+        // Если выбрана текущая дата, используем текущее время как конец периода
+        const isToday = selectedDate === new Date().toISOString().split("T")[0];
+        if (isToday) {
+          endDate.setTime(new Date().getTime());
+        }
+
         const [historicalRes, liveRes] = await Promise.all([
           fetch(`/api/humidity-readings?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}&sensorIds=${selectedSensors.join(',')}`, { 
             cache: "no-store",
@@ -115,13 +121,13 @@ export default function SensorGraphDHT21() {
               'Pragma': 'no-cache'
             }
           }),
-          fetch("/api/humidity", { 
+          isToday ? fetch("/api/humidity", { 
             cache: "no-store",
             headers: {
               'Cache-Control': 'no-cache',
               'Pragma': 'no-cache'
             }
-          }),
+          }) : Promise.resolve(new Response(JSON.stringify({ sensors: {} })))
         ]);
 
         if (!historicalRes.ok || !liveRes.ok) {
@@ -133,7 +139,7 @@ export default function SensorGraphDHT21() {
         const readings = await historicalRes.json();
         const live = await liveRes.json();
 
-        // Улучшенное форматирование исторических данных
+        // Форматируем исторические данные
         const formattedHistorical = _.map(readings, (r) => ({
           sensor_id: r.sensor_id,
           timestamp: new Date(r.timestamp).getTime(),
@@ -141,13 +147,13 @@ export default function SensorGraphDHT21() {
           temperature: _.round(Number(r.temperature), 1),
         }));
 
-        // Улучшенное форматирование живых данных
-        const formattedLive = _.mapValues(live.sensors, (s) => ({
+        // Форматируем живые данные только если это текущий день
+        const formattedLive = isToday ? _.mapValues(live.sensors, (s) => ({
           sensor_id: s.id,
           timestamp: Number(s.timestamp),
           humidity: _.round(Number(s.humidity), 1),
           temperature: _.round(Number(s.temperature), 1),
-        }));
+        })) : {};
 
         setHistoricalData(formattedHistorical);
         setLiveData(formattedLive);
@@ -205,20 +211,35 @@ export default function SensorGraphDHT21() {
   };
 
   const formatData = (): ChartDataPoint[] => {
+    // Создаем объект даты из выбранной даты в начале дня
     const selectedDateStart = new Date(selectedDate);
     selectedDateStart.setHours(0, 0, 0, 0);
 
+    // Создаем объект даты из выбранной даты в конце дня
     const selectedDateEnd = new Date(selectedDate);
     selectedDateEnd.setHours(23, 59, 59, 999);
 
-    const filtered = historicalData.filter(
-      (d) =>
-        d.timestamp >= selectedDateStart.getTime() &&
-        d.timestamp <= selectedDateEnd.getTime() &&
-        selectedSensors.includes(d.sensor_id)
-    );
+    // Фильтруем данные по выбранной дате и периоду
+    const currentTime = new Date().getTime();
+    const periodStart = new Date(selectedDateEnd.getTime() - selectedPeriod.minutes * 60 * 1000);
 
-    const groupedByTime = _.groupBy(filtered, (point) => {
+    const filtered = historicalData.filter((d) => {
+      const timestamp = new Date(d.timestamp).getTime();
+      // Проверяем, что данные входят в выбранный период
+      return timestamp >= periodStart.getTime() && 
+             timestamp <= selectedDateEnd.getTime() && 
+             selectedSensors.includes(d.sensor_id);
+    });
+
+    if (filtered.length === 0) {
+      console.log('No data found for selected date:', selectedDate);
+      return [];
+    }
+
+    // Сортируем данные по времени
+    const sortedData = _.orderBy(filtered, ['timestamp'], ['asc']);
+
+    const groupedByTime = _.groupBy(sortedData, (point) => {
       const date = new Date(point.timestamp);
       if (selectedPeriod.minutes <= 60) {
         // Для часового графика группируем по минутам
