@@ -923,29 +923,17 @@ export default function SensorGraphDHT21() {
         {isLoading && <span className="ms-2">(Завантаження...)</span>}
       </div>
 
-      <div className="d-flex flex-wrap gap-3 mb-3">
-        {selectedSensors.map((sensorId) => (
-          <React.Fragment key={sensorId}>
-            <div style={{ color: COLORS[`${sensorId}_humidity` as ColorKey] }}>
-              {sensorId} Вологість
-            </div>
-            <div
-              style={{ color: COLORS[`${sensorId}_temperature` as ColorKey] }}
-            >
-              {sensorId} Температура
-            </div>
-          </React.Fragment>
-        ))}
-      </div>
-
-      <div className="chart-wrapper" style={{ position: 'relative', width: '100%', overflow: 'hidden' }}>
+      <div className="chart-wrapper">
         <style jsx>{`
           .chart-wrapper {
             position: relative;
             width: 100%;
-            height: 400px;
+            height: calc(100vh - 250px);
+            min-height: 400px;
             background-color: #2b2b2b;
             overflow: hidden;
+            border-radius: 8px;
+            border: 1px solid #444;
           }
           .chart-container {
             position: relative;
@@ -958,62 +946,25 @@ export default function SensorGraphDHT21() {
             overflow-x: auto;
             overflow-y: hidden;
             -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
+            scrollbar-width: thin;
+            scrollbar-color: #666 #2b2b2b;
             margin: 0 40px;
           }
           .scroll-container::-webkit-scrollbar {
-            display: none;
+            height: 8px;
+          }
+          .scroll-container::-webkit-scrollbar-track {
+            background: #2b2b2b;
+            border-radius: 4px;
+          }
+          .scroll-container::-webkit-scrollbar-thumb {
+            background-color: #666;
+            border-radius: 4px;
+            border: 2px solid #2b2b2b;
           }
           .chart-content {
             position: relative;
             min-width: 100%;
-            height: 100%;
-          }
-          @media (max-width: 768px) {
-            .chart-content {
-              min-width: ${selectedPeriod.minutes === 60 ? '2000px' : (selectedPeriod.minutes >= 10080 ? '3000px' : '1200px')};
-            }
-            .time-label {
-              font-size: ${selectedPeriod.minutes >= 10080 ? '14px' : '12px'};
-              transform: rotate(-45deg);
-              transform-origin: top right;
-              white-space: nowrap;
-            }
-            .y-axis-label {
-              font-size: 10px;
-            }
-          }
-          @media (min-width: 769px) {
-            .chart-content {
-              min-width: ${selectedPeriod.minutes === 60 ? '1800px' : (selectedPeriod.minutes >= 10080 ? '2400px' : '100%')};
-            }
-            .time-label {
-              font-size: ${selectedPeriod.minutes >= 10080 ? '14px' : '12px'};
-            }
-          }
-          .y-axis-left {
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            z-index: 1000;
-            background-color: #2b2b2b;
-            width: 40px;
-            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
-          }
-          .y-axis-right {
-            position: absolute;
-            right: 0;
-            top: 0;
-            bottom: 0;
-            z-index: 1000;
-            background-color: #2b2b2b;
-            width: 40px;
-            box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
-          }
-          .chart-main {
-            position: relative;
-            width: 100%;
             height: 100%;
           }
           .zoom-button {
@@ -1021,89 +972,61 @@ export default function SensorGraphDHT21() {
             top: 10px;
             right: 50px;
             z-index: 1000;
-            background-color: rgba(255, 255, 255, 0.2);
+            background-color: rgba(255, 255, 255, 0.1);
             border: 1px solid #666;
             color: #fff;
-            padding: 5px 10px;
+            padding: 6px 12px;
             border-radius: 4px;
             cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
           }
           .zoom-button:hover {
-            background-color: rgba(255, 255, 255, 0.3);
+            background-color: rgba(255, 255, 255, 0.2);
           }
           .time-range-display {
             position: absolute;
-            bottom: 0;
+            bottom: 10px;
             left: 50%;
             transform: translateX(-50%);
             background-color: rgba(0, 0, 0, 0.7);
-            padding: 8px 16px;
+            padding: 6px 12px;
             border-radius: 4px;
-            font-size: 14px;
+            font-size: 12px;
             color: #fff;
             z-index: 1000;
             white-space: nowrap;
             border: 1px solid #666;
-            margin-bottom: 5px;
           }
           @media (max-width: 768px) {
+            .chart-wrapper {
+              height: calc(100vh - 200px);
+            }
+            .chart-content {
+              min-width: ${selectedPeriod.minutes === 60 ? '2000px' : (selectedPeriod.minutes >= 10080 ? '3000px' : '1200px')};
+            }
+            .time-label {
+              font-size: 10px;
+              transform: rotate(-45deg);
+              transform-origin: top right;
+            }
+            .zoom-button {
+              top: 5px;
+              right: 45px;
+              padding: 4px 8px;
+              font-size: 11px;
+            }
             .time-range-display {
+              font-size: 11px;
+              padding: 4px 8px;
+            }
+          }
+          @media (min-width: 769px) {
+            .chart-content {
+              min-width: ${selectedPeriod.minutes === 60 ? '1800px' : (selectedPeriod.minutes >= 10080 ? '2400px' : '100%')};
+            }
+            .time-label {
               font-size: 12px;
-              padding: 6px 12px;
-              width: 90%;
-              text-align: center;
-            }
-          }
-          .brush-custom {
-            height: 40px !important;
-            margin-top: 10px;
-          }
-          .brush-custom .recharts-brush-slide {
-            fill: #666;
-            fill-opacity: 0.3;
-          }
-          .brush-custom .recharts-brush-traveller {
-            fill: #444;
-          }
-          .brush-custom .recharts-brush-texts {
-            font-size: 12px;
-            font-weight: bold;
-          }
-          .statistics-panel {
-            background-color: rgba(35, 35, 35, 0.95);
-            border: 1px solid #666;
-            border-radius: 4px;
-            padding: 12px;
-            margin-bottom: 16px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 16px;
-          }
-          .stat-group {
-            flex: 1;
-            min-width: 200px;
-          }
-          .stat-header {
-            font-weight: bold;
-            margin-bottom: 8px;
-            padding-bottom: 4px;
-            border-bottom: 1px solid #555;
-          }
-          .stat-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 4px;
-            font-size: 13px;
-          }
-          .stat-label {
-            color: #999;
-          }
-          @media (max-width: 768px) {
-            .statistics-panel {
-              flex-direction: column;
-            }
-            .stat-group {
-              min-width: 100%;
             }
           }
         `}</style>
@@ -1111,47 +1034,6 @@ export default function SensorGraphDHT21() {
         <button className="zoom-button" onClick={zoomOut}>
           Сбросить масштаб
         </button>
-
-        <div className="statistics-panel">
-          {selectedSensors.map((sensorId) => (
-            <React.Fragment key={sensorId}>
-              {['humidity', 'temperature'].map((type) => {
-                const key = `${sensorId}_${type}` as keyof typeof statistics;
-                const stats = statistics[key];
-                const unit = type === 'humidity' ? '%' : '°C';
-                const color = COLORS[key as ColorKey];
-
-                return stats ? (
-                  <div key={key} className="stat-group">
-                    <div className="stat-header" style={{ color }}>
-                      {sensorId} {type === 'humidity' ? 'Вологість' : 'Температура'}
-                    </div>
-                    <div className="stat-row">
-                      <span className="stat-label">Мінімум:</span>
-                      <span>{stats.min.toFixed(1)}{unit}</span>
-                    </div>
-                    <div className="stat-row">
-                      <span className="stat-label">Максимум:</span>
-                      <span>{stats.max.toFixed(1)}{unit}</span>
-                    </div>
-                    <div className="stat-row">
-                      <span className="stat-label">Середнє:</span>
-                      <span>{stats.avg.toFixed(1)}{unit}</span>
-                    </div>
-                    <div className="stat-row">
-                      <span className="stat-label">Медіана:</span>
-                      <span>{stats.median.toFixed(1)}{unit}</span>
-                    </div>
-                    <div className="stat-row">
-                      <span className="stat-label">Відхилення:</span>
-                      <span>±{stats.stdDev.toFixed(1)}{unit}</span>
-                    </div>
-                  </div>
-                ) : null;
-              })}
-            </React.Fragment>
-          ))}
-        </div>
 
         <div className="chart-container">
           <div className="y-axis-left">
@@ -1165,18 +1047,17 @@ export default function SensorGraphDHT21() {
                 yAxisId="left"
                 orientation="left"
                 stroke="#44c0ff"
-                tick={{ fill: "#44c0ff", fontSize: 10 }}
+                tick={{ fill: "#44c0ff", fontSize: 11 }}
                 label={{
                   value: "Вологість (%)",
                   angle: -90,
                   position: "insideLeft",
                   fill: "#44c0ff",
-                  style: { fontSize: "10px" },
-                  className: "y-axis-label"
+                  style: { fontSize: "12px" }
                 }}
                 domain={axisRanges.humidity}
                 allowDataOverflow={true}
-                tickCount={6}
+                tickCount={8}
                 tickFormatter={(value) => `${value}%`}
                 scale="linear"
                 allowDecimals={true}
@@ -1190,170 +1071,125 @@ export default function SensorGraphDHT21() {
 
           <div className="scroll-container">
             <div className="chart-content">
-              <div className="chart-main">
-                <ResponsiveContainer width="100%" height={400}>
-                  <LineChart
-                    data={chartData}
-                    margin={{ top: 5, right: 5, left: 5, bottom: 45 }}
-                    onMouseDown={(e) => e?.activeLabel && setZoomState({ ...zoomState, refAreaLeft: e.activeLabel })}
-                    onMouseMove={(e) => e?.activeLabel && zoomState.refAreaLeft && setZoomState({ ...zoomState, refAreaRight: e.activeLabel })}
-                    onMouseUp={zoom}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                    <XAxis
-                      dataKey="time"
-                      stroke="#999"
-                      tick={{ 
-                        fill: "#999", 
-                        className: "time-label",
-                        fontSize: window.innerWidth <= 768 ? 10 : 12
-                      }}
-                      angle={-45}
-                      textAnchor="end"
-                      height={60}
-                      interval={0}
-                      minTickGap={selectedPeriod.minutes === 60 ? 30 : (selectedPeriod.minutes >= 10080 ? 200 : (window.innerWidth <= 768 ? 40 : (selectedPeriod.minutes <= 720 ? 15 : 30)))}
-                      tickMargin={selectedPeriod.minutes === 60 ? 15 : (selectedPeriod.minutes >= 10080 ? 35 : (window.innerWidth <= 768 ? 15 : 10))}
-                      domain={[zoomState.left, zoomState.right]}
-                      allowDataOverflow
-                    />
-                    <YAxis
-                      yAxisId="left"
-                      orientation="left"
-                      domain={axisRanges.humidity}
-                      hide={true}
-                    />
-                    <YAxis
-                      yAxisId="right"
-                      orientation="right"
-                      domain={axisRanges.temperature}
-                      hide={true}
-                    />
-                    <Tooltip 
-                      content={<CustomTooltip />}
-                      wrapperStyle={{
-                        zIndex: 1001
-                      }}
-                    />
-                    <Legend 
-                      verticalAlign="top"
-                      height={36}
-                      formatter={(value) => {
-                        const [sensorId, type] = value.split(' ');
-                        return <span style={{ color: '#fff', fontSize: '12px' }}>{value}</span>;
-                      }}
-                    />
-                    {selectedSensors.map((sensorId) => {
-                      const humidityStats = statistics[`${sensorId}_humidity`];
-                      const tempStats = statistics[`${sensorId}_temperature`];
-                      
-                      return (
-                        <React.Fragment key={sensorId}>
-                          <Line
-                            yAxisId="left"
-                            type={lineProps.type}
-                            dataKey={`${sensorId}_humidity`}
-                            name={`${sensorId} Вологість`}
-                            stroke={COLORS[`${sensorId}_humidity` as ColorKey]}
-                            dot={lineProps.dot}
-                            activeDot={lineProps.activeDot}
-                            unit="%"
-                            strokeWidth={lineProps.strokeWidth}
-                            connectNulls={lineProps.connectNulls}
-                            isAnimationActive={lineProps.isAnimationActive}
-                          />
-                          {humidityStats && (
-                            <>
-                              <ReferenceLine
-                                y={humidityStats.avg}
-                                yAxisId="left"
-                                stroke={COLORS[`${sensorId}_humidity` as ColorKey]}
-                                strokeDasharray="3 3"
-                                strokeOpacity={0.5}
-                              />
-                              <ReferenceLine
-                                y={humidityStats.max}
-                                yAxisId="left"
-                                stroke={COLORS[`${sensorId}_humidity` as ColorKey]}
-                                strokeDasharray="2 2"
-                                strokeOpacity={0.3}
-                              />
-                              <ReferenceLine
-                                y={humidityStats.min}
-                                yAxisId="left"
-                                stroke={COLORS[`${sensorId}_humidity` as ColorKey]}
-                                strokeDasharray="2 2"
-                                strokeOpacity={0.3}
-                              />
-                            </>
-                          )}
-                          <Line
-                            yAxisId="right"
-                            type={lineProps.type}
-                            dataKey={`${sensorId}_temperature`}
-                            name={`${sensorId} Температура`}
-                            stroke={COLORS[`${sensorId}_temperature` as ColorKey]}
-                            dot={lineProps.dot}
-                            activeDot={lineProps.activeDot}
-                            unit="°C"
-                            strokeWidth={lineProps.strokeWidth}
-                            connectNulls={lineProps.connectNulls}
-                            isAnimationActive={lineProps.isAnimationActive}
-                          />
-                          {tempStats && (
-                            <>
-                              <ReferenceLine
-                                y={tempStats.avg}
-                                yAxisId="right"
-                                stroke={COLORS[`${sensorId}_temperature` as ColorKey]}
-                                strokeDasharray="3 3"
-                                strokeOpacity={0.5}
-                              />
-                              <ReferenceLine
-                                y={tempStats.max}
-                                yAxisId="right"
-                                stroke={COLORS[`${sensorId}_temperature` as ColorKey]}
-                                strokeDasharray="2 2"
-                                strokeOpacity={0.3}
-                              />
-                              <ReferenceLine
-                                y={tempStats.min}
-                                yAxisId="right"
-                                stroke={COLORS[`${sensorId}_temperature` as ColorKey]}
-                                strokeDasharray="2 2"
-                                strokeOpacity={0.3}
-                              />
-                            </>
-                          )}
-                        </React.Fragment>
-                      );
-                    })}
-                    <Brush
-                      className="brush-custom"
-                      dataKey="time"
-                      height={40}
-                      stroke="#888"
-                      fill="#2b2b2b"
-                      tickFormatter={(time) => time}
-                      startIndex={Math.max(0, chartData.length - (selectedPeriod.minutes === 60 ? 60 : 30))}
-                      onChange={handleBrushChange}
-                      travellerWidth={10}
-                      y={10}
-                      strokeWidth={1}
-                    />
-                    {zoomState.refAreaLeft && zoomState.refAreaRight ? (
-                      <ReferenceArea
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={chartData}
+                  margin={{ top: 20, right: 5, left: 5, bottom: 40 }}
+                  onMouseDown={(e) => e?.activeLabel && setZoomState({ ...zoomState, refAreaLeft: e.activeLabel })}
+                  onMouseMove={(e) => e?.activeLabel && zoomState.refAreaLeft && setZoomState({ ...zoomState, refAreaRight: e.activeLabel })}
+                  onMouseUp={zoom}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                  <XAxis
+                    dataKey="time"
+                    stroke="#999"
+                    tick={{ 
+                      fill: "#999",
+                      className: "time-label"
+                    }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                    interval={0}
+                    minTickGap={selectedPeriod.minutes === 60 ? 30 : (selectedPeriod.minutes >= 10080 ? 200 : (window.innerWidth <= 768 ? 40 : (selectedPeriod.minutes <= 720 ? 15 : 30)))}
+                    tickMargin={selectedPeriod.minutes === 60 ? 15 : (selectedPeriod.minutes >= 10080 ? 35 : (window.innerWidth <= 768 ? 15 : 10))}
+                    domain={[zoomState.left, zoomState.right]}
+                    allowDataOverflow
+                  />
+                  <YAxis
+                    yAxisId="left"
+                    orientation="left"
+                    domain={axisRanges.humidity}
+                    hide={true}
+                  />
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    domain={axisRanges.temperature}
+                    hide={true}
+                  />
+                  <Tooltip 
+                    content={<CustomTooltip />}
+                    wrapperStyle={{
+                      backgroundColor: "rgba(35, 35, 35, 0.95)",
+                      border: "1px solid #666",
+                      borderRadius: "4px",
+                      padding: "8px",
+                      zIndex: 1001
+                    }}
+                  />
+                  <Legend 
+                    verticalAlign="top"
+                    height={36}
+                    wrapperStyle={{
+                      paddingBottom: "10px"
+                    }}
+                    formatter={(value) => (
+                      <span style={{ 
+                        color: '#fff', 
+                        fontSize: '12px',
+                        padding: '4px 8px',
+                        backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                        borderRadius: '4px'
+                      }}>
+                        {value}
+                      </span>
+                    )}
+                  />
+                  {selectedSensors.map((sensorId) => (
+                    <React.Fragment key={sensorId}>
+                      <Line
                         yAxisId="left"
-                        x1={zoomState.refAreaLeft}
-                        x2={zoomState.refAreaRight}
-                        strokeOpacity={0.3}
-                        fill="#fff"
-                        fillOpacity={0.1}
+                        type="monotone"
+                        dataKey={`${sensorId}_humidity`}
+                        name={`${sensorId} Вологість`}
+                        stroke={COLORS[`${sensorId}_humidity` as ColorKey]}
+                        strokeWidth={2}
+                        dot={selectedPeriod.minutes >= 10080 ? { r: 2 } : false}
+                        activeDot={{ r: 6, strokeWidth: 1 }}
+                        unit="%"
+                        connectNulls={true}
+                        isAnimationActive={selectedPeriod.minutes !== 60}
                       />
-                    ) : null}
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
+                      <Line
+                        yAxisId="right"
+                        type="monotone"
+                        dataKey={`${sensorId}_temperature`}
+                        name={`${sensorId} Температура`}
+                        stroke={COLORS[`${sensorId}_temperature` as ColorKey]}
+                        strokeWidth={2}
+                        dot={selectedPeriod.minutes >= 10080 ? { r: 2 } : false}
+                        activeDot={{ r: 6, strokeWidth: 1 }}
+                        unit="°C"
+                        connectNulls={true}
+                        isAnimationActive={selectedPeriod.minutes !== 60}
+                      />
+                    </React.Fragment>
+                  ))}
+                  <Brush
+                    className="brush-custom"
+                    dataKey="time"
+                    height={30}
+                    stroke="#888"
+                    fill="#2b2b2b"
+                    tickFormatter={(time) => time}
+                    startIndex={Math.max(0, chartData.length - (selectedPeriod.minutes === 60 ? 60 : 30))}
+                    onChange={handleBrushChange}
+                    travellerWidth={8}
+                    y={10}
+                  />
+                  {zoomState.refAreaLeft && zoomState.refAreaRight ? (
+                    <ReferenceArea
+                      yAxisId="left"
+                      x1={zoomState.refAreaLeft}
+                      x2={zoomState.refAreaRight}
+                      strokeOpacity={0.3}
+                      fill="#fff"
+                      fillOpacity={0.1}
+                    />
+                  ) : null}
+                </LineChart>
+              </ResponsiveContainer>
             </div>
           </div>
 
@@ -1368,18 +1204,17 @@ export default function SensorGraphDHT21() {
                 yAxisId="right"
                 orientation="right"
                 stroke="#ffa500"
-                tick={{ fill: "#ffa500", fontSize: 10 }}
+                tick={{ fill: "#ffa500", fontSize: 11 }}
                 label={{
                   value: "Температура (°C)",
                   angle: 90,
                   position: "insideRight",
                   fill: "#ffa500",
-                  style: { fontSize: "10px" },
-                  className: "y-axis-label"
+                  style: { fontSize: "12px" }
                 }}
                 domain={axisRanges.temperature}
                 allowDataOverflow={true}
-                tickCount={6}
+                tickCount={8}
                 tickFormatter={(value) => `${value}°C`}
                 scale="linear"
                 allowDecimals={true}
