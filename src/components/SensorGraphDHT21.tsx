@@ -82,6 +82,16 @@ const PERIOD_OPTIONS = [
   { label: "1 рік", minutes: 525600, format: "dd.MM HH:mm" },
 ];
 
+// Определяем тип для параметров линии
+interface LineProperties {
+  type: "monotone";
+  strokeWidth: number;
+  connectNulls: boolean;
+  dot: boolean | { r: number };
+  activeDot: { r: number };
+  isAnimationActive?: boolean;
+}
+
 export default function SensorGraphDHT21() {
   const [historicalData, setHistoricalData] = useState<SensorPoint[]>([]);
   const [liveData, setLiveData] = useState<Record<string, SensorPoint>>({});
@@ -106,29 +116,17 @@ export default function SensorGraphDHT21() {
       try {
         setIsLoading(true);
         
-        // Оптимизация для текущей даты
         const isToday = selectedDate === new Date().toISOString().split("T")[0];
         const now = new Date();
         
         // Рассчитываем даты для запроса
-        const endDate = isToday ? now : new Date(selectedDate);
+        let endDate = isToday ? now : new Date(selectedDate);
         if (!isToday) {
           endDate.setHours(23, 59, 59, 999);
         }
         
-        // Оптимизируем период запроса
-        const startDate = new Date(endDate.getTime() - selectedPeriod.minutes * 60 * 1000);
-
-        // Кэшируем запросы для исторических данных
-        const cacheOptions: RequestInit = isToday ? {
-          cache: 'no-store' as RequestCache,
-          headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          }
-        } : {
-          cache: 'force-cache' as RequestCache
-        };
+        // Для часового периода берем чуть больше данных для плавности
+        const startDate = new Date(endDate.getTime() - (selectedPeriod.minutes + 5) * 60 * 1000);
 
         // Оптимизируем параметры запроса
         const queryParams = new URLSearchParams({
@@ -138,9 +136,15 @@ export default function SensorGraphDHT21() {
         });
 
         const [historicalRes, liveRes] = await Promise.all([
-          fetch(`/api/humidity-readings?${queryParams}`, cacheOptions),
+          fetch(`/api/humidity-readings?${queryParams}`, {
+            cache: "no-store",
+            headers: {
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache'
+            }
+          }),
           isToday ? fetch("/api/humidity", {
-            cache: 'no-store' as RequestCache,
+            cache: "no-store",
             headers: {
               'Cache-Control': 'no-cache',
               'Pragma': 'no-cache'
@@ -159,7 +163,7 @@ export default function SensorGraphDHT21() {
           isToday ? liveRes.json() : { sensors: {} }
         ]);
 
-        // Оптимизируем обработку данных
+        // Обрабатываем исторические данные
         const formattedHistorical = readings.map((r: any) => ({
           sensor_id: r.sensor_id,
           timestamp: new Date(r.timestamp).getTime(),
@@ -167,7 +171,7 @@ export default function SensorGraphDHT21() {
           temperature: _.round(Number(r.temperature), 1),
         }));
 
-        // Обрабатываем живые данные только для текущей даты
+        // Обрабатываем живые данные
         const formattedLive = isToday ? 
           Object.entries(live.sensors).reduce((acc: Record<string, SensorPoint>, [id, data]: [string, any]) => {
             acc[id] = {
@@ -190,23 +194,11 @@ export default function SensorGraphDHT21() {
 
     fetchData();
 
-    // Оптимизируем интервал обновления
+    // Для часового графика обновляем чаще
     const isToday = selectedDate === new Date().toISOString().split("T")[0];
-    let updateInterval = 30000; // По умолчанию 30 секунд
-
-    if (isToday) {
-      if (selectedPeriod.minutes <= 60) {
-        updateInterval = 3000; // Для часа обновляем каждые 3 секунды
-      } else if (selectedPeriod.minutes <= 720) {
-        updateInterval = 15000; // Для 12 часов каждые 15 секунд
-      } else if (selectedPeriod.minutes <= 1440) {
-        updateInterval = 30000; // Для суток каждые 30 секунд
-      } else {
-        updateInterval = 60000; // Для остальных периодов каждую минуту
-      }
-    }
-
+    const updateInterval = selectedPeriod.minutes <= 60 ? 3000 : 15000;
     const interval = isToday ? setInterval(fetchData, updateInterval) : null;
+
     return () => {
       if (interval) clearInterval(interval);
     };
@@ -219,29 +211,26 @@ export default function SensorGraphDHT21() {
     const day = date.getDate().toString().padStart(2, '0');
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
 
-    if (selectedPeriod.minutes <= 60) {
-      // 1 час - каждые 3 секунды
-      const roundedSeconds = (Math.floor(date.getSeconds() / 3) * 3).toString().padStart(2, '0');
-      return `${hours}:${minutes}:${roundedSeconds}`;
-    } else if (selectedPeriod.minutes <= 720) {
-      // 12 часов - каждые 30 секунд
-      const roundedSeconds = (Math.floor(date.getSeconds() / 30) * 30).toString().padStart(2, '0');
-      return `${hours}:${minutes}:${roundedSeconds}`;
-    } else if (selectedPeriod.minutes <= 1440) {
-      // 1 день - каждые 5 минут
-      const roundedMinutes = (Math.floor(date.getMinutes() / 5) * 5).toString().padStart(2, '0');
-      return `${hours}:${roundedMinutes}`;
-    } else if (selectedPeriod.minutes <= 10080) {
-      // 1 неделя - каждые 30 минут
-      const roundedMinutes = (Math.floor(date.getMinutes() / 30) * 30).toString().padStart(2, '0');
-      return `${day} ${hours}:${roundedMinutes}`;
-    } else if (selectedPeriod.minutes <= 43200) {
-      // 1 месяц - каждые 3 часа
-      const roundedHours = (Math.floor(date.getHours() / 3) * 3).toString().padStart(2, '0');
-      return `${day} ${roundedHours}:00`;
-    } else {
-      // 1 год - по дням
-      return `${day}.${month}`;
+    // Форматируем время в зависимости от периода для точной аналитики
+    switch(selectedPeriod.minutes) {
+      case 60: // 1 час
+        // Каждые 3 секунды для максимальной точности
+        return `${hours}:${minutes}:${Math.floor(date.getSeconds() / 3) * 3}`;
+      case 720: // 12 часов
+        // Каждые 30 секунд
+        return `${hours}:${minutes}:${Math.floor(date.getSeconds() / 30) * 30}`;
+      case 1440: // 1 день
+        // Каждые 5 минут
+        return `${hours}:${Math.floor(date.getMinutes() / 5) * 5}`;
+      case 10080: // 1 неделя
+        // Каждые 30 минут
+        return `${day} ${hours}:${Math.floor(date.getMinutes() / 30) * 30}`;
+      case 43200: // 1 месяц
+        // Каждые 3 часа
+        return `${day} ${Math.floor(date.getHours() / 3) * 3}:00`;
+      default: // 1 год
+        // По дням
+        return `${day}.${month}`;
     }
   };
 
@@ -322,17 +311,18 @@ export default function SensorGraphDHT21() {
   };
 
   const formatData = (): ChartDataPoint[] => {
-    // Создаем объект даты из выбранной даты в начале дня
     const selectedDateStart = new Date(selectedDate);
     selectedDateStart.setHours(0, 0, 0, 0);
 
-    // Создаем объект даты из выбранной даты в конце дня
     const selectedDateEnd = new Date(selectedDate);
     selectedDateEnd.setHours(23, 59, 59, 999);
 
     // Определяем период для фильтрации
-    const periodStart = new Date(selectedDateEnd.getTime() - selectedPeriod.minutes * 60 * 1000);
-    const periodEnd = selectedDateEnd;
+    const periodEnd = new Date(selectedDateEnd);
+    if (selectedDate === new Date().toISOString().split("T")[0]) {
+      periodEnd.setTime(new Date().getTime());
+    }
+    const periodStart = new Date(periodEnd.getTime() - selectedPeriod.minutes * 60 * 1000);
 
     // Фильтруем и сортируем данные
     const filtered = _.chain(historicalData)
@@ -345,20 +335,25 @@ export default function SensorGraphDHT21() {
       .orderBy(['timestamp'], ['asc'])
       .value();
 
-    // Группируем данные по временным интервалам в зависимости от периода
-    const groupedByTime = _.groupBy(filtered, point => {
-      const date = new Date(point.timestamp);
-      return getTimeKey(date);
-    });
+    // Для часового периода не группируем данные, берем как есть
+    if (selectedPeriod.minutes <= 60) {
+      return filtered.map(point => ({
+        timestamp: point.timestamp,
+        time: formatTime(point.timestamp),
+        [`${point.sensor_id}_humidity`]: point.humidity,
+        [`${point.sensor_id}_temperature`]: point.temperature
+      }));
+    }
 
-    // Преобразуем сгруппированные данные в формат для графика
+    // Для остальных периодов используем группировку
+    const groupedByTime = _.groupBy(filtered, point => getTimeKey(new Date(point.timestamp)));
+
     return _.map(groupedByTime, (points, timeKey) => {
       const dataPoint: ChartDataPoint = {
         timestamp: points[0].timestamp,
         time: formatTime(points[0].timestamp),
       };
 
-      // Вычисляем средние значения для каждого сенсора
       selectedSensors.forEach(sensorId => {
         const sensorPoints = points.filter(p => p.sensor_id === sensorId);
         if (sensorPoints.length > 0) {
@@ -385,33 +380,46 @@ export default function SensorGraphDHT21() {
       return alert(`Немає даних для ${sensorId}`);
     }
 
-    const header = "Час,Температура,Вологість";
-    const rows = filtered.map(
-      (d) =>
-        `${formatTime(d.timestamp)},${d.temperature.toFixed(
-          1
-        )},${d.humidity.toFixed(1)}`
-    );
+    // Добавляем больше информации в CSV для аналитики
+    const header = "Дата,Час,Температура,Вологість";
+    const rows = filtered.map((d) => {
+      const date = new Date(d.timestamp);
+      return `${date.toLocaleDateString('uk-UA')},${date.toLocaleTimeString('uk-UA')},${d.temperature.toFixed(2)},${d.humidity.toFixed(2)}`;
+    });
+    
     const csv = [header, ...rows].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${sensorId}_${new Date().toISOString().split("T")[0]}.csv`;
+    a.download = `${sensorId}_${selectedDate}_${selectedPeriod.label}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    console.log(`Exported CSV for ${sensorId} with ${filtered.length} records`);
   };
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
+      const timestamp = payload[0]?.payload?.timestamp;
+      const date = timestamp ? new Date(timestamp) : null;
+      
       return (
         <div className="bg-dark p-2 border border-secondary rounded">
-          <p className="mb-1">{label}</p>
+          {date && (
+            <p className="mb-1 text-white">
+              {date.toLocaleString('uk-UA', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: selectedPeriod.minutes <= 720 ? '2-digit' : undefined,
+                hour12: false
+              })}
+            </p>
+          )}
           {payload.map((entry: any, index: number) => (
             <p key={index} style={{ color: entry.color }} className="mb-0">
-              {entry.name}: {entry.value.toFixed(1)}
-              {entry.unit}
+              {entry.name}: {entry.value.toFixed(2)}{entry.unit}
             </p>
           ))}
         </div>
@@ -420,36 +428,40 @@ export default function SensorGraphDHT21() {
     return null;
   };
 
-  // Функция для определения параметров отображения линий в зависимости от периода
-  const getLineProps = () => {
-    if (selectedPeriod.minutes <= 60) {
-      return {
-        strokeWidth: 2,
-        dot: true,
-        activeDot: { r: 4 },
-        type: "monotone" as const
-      };
-    } else if (selectedPeriod.minutes <= 720) {
-      return {
-        strokeWidth: 2,
-        dot: true,
-        activeDot: { r: 4 },
-        type: "monotone" as const
-      };
-    } else if (selectedPeriod.minutes <= 1440) {
-      return {
-        strokeWidth: 2,
-        dot: false,
-        activeDot: { r: 4 },
-        type: "monotone" as const
-      };
-    } else {
-      return {
-        strokeWidth: 1.5,
-        dot: false,
-        activeDot: { r: 3 },
-        type: "monotone" as const
-      };
+  // Функция для определения параметров отображения линий
+  const getLineProps = (): LineProperties => {
+    const baseProps = {
+      type: "monotone" as const,
+      strokeWidth: 2,
+      connectNulls: true
+    };
+
+    switch(selectedPeriod.minutes) {
+      case 60: // 1 час
+        return {
+          ...baseProps,
+          dot: { r: 3 },
+          activeDot: { r: 5 },
+          isAnimationActive: false // Отключаем анимацию для часового графика
+        };
+      case 720: // 12 часов
+        return {
+          ...baseProps,
+          dot: { r: 2 },
+          activeDot: { r: 4 }
+        };
+      case 1440: // 1 день
+        return {
+          ...baseProps,
+          dot: false,
+          activeDot: { r: 4 }
+        };
+      default:
+        return {
+          ...baseProps,
+          dot: false,
+          activeDot: { r: 3 }
+        };
     }
   };
 
@@ -661,7 +673,7 @@ export default function SensorGraphDHT21() {
                       angle={-45}
                       textAnchor="end"
                       height={80}
-                      interval={selectedPeriod.minutes <= 60 ? 0 : "preserveStartEnd"}
+                      interval={selectedPeriod.minutes <= 60 ? 2 : "preserveStartEnd"}
                       minTickGap={selectedPeriod.minutes <= 720 ? 15 : 30}
                     />
                     <YAxis
@@ -698,7 +710,8 @@ export default function SensorGraphDHT21() {
                           activeDot={lineProps.activeDot}
                           unit="%"
                           strokeWidth={lineProps.strokeWidth}
-                          connectNulls={true}
+                          connectNulls={lineProps.connectNulls}
+                          isAnimationActive={lineProps.isAnimationActive}
                         />
                         <Line
                           yAxisId="right"
@@ -710,7 +723,8 @@ export default function SensorGraphDHT21() {
                           activeDot={lineProps.activeDot}
                           unit="°C"
                           strokeWidth={lineProps.strokeWidth}
-                          connectNulls={true}
+                          connectNulls={lineProps.connectNulls}
+                          isAnimationActive={lineProps.isAnimationActive}
                         />
                       </React.Fragment>
                     ))}
