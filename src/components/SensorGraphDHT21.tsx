@@ -627,7 +627,7 @@ export default function SensorGraphDHT21() {
           }
           @media (max-width: 768px) {
             .chart-content {
-              min-width: 800px;
+              min-width: 1200px;
             }
             .time-label {
               font-size: 12px;
@@ -713,12 +713,17 @@ export default function SensorGraphDHT21() {
                     <XAxis
                       dataKey="time"
                       stroke="#999"
-                      tick={{ fill: "#999", className: "time-label" }}
+                      tick={{ 
+                        fill: "#999", 
+                        className: "time-label",
+                        fontSize: window.innerWidth <= 768 ? 10 : 12
+                      }}
                       angle={-45}
                       textAnchor="end"
                       height={80}
-                      interval={selectedPeriod.minutes <= 60 ? 2 : "preserveStartEnd"}
-                      minTickGap={selectedPeriod.minutes <= 720 ? 15 : 30}
+                      interval={selectedPeriod.minutes <= 60 ? (window.innerWidth <= 768 ? 3 : 2) : "preserveStartEnd"}
+                      minTickGap={window.innerWidth <= 768 ? 40 : (selectedPeriod.minutes <= 720 ? 15 : 30)}
+                      tickMargin={window.innerWidth <= 768 ? 15 : 10}
                     />
                     <YAxis
                       yAxisId="left"
