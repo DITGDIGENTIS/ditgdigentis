@@ -226,9 +226,8 @@ export default function SensorGraphDHT21() {
         const roundedMinutes24h = Math.floor(date.getMinutes() / 5) * 5;
         return `${hours}:${roundedMinutes24h.toString().padStart(2, '0')}`;
       case 10080: // 1 неделя
-        // Каждые 5 минут
-        const roundedMinutesWeek = Math.floor(date.getMinutes() / 5) * 5;
-        return `${day}.${month} ${hours}:${roundedMinutesWeek.toString().padStart(2, '0')}`;
+        // Каждый час
+        return `${day}.${month} ${hours}:00`;
       case 43200: // 1 месяц
         // Каждые 3 часа
         return `${day} ${Math.floor(date.getHours() / 3) * 3}:00`;
@@ -249,11 +248,20 @@ export default function SensorGraphDHT21() {
     if (selectedPeriod.minutes <= 10080) {
       // Для периодов до недели включительно показываем время в формате ДД.ММ ЧЧ:ММ или ЧЧ:ММ
       const hours = date.getHours().toString().padStart(2, '0');
+      
+      if (selectedPeriod.minutes === 10080) {
+        // Для недели показываем только часы
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        return `${day}.${month} ${hours}:00`;
+      }
+      
+      // Для остальных периодов показываем минуты
       const minutes = Math.floor(date.getMinutes() / 5) * 5;
       const timeStr = `${hours}:${minutes.toString().padStart(2, '0')}`;
       
       if (selectedPeriod.minutes > 1440) {
-        // Для недели добавляем дату
+        // Для периодов больше суток добавляем дату
         const day = date.getDate().toString().padStart(2, '0');
         const month = (date.getMonth() + 1).toString().padStart(2, '0');
         return `${day}.${month} ${timeStr}`;
@@ -359,15 +367,20 @@ export default function SensorGraphDHT21() {
         // Для периодов до суток
         periodStart = new Date(periodEnd.getTime());
         periodStart.setMinutes(periodStart.getMinutes() - selectedPeriod.minutes);
+        // Округляем до ближайших 5 минут
+        periodStart.setMinutes(Math.floor(periodStart.getMinutes() / 5) * 5);
+        periodStart.setSeconds(0);
+        periodEnd.setMinutes(Math.ceil(periodEnd.getMinutes() / 5) * 5);
+        periodEnd.setSeconds(0);
       } else {
         // Для недели
         periodStart = new Date(periodEnd.getTime() - selectedPeriod.minutes * 60 * 1000);
+        // Округляем до часов для недели
+        periodStart.setMinutes(0);
+        periodStart.setSeconds(0);
+        periodEnd.setMinutes(0);
+        periodEnd.setSeconds(0);
       }
-      // Округляем до ближайших 5 минут
-      periodStart.setMinutes(Math.floor(periodStart.getMinutes() / 5) * 5);
-      periodStart.setSeconds(0);
-      periodEnd.setMinutes(Math.ceil(periodEnd.getMinutes() / 5) * 5);
-      periodEnd.setSeconds(0);
     } else {
       periodStart = new Date(periodEnd.getTime() - selectedPeriod.minutes * 60 * 1000);
     }
@@ -383,13 +396,20 @@ export default function SensorGraphDHT21() {
       .orderBy(['timestamp'], ['asc'])
       .value();
 
-    // Для периодов до недели включительно группируем по 5-минутным интервалам
+    // Для периодов до недели включительно группируем данные
     if (selectedPeriod.minutes <= 10080) {
       const groupedByTime = _.groupBy(filtered, point => {
         const date = new Date(point.timestamp);
-        const minutes = Math.floor(date.getMinutes() / 5) * 5;
-        date.setMinutes(minutes);
-        date.setSeconds(0);
+        if (selectedPeriod.minutes === 10080) {
+          // Для недели группируем по часам
+          date.setMinutes(0);
+          date.setSeconds(0);
+        } else {
+          // Для остальных периодов по 5 минут
+          const minutes = Math.floor(date.getMinutes() / 5) * 5;
+          date.setMinutes(minutes);
+          date.setSeconds(0);
+        }
         return date.getTime();
       });
 
@@ -731,7 +751,7 @@ export default function SensorGraphDHT21() {
                       angle={-45}
                       textAnchor="end"
                       height={80}
-                      interval={selectedPeriod.minutes <= 60 ? (window.innerWidth <= 768 ? 3 : 2) : "preserveStartEnd"}
+                      interval={selectedPeriod.minutes === 10080 ? 6 : (selectedPeriod.minutes <= 60 ? (window.innerWidth <= 768 ? 3 : 2) : "preserveStartEnd")}
                       minTickGap={window.innerWidth <= 768 ? 40 : (selectedPeriod.minutes <= 720 ? 15 : 30)}
                       tickMargin={window.innerWidth <= 768 ? 15 : 10}
                     />
