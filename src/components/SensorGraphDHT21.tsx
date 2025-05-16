@@ -167,7 +167,15 @@ export default function SensorGraphDHT21() {
 
     // Only set up polling interval if we're looking at today's data
     const isToday = selectedDate === new Date().toISOString().split("T")[0];
-    const interval = isToday ? setInterval(fetchData, selectedPeriod.minutes <= 60 ? 3000 : 5000) : null;
+    let updateInterval = 5000; // По умолчанию 5 секунд
+
+    if (selectedPeriod.minutes <= 60) {
+      updateInterval = 3000; // Для часового графика обновляем каждые 3 секунды
+    } else if (selectedPeriod.minutes <= 720) {
+      updateInterval = 10000; // Для 12-часового графика обновляем каждые 10 секунд
+    }
+
+    const interval = isToday ? setInterval(fetchData, updateInterval) : null;
     return () => {
       if (interval) clearInterval(interval);
     };
@@ -175,14 +183,25 @@ export default function SensorGraphDHT21() {
 
   const formatTime = (ts: number) => {
     const date = new Date(ts);
-    return date.toLocaleString("uk-UA", {
+    const options: Intl.DateTimeFormatOptions = {
       hour: "2-digit",
       minute: "2-digit",
-      second: "2-digit",
       hour12: false,
-      day: selectedPeriod.format.includes("dd") ? "2-digit" : undefined,
-      month: selectedPeriod.format.includes("MM") ? "2-digit" : undefined,
-    });
+    };
+
+    if (selectedPeriod.minutes <= 60) {
+      options.second = "2-digit";
+    }
+    
+    if (selectedPeriod.format.includes("dd")) {
+      options.day = "2-digit";
+    }
+    
+    if (selectedPeriod.format.includes("MM")) {
+      options.month = "2-digit";
+    }
+
+    return date.toLocaleString("uk-UA", options);
   };
 
   const formatData = (): ChartDataPoint[] => {
@@ -202,12 +221,10 @@ export default function SensorGraphDHT21() {
     const groupedByTime = _.groupBy(filtered, (point) => {
       const date = new Date(point.timestamp);
       if (selectedPeriod.minutes <= 60) {
-        // Для часового графика используем более точную группировку
-        const minutes = date.getMinutes();
-        const seconds = date.getSeconds();
-        // Группируем по 30 секундам для более плавного графика
-        return `${date.getHours()}:${minutes}:${Math.floor(seconds / 30) * 30}`;
+        // Для часового графика группируем по минутам
+        return `${date.getHours()}:${date.getMinutes()}`;
       } else if (selectedPeriod.minutes <= 720) {
+        // Для 12-часового графика группируем по 5 минут
         return `${date.getHours()}:${Math.floor(date.getMinutes() / 5) * 5}`;
       } else if (selectedPeriod.minutes <= 1440) {
         return `${date.getHours()}:${Math.floor(date.getMinutes() / 15) * 15}`;
