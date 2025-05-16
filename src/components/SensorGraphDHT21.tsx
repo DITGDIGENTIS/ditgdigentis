@@ -124,6 +124,52 @@ export default function SensorGraphDHT21() {
     temperature: [-10, 50]
   };
 
+  // Добавляем функцию форматирования диапазона времени
+  const formatTimeRange = useCallback((startTime: number, endTime: number) => {
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    
+    const formatOptions: Intl.DateTimeFormatOptions = {
+      hour: '2-digit',
+      minute: '2-digit',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    };
+
+    if (selectedPeriod.minutes === 60) {
+      // Для часового периода показываем часы и минуты
+      return `${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')} - ${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`;
+    } else if (selectedPeriod.minutes <= 1440) {
+      // Для периодов до суток включительно
+      return start.toLocaleString('uk-UA', {
+        hour: '2-digit',
+        minute: '2-digit'
+      }) + ' - ' + end.toLocaleString('uk-UA', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } else {
+      // Для более длительных периодов включаем дату
+      return start.toLocaleString('uk-UA', formatOptions) + ' - ' + 
+             end.toLocaleString('uk-UA', formatOptions);
+    }
+  }, [selectedPeriod.minutes]);
+
+  // Добавляем состояние для текущего диапазона времени
+  const [timeRange, setTimeRange] = useState<{ start: number; end: number } | null>(null);
+
+  // Обработчик изменения диапазона в Brush
+  const handleBrushChange = (brushRange: any) => {
+    if (brushRange && brushRange.startIndex !== undefined && brushRange.endIndex !== undefined) {
+      const start = chartData[brushRange.startIndex]?.timestamp;
+      const end = chartData[brushRange.endIndex]?.timestamp;
+      if (start && end) {
+        setTimeRange({ start, end });
+      }
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -851,6 +897,44 @@ export default function SensorGraphDHT21() {
           .zoom-button:hover {
             background-color: rgba(255, 255, 255, 0.3);
           }
+          .time-range-display {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #fff;
+            z-index: 1000;
+            white-space: nowrap;
+            border: 1px solid #666;
+            margin-bottom: 5px;
+          }
+          @media (max-width: 768px) {
+            .time-range-display {
+              font-size: 12px;
+              padding: 6px 12px;
+              width: 90%;
+              text-align: center;
+            }
+          }
+          .brush-custom {
+            height: 40px !important;
+            margin-top: 10px;
+          }
+          .brush-custom .recharts-brush-slide {
+            fill: #666;
+            fill-opacity: 0.3;
+          }
+          .brush-custom .recharts-brush-traveller {
+            fill: #444;
+          }
+          .brush-custom .recharts-brush-texts {
+            font-size: 12px;
+            font-weight: bold;
+          }
         `}</style>
 
         <button className="zoom-button" onClick={zoomOut}>
@@ -898,7 +982,7 @@ export default function SensorGraphDHT21() {
                 <ResponsiveContainer width="100%" height={400}>
                   <LineChart
                     data={chartData}
-                    margin={{ top: 5, right: 5, left: 5, bottom: 25 }}
+                    margin={{ top: 5, right: 5, left: 5, bottom: 45 }}
                     onMouseDown={(e) => e?.activeLabel && setZoomState({ ...zoomState, refAreaLeft: e.activeLabel })}
                     onMouseMove={(e) => e?.activeLabel && zoomState.refAreaLeft && setZoomState({ ...zoomState, refAreaRight: e.activeLabel })}
                     onMouseUp={zoom}
@@ -944,12 +1028,17 @@ export default function SensorGraphDHT21() {
                       }}
                     />
                     <Brush
+                      className="brush-custom"
                       dataKey="time"
-                      height={30}
-                      stroke="#666"
+                      height={40}
+                      stroke="#888"
                       fill="#2b2b2b"
                       tickFormatter={(time) => time}
                       startIndex={Math.max(0, chartData.length - (selectedPeriod.minutes === 60 ? 60 : 30))}
+                      onChange={handleBrushChange}
+                      travellerWidth={10}
+                      y={10}
+                      strokeWidth={1}
                     />
                     {selectedSensors.map((sensorId) => (
                       <React.Fragment key={sensorId}>
@@ -1031,6 +1120,12 @@ export default function SensorGraphDHT21() {
             </LineChart>
           </div>
         </div>
+
+        {timeRange && (
+          <div className="time-range-display">
+            Діапазон: {formatTimeRange(timeRange.start, timeRange.end)}
+          </div>
+        )}
       </div>
     </div>
   );
