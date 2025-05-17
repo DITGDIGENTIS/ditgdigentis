@@ -81,13 +81,9 @@ export default function SensorGraphDHT21() {
     const fetchData = async () => {
       setIsLoading(prev => !data.length && prev);
       try {
-        // Устанавливаем начало и конец периода
-        const now = new Date();
-        const startDate = new Date(now);
-        startDate.setHours(0, 0, 0, 0);
-        
-        const endDate = new Date(startDate);
-        endDate.setDate(endDate.getDate() + 1);
+        // Используем текущее время как конечную точку
+        const endDate = new Date();
+        const startDate = new Date(endDate.getTime() - selectedPeriod.minutes * 60 * 1000);
         
         const historyResponse = await fetch('/api/humidity-records', {
           method: 'POST',
@@ -221,8 +217,32 @@ export default function SensorGraphDHT21() {
             const numValue = typeof value === 'string' ? parseInt(value, 10) : value;
             if (!isNaN(numValue)) {
               const date = new Date(numValue);
-              if (selectedPeriod.value === '1h') {
-                return date.getMinutes() % 5 === 0 ? date.toTimeString().slice(0, 5) : '';
+              const minutes = date.getMinutes();
+              const hours = date.getHours();
+              
+              switch(selectedPeriod.value) {
+                case '1h':
+                  // Для часового графика показываем метки каждые 5 минут
+                  return minutes % 5 === 0 ? date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
+                case '12h':
+                  // Для 12-часового графика показываем метки каждые 30 минут
+                  return minutes % 30 === 0 ? date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
+                case '1d':
+                  // Для суточного графика показываем метки каждый час
+                  return minutes === 0 ? date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
+                case '1w':
+                  // Для недельного графика показываем метки каждые 6 часов
+                  return minutes === 0 && hours % 6 === 0 ? date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
+                case '1m':
+                  // Для месячного графика показываем метки каждые 12 часов
+                  return minutes === 0 && hours % 12 === 0 ? 
+                    `${date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })} ${date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}` : '';
+                case '1y':
+                  // Для годового графика показываем метки каждый день
+                  return minutes === 0 && hours === 0 ? 
+                    date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) : '';
+                default:
+                  return this.getLabelForValue(value);
               }
             }
             return this.getLabelForValue(value);
