@@ -85,7 +85,7 @@ export default function SensorGraphDHT21() {
   const chartRef = useRef<ChartJS<'line'>>(null);
 
   const fetchData = async () => {
-    setIsLoading(true);
+    setIsLoading(prev => !data.length && prev);
     try {
       // Fetch historical data
       const startDate = startOfDay(new Date(selectedDate));
@@ -103,7 +103,8 @@ export default function SensorGraphDHT21() {
       });
       
       if (!response.ok) {
-        throw new Error('Failed to fetch historical data');
+        console.error('Failed to fetch historical data:', response.status);
+        return;
       }
 
       const historicalData = await response.json();
@@ -118,18 +119,29 @@ export default function SensorGraphDHT21() {
       });
 
       if (!liveResponse.ok) {
-        throw new Error('Failed to fetch live data');
+        console.error('Failed to fetch live data:', liveResponse.status);
+        setData(historicalData);
+        return;
       }
 
       const { sensors: liveSensors } = await liveResponse.json();
-      setLiveData(liveSensors || {});
+      setLiveData(prev => ({
+        ...prev,
+        ...liveSensors
+      }));
 
       // Combine historical and live data
       const combinedData = [...historicalData];
       
       // Add live data points if they're newer than the last historical point
+      const lastHistoricalTimestamp = Math.max(...historicalData.map((d: SensorPoint) => d.timestamp), 0);
+      
       Object.entries(liveSensors || {}).forEach(([sensorId, data]: [string, any]) => {
-        if (SENSOR_IDS.includes(sensorId as SensorId) && data.timestamp && data.humidity && data.temperature) {
+        if (SENSOR_IDS.includes(sensorId as SensorId) && 
+            data.timestamp && 
+            data.humidity && 
+            data.temperature && 
+            data.timestamp > lastHistoricalTimestamp) {
           combinedData.push({
             sensor_id: sensorId,
             timestamp: data.timestamp,
@@ -139,7 +151,10 @@ export default function SensorGraphDHT21() {
         }
       });
 
-      setData(combinedData);
+      setData(prev => {
+        if (combinedData.length === 0) return prev;
+        return combinedData;
+      });
     } catch (error) {
       console.error('Error fetching sensor data:', error);
     } finally {
