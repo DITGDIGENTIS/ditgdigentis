@@ -5,8 +5,20 @@ import _ from "lodash";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const data = _.isArray(body) ? body : [body];
+    const service = createHumidityService();
 
+    // Если это запрос на получение данных по датам
+    if (body.startDate && body.endDate) {
+      const readings = await service.getAllReadings({
+        startDate: new Date(body.startDate),
+        endDate: new Date(body.endDate),
+        sensorIds: body.sensorIds
+      });
+      return NextResponse.json(readings);
+    }
+
+    // Если это запрос на создание записей
+    const data = _.isArray(body) ? body : [body];
     if (!_.every(data, (item): item is HumidityDataPoint => {
       return _.isString(item.sensor_id) && 
              _.isNumber(item.humidity) && 
@@ -20,9 +32,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const service = createHumidityService();
     await service.createRecords(data);
-
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("[POST /api/humidity-records] Error:", error);
