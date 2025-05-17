@@ -222,23 +222,17 @@ export default function SensorGraphDHT21() {
               
               switch(selectedPeriod.value) {
                 case '1h':
-                  // Для часового графика показываем метки каждые 5 минут
                   return minutes % 5 === 0 ? date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
                 case '12h':
-                  // Для 12-часового графика показываем метки каждые 30 минут
                   return minutes % 30 === 0 ? date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
                 case '1d':
-                  // Для суточного графика показываем метки каждый час
                   return minutes === 0 ? date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
                 case '1w':
-                  // Для недельного графика показываем метки каждые 6 часов
                   return minutes === 0 && hours % 6 === 0 ? date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
                 case '1m':
-                  // Для месячного графика показываем метки каждые 12 часов
                   return minutes === 0 && hours % 12 === 0 ? 
                     `${date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })} ${date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}` : '';
                 case '1y':
-                  // Для годового графика показываем метки каждый день
                   return minutes === 0 && hours === 0 ? 
                     date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) : '';
                 default:
@@ -253,8 +247,6 @@ export default function SensorGraphDHT21() {
         type: 'linear',
         display: true,
         position: 'left',
-        min: 0,
-        max: 50,
         grid: {
           color: 'rgba(255, 255, 255, 0.1)'
         },
@@ -263,14 +255,16 @@ export default function SensorGraphDHT21() {
           font: {
             size: 12
           }
-        }
+        },
+        min: Math.min(...data.map(point => point.temperature)) - 1,
+        max: Math.max(...data.map(point => point.temperature)) + 1,
+        suggestedMin: 0,
+        suggestedMax: 50
       },
       y2: {
         type: 'linear',
         display: true,
         position: 'right',
-        min: 0,
-        max: 100,
         grid: {
           drawOnChartArea: false
         },
@@ -279,7 +273,11 @@ export default function SensorGraphDHT21() {
           font: {
             size: 12
           }
-        }
+        },
+        min: Math.min(...data.map(point => point.humidity)) - 1,
+        max: Math.max(...data.map(point => point.humidity)) + 1,
+        suggestedMin: 0,
+        suggestedMax: 100
       }
     },
     plugins: {
@@ -459,13 +457,13 @@ export default function SensorGraphDHT21() {
                 </option>
               ))}
             </select>
-            </div>
+          </div>
           <div className="col-auto">
-          <input
-            type="date"
-            className="form-control"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
+            <input
+              type="date"
+              className="form-control"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
             />
           </div>
           <div className="col-auto">
@@ -476,7 +474,7 @@ export default function SensorGraphDHT21() {
                   className="form-check-input"
                   id={`sensor-${sensorId}`}
                   checked={selectedSensors.includes(sensorId)}
-            onChange={(e) => {
+                  onChange={(e) => {
                     if (e.target.checked) {
                       setSelectedSensors([...selectedSensors, sensorId]);
                     } else {
@@ -498,58 +496,82 @@ export default function SensorGraphDHT21() {
         </div>
       </div>
 
-      <div className="chart-container">
-        <div className="scroll-container">
-          {isLoading ? (
-            <div className="text-center py-5">
-              <div className="spinner-border" role="status">
-                <span className="visually-hidden">Загрузка...</span>
+      <div className="chart-wrapper">
+        <div className="chart-container">
+          <div className="y-axis-left"></div>
+          <div className="chart-scroll-container">
+            {isLoading ? (
+              <div className="text-center py-5">
+                <div className="spinner-border" role="status">
+                  <span className="visually-hidden">Загрузка...</span>
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="graph-wrapper">
-              <Line ref={chartRef} options={options} data={chartData} />
-            </div>
-          )}
+            ) : (
+              <div className="chart-content">
+                <Line ref={chartRef} options={options} data={chartData} />
+              </div>
+            )}
+          </div>
+          <div className="y-axis-right"></div>
         </div>
       </div>
 
-        <style jsx>{`
+      <style jsx>{`
         .sensor-graph-container {
           background: #1a1a1a;
           border-radius: 8px;
           padding: 20px;
           box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            width: 100%;
+          width: 100%;
         }
 
-          .chart-container {
-            position: relative;
+        .chart-wrapper {
+          position: relative;
           margin-top: 20px;
           height: 500px;
           width: 100%;
         }
 
-        .scroll-container {
-            width: 100%;
-            height: 100%;
-            overflow-x: auto;
-            overflow-y: hidden;
+        .chart-container {
+          display: flex;
+          height: 100%;
+          width: 100%;
+          position: relative;
         }
 
-        .graph-wrapper {
-          width: 100%;
-          min-width: 800px;
-            height: 100%;
-          }
+        .y-axis-left,
+        .y-axis-right {
+          position: relative;
+          width: 50px;
+          height: 100%;
+          background-color: #1a1a1a;
+          z-index: 2;
+        }
 
-          @media (max-width: 768px) {
+        .chart-scroll-container {
+          flex: 1;
+          overflow-x: auto;
+          overflow-y: hidden;
+          margin: 0 -1px;
+          position: relative;
+        }
+
+        .chart-content {
+          min-width: 600px;
+          height: 100%;
+        }
+
+        @media (max-width: 768px) {
           .sensor-graph-container {
             padding: 10px;
           }
 
-          .chart-container {
+          .chart-wrapper {
             height: 400px;
+          }
+
+          .chart-content {
+            min-width: 400px;
           }
         }
 
@@ -577,8 +599,27 @@ export default function SensorGraphDHT21() {
         .form-check-input:checked {
           background-color: #4dabf7;
           border-color: #4dabf7;
-          }
-        `}</style>
+        }
+
+        /* Стилизация скроллбара */
+        .chart-scroll-container::-webkit-scrollbar {
+          height: 8px;
+        }
+
+        .chart-scroll-container::-webkit-scrollbar-track {
+          background: #2a2a2a;
+          border-radius: 4px;
+        }
+
+        .chart-scroll-container::-webkit-scrollbar-thumb {
+          background: #4a4a4a;
+          border-radius: 4px;
+        }
+
+        .chart-scroll-container::-webkit-scrollbar-thumb:hover {
+          background: #5a5a5a;
+        }
+      `}</style>
     </div>
   );
 }
