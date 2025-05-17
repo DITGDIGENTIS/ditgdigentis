@@ -94,19 +94,22 @@ const generateMockData = (period: PeriodOption): SensorPoint[] => {
   const now = new Date();
   const startTime = now.getTime() - period.minutes * 60 * 1000;
   const intervalMs = period.interval * (
-    period.intervalUnit === 'seconds' ? 1000 :
-    period.intervalUnit === 'minutes' ? 60 * 1000 :
-    period.intervalUnit === 'hours' ? 60 * 60 * 1000 :
-    24 * 60 * 60 * 1000
+    period.intervalUnit === 'seconds' ? 500 :
+    period.intervalUnit === 'minutes' ? 30 * 1000 :
+    period.intervalUnit === 'hours' ? 5 * 60 * 1000 :
+    15 * 60 * 1000
   );
 
   for (let timestamp = startTime; timestamp <= now.getTime(); timestamp += intervalMs) {
     SENSOR_IDS.forEach(sensorId => {
+      const timeProgress = (timestamp - startTime) / (now.getTime() - startTime);
+      const sinValue = Math.sin(timeProgress * Math.PI * 4);
+      
       data.push({
         sensor_id: sensorId,
         timestamp,
-        temperature: 20 + Math.random() * 10,
-        humidity: 40 + Math.random() * 30
+        temperature: 25 + sinValue * 5,
+        humidity: 50 + Math.cos(timeProgress * Math.PI * 3) * 20
       });
     });
   }
@@ -155,7 +158,7 @@ export default function SensorGraphDHT21() {
           color: 'rgba(255, 255, 255, 0.8)',
           maxRotation: 0,
           autoSkip: true,
-          maxTicksLimit: 20,
+          maxTicksLimit: 15,
           font: {
             size: 12
           }
@@ -356,9 +359,11 @@ export default function SensorGraphDHT21() {
           </div>
         </div>
       ) : (
-        <div className="chart-container">
-          <div className="graph-wrapper">
-            <Line ref={chartRef} options={options} data={chartData} />
+        <div className="chart-outer-container">
+          <div className="chart-container">
+            <div className="graph-wrapper">
+              <Line ref={chartRef} options={options} data={chartData} />
+            </div>
           </div>
         </div>
       )}
@@ -371,18 +376,41 @@ export default function SensorGraphDHT21() {
           box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
+        .chart-outer-container {
+          position: relative;
+          margin: 0 -20px;
+        }
+
         .chart-container {
           position: relative;
-          width: 100%;
-          overflow-x: scroll;
+          margin: 0 20px;
+          overflow-x: auto;
           overflow-y: hidden;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: thin;
+          scrollbar-color: #4a4a4a #2a2a2a;
+        }
+
+        .chart-container::-webkit-scrollbar {
+          height: 8px;
+        }
+
+        .chart-container::-webkit-scrollbar-track {
+          background: #2a2a2a;
+          border-radius: 4px;
+        }
+
+        .chart-container::-webkit-scrollbar-thumb {
+          background-color: #4a4a4a;
+          border-radius: 4px;
         }
 
         .graph-wrapper {
           height: 500px;
           position: relative;
           margin-top: 20px;
-          min-width: 1200px;
+          min-width: 2400px;
+          padding: 0 20px;
         }
 
         .form-select,
@@ -414,6 +442,18 @@ export default function SensorGraphDHT21() {
         @media (max-width: 768px) {
           .sensor-graph-container {
             padding: 10px;
+          }
+
+          .chart-outer-container {
+            margin: 0 -10px;
+          }
+
+          .chart-container {
+            margin: 0 10px;
+          }
+
+          .graph-wrapper {
+            padding: 0 10px;
           }
 
           .col-auto {
