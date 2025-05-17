@@ -82,7 +82,16 @@ export default function SensorGraphDHT21() {
 
       const now = new Date();
       const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
-      const start = new Date(end.getTime() - selectedPeriod.hours * 60 * 60 * 1000);
+      let start;
+
+      if (selectedPeriod.hours <= 1) {
+        start = new Date(now.getTime() - selectedPeriod.hours * 60 * 60 * 1000);
+      } else {
+        start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+        if (selectedPeriod.hours > 24) {
+          start = new Date(start.getTime() - (selectedPeriod.hours - 24) * 60 * 60 * 1000);
+        }
+      }
 
       console.log("[fetchData] Запрос данных:", {
         период: selectedPeriod.label,
@@ -215,15 +224,17 @@ export default function SensorGraphDHT21() {
             if (selectedPeriod.hours <= 1) {
               return minutes % 5 === 0 ? format(date, 'HH:mm') : '';
             } else if (selectedPeriod.hours <= 12) {
-              return minutes === 0 || minutes === 30 ? format(date, 'HH:mm') : '';
+              return minutes === 0 ? format(date, 'HH:mm') : 
+                     minutes === 30 ? format(date, 'HH:mm') : '';
             } else if (selectedPeriod.hours <= 24) {
-              return minutes === 0 ? format(date, 'HH:mm') : '';
+              return minutes === 0 && hours % 2 === 0 ? format(date, 'HH:mm') : '';
             } else if (selectedPeriod.hours <= 24 * 7) {
-              return minutes === 0 && hours % 6 === 0 ? format(date, 'dd.MM HH:mm') : '';
+              return minutes === 0 && hours % 12 === 0 ? format(date, 'dd.MM HH:mm') : '';
             } else if (selectedPeriod.hours <= 24 * 30) {
               return hours === 0 && minutes === 0 ? format(date, 'dd.MM') : '';
             } else {
-              return hours === 0 && minutes === 0 ? format(date, 'dd.MM') : '';
+              const dayOfWeek = date.getDay();
+              return hours === 0 && minutes === 0 && dayOfWeek === 1 ? format(date, 'dd.MM') : '';
             }
           }
         }
