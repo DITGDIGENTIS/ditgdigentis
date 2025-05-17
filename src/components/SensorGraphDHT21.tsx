@@ -297,7 +297,6 @@ export default function SensorGraphDHT21() {
     }
   };
 
-  // Добавляем обработчики для мобильных устройств
   useEffect(() => {
     const chart = chartRef.current;
     if (!chart) return;
@@ -306,7 +305,7 @@ export default function SensorGraphDHT21() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    let activeIndex = -1;
+    let currentX: number | null = null;
 
     const drawVerticalLine = (x: number) => {
       if (!ctx || !chart) return;
@@ -323,56 +322,47 @@ export default function SensorGraphDHT21() {
       ctx.restore();
     };
 
-    const handleTouch = (e: TouchEvent) => {
-      e.preventDefault();
-      const touch = e.touches[0];
+    const handleMove = (e: MouseEvent | TouchEvent) => {
       const rect = canvas.getBoundingClientRect();
-      const x = touch.clientX - rect.left;
-      
-      const newIndex = Math.floor((x / rect.width) * data.length);
-      if (newIndex !== activeIndex && newIndex >= 0 && newIndex < data.length) {
-        activeIndex = newIndex;
-        chart.setActiveElements([{
-          datasetIndex: 0,
-          index: activeIndex
-        }]);
-        
-        requestAnimationFrame(() => {
-          chart.update('none');
-          drawVerticalLine(x);
-        });
-      }
+      const x = e instanceof MouseEvent ? e.clientX : e.touches[0].clientX;
+      const chartX = x - rect.left;
+      currentX = chartX;
+
+      requestAnimationFrame(() => {
+        chart.update('none');
+        if (currentX !== null) {
+          drawVerticalLine(currentX);
+        }
+      });
     };
 
-    const handleMove = (e: MouseEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      
-      const newIndex = Math.floor((x / rect.width) * data.length);
-      if (newIndex !== activeIndex && newIndex >= 0 && newIndex < data.length) {
-        activeIndex = newIndex;
-        chart.setActiveElements([{
-          datasetIndex: 0,
-          index: activeIndex
-        }]);
-        
-        requestAnimationFrame(() => {
-          chart.update('none');
-          drawVerticalLine(x);
-        });
-      }
+    const handleLeave = () => {
+      currentX = null;
+      chart.update('none');
     };
 
-    canvas.addEventListener('touchstart', handleTouch);
-    canvas.addEventListener('touchmove', handleTouch);
     canvas.addEventListener('mousemove', handleMove);
+    canvas.addEventListener('touchmove', handleMove);
+    canvas.addEventListener('mouseleave', handleLeave);
+    canvas.addEventListener('touchend', handleLeave);
+
+    // Перерисовываем линию после каждого обновления графика
+    const originalUpdate = chart.update;
+    chart.update = function(mode?: 'default' | 'resize' | 'reset' | 'none' | 'hide' | 'show' | 'active') {
+      originalUpdate.call(this, mode);
+      if (currentX !== null) {
+        drawVerticalLine(currentX);
+      }
+    };
 
     return () => {
-      canvas.removeEventListener('touchstart', handleTouch);
-      canvas.removeEventListener('touchmove', handleTouch);
       canvas.removeEventListener('mousemove', handleMove);
+      canvas.removeEventListener('touchmove', handleMove);
+      canvas.removeEventListener('mouseleave', handleLeave);
+      canvas.removeEventListener('touchend', handleLeave);
+      chart.update = originalUpdate;
     };
-  }, [data]);
+  }, []);
 
   const chartData = {
     datasets: selectedSensors.flatMap(sensorId => {
@@ -388,8 +378,11 @@ export default function SensorGraphDHT21() {
           backgroundColor: COLORS[sensorId].temperatureBg,
           yAxisID: 'y1',
           tension: 0.3,
-          pointRadius: 3,
-          pointHoverRadius: 5,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          pointHoverBackgroundColor: COLORS[sensorId].temperature,
+          pointHoverBorderColor: '#fff',
+          pointHoverBorderWidth: 2,
           borderWidth: 2,
           fill: true
         },
@@ -403,8 +396,11 @@ export default function SensorGraphDHT21() {
           backgroundColor: COLORS[sensorId].humidityBg,
           yAxisID: 'y2',
           tension: 0.3,
-          pointRadius: 3,
-          pointHoverRadius: 5,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          pointHoverBackgroundColor: COLORS[sensorId].humidity,
+          pointHoverBorderColor: '#fff',
+          pointHoverBorderWidth: 2,
           borderWidth: 2,
           fill: true
         }
