@@ -12,17 +12,21 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model SensorReading {
-  id          Int      @id @default(autoincrement())
-  sensor_id   String
-  timestamp   DateTime @default(now())
-  temperature Float
-}
-
 model HumidityReading {
   id          Int      @id @default(autoincrement())
   sensor_id   String
   timestamp   DateTime @default(now())
   humidity    Float
+  temperature Float
+  created_at  DateTime @default(now())
+
+  @@index([sensor_id])
+  @@index([timestamp])
+}
+
+model SensorReading {
+  id          Int      @id @default(autoincrement())
+  sensor_id   String
+  timestamp   DateTime @default(now())
   temperature Float
 }

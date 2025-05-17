@@ -86,14 +86,14 @@ export function createHumidityService(): HumidityService {
       if (filters?.startDate) {
         where.timestamp = {
           ...where.timestamp,
-          gte: filters.startDate
+          gte: new Date(filters.startDate)
         };
       }
 
       if (filters?.endDate) {
         where.timestamp = {
           ...where.timestamp,
-          lte: filters.endDate
+          lte: new Date(filters.endDate)
         };
       }
 
@@ -120,7 +120,7 @@ export function createHumidityService(): HumidityService {
         sensor_id: r.sensor_id,
         humidity: Number(r.humidity),
         temperature: Number(r.temperature),
-        timestamp: new Date(r.timestamp),
+        timestamp: r.timestamp,
       }));
 
       return _.orderBy(formatted, ['timestamp'], ['desc']);

@@ -14,15 +14,15 @@ export type PrismaPromise<T> = $Public.PrismaPromise<T>
 
 
 /**
- * Model SensorReading
- * 
- */
-export type SensorReading = $Result.DefaultSelection<Prisma.$SensorReadingPayload>
-/**
  * Model HumidityReading
  * 
  */
 export type HumidityReading = $Result.DefaultSelection<Prisma.$HumidityReadingPayload>
+/**
+ * Model SensorReading
+ * 
+ */
+export type SensorReading = $Result.DefaultSelection<Prisma.$SensorReadingPayload>
 
 /**
  * ##  Prisma Client ʲˢ
@@ -31,8 +31,8 @@ export type HumidityReading = $Result.DefaultSelection<Prisma.$HumidityReadingPa
  * @example
  * ```
  * const prisma = new PrismaClient()
- * // Fetch zero or more SensorReadings
- * const sensorReadings = await prisma.sensorReading.findMany()
+ * // Fetch zero or more HumidityReadings
+ * const humidityReadings = await prisma.humidityReading.findMany()
  * ```
  *
  * 
@@ -52,8 +52,8 @@ export class PrismaClient<
    * @example
    * ```
    * const prisma = new PrismaClient()
-   * // Fetch zero or more SensorReadings
-   * const sensorReadings = await prisma.sensorReading.findMany()
+   * // Fetch zero or more HumidityReadings
+   * const humidityReadings = await prisma.humidityReading.findMany()
    * ```
    *
    * 
@@ -148,16 +148,6 @@ export class PrismaClient<
   $extends: $Extensions.ExtendsHook<"extends", Prisma.TypeMapCb, ExtArgs>
 
       /**
-   * `prisma.sensorReading`: Exposes CRUD operations for the **SensorReading** model.
-    * Example usage:
-    * ```ts
-    * // Fetch zero or more SensorReadings
-    * const sensorReadings = await prisma.sensorReading.findMany()
-    * ```
-    */
-  get sensorReading(): Prisma.SensorReadingDelegate<ExtArgs>;
-
-  /**
    * `prisma.humidityReading`: Exposes CRUD operations for the **HumidityReading** model.
     * Example usage:
     * ```ts
@@ -166,6 +156,16 @@ export class PrismaClient<
     * ```
     */
   get humidityReading(): Prisma.HumidityReadingDelegate<ExtArgs>;
+
+  /**
+   * `prisma.sensorReading`: Exposes CRUD operations for the **SensorReading** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more SensorReadings
+    * const sensorReadings = await prisma.sensorReading.findMany()
+    * ```
+    */
+  get sensorReading(): Prisma.SensorReadingDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -607,8 +607,8 @@ export namespace Prisma {
 
 
   export const ModelName: {
-    SensorReading: 'SensorReading',
-    HumidityReading: 'HumidityReading'
+    HumidityReading: 'HumidityReading',
+    SensorReading: 'SensorReading'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -624,80 +624,10 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "sensorReading" | "humidityReading"
+      modelProps: "humidityReading" | "sensorReading"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
-      SensorReading: {
-        payload: Prisma.$SensorReadingPayload<ExtArgs>
-        fields: Prisma.SensorReadingFieldRefs
-        operations: {
-          findUnique: {
-            args: Prisma.SensorReadingFindUniqueArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$SensorReadingPayload> | null
-          }
-          findUniqueOrThrow: {
-            args: Prisma.SensorReadingFindUniqueOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$SensorReadingPayload>
-          }
-          findFirst: {
-            args: Prisma.SensorReadingFindFirstArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$SensorReadingPayload> | null
-          }
-          findFirstOrThrow: {
-            args: Prisma.SensorReadingFindFirstOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$SensorReadingPayload>
-          }
-          findMany: {
-            args: Prisma.SensorReadingFindManyArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$SensorReadingPayload>[]
-          }
-          create: {
-            args: Prisma.SensorReadingCreateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$SensorReadingPayload>
-          }
-          createMany: {
-            args: Prisma.SensorReadingCreateManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          createManyAndReturn: {
-            args: Prisma.SensorReadingCreateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$SensorReadingPayload>[]
-          }
-          delete: {
-            args: Prisma.SensorReadingDeleteArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$SensorReadingPayload>
-          }
-          update: {
-            args: Prisma.SensorReadingUpdateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$SensorReadingPayload>
-          }
-          deleteMany: {
-            args: Prisma.SensorReadingDeleteManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          updateMany: {
-            args: Prisma.SensorReadingUpdateManyArgs<ExtArgs>
-            result: BatchPayload
-          }
-          upsert: {
-            args: Prisma.SensorReadingUpsertArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$SensorReadingPayload>
-          }
-          aggregate: {
-            args: Prisma.SensorReadingAggregateArgs<ExtArgs>
-            result: $Utils.Optional<AggregateSensorReading>
-          }
-          groupBy: {
-            args: Prisma.SensorReadingGroupByArgs<ExtArgs>
-            result: $Utils.Optional<SensorReadingGroupByOutputType>[]
-          }
-          count: {
-            args: Prisma.SensorReadingCountArgs<ExtArgs>
-            result: $Utils.Optional<SensorReadingCountAggregateOutputType> | number
-          }
-        }
-      }
       HumidityReading: {
         payload: Prisma.$HumidityReadingPayload<ExtArgs>
         fields: Prisma.HumidityReadingFieldRefs
@@ -765,6 +695,76 @@ export namespace Prisma {
           count: {
             args: Prisma.HumidityReadingCountArgs<ExtArgs>
             result: $Utils.Optional<HumidityReadingCountAggregateOutputType> | number
+          }
+        }
+      }
+      SensorReading: {
+        payload: Prisma.$SensorReadingPayload<ExtArgs>
+        fields: Prisma.SensorReadingFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.SensorReadingFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SensorReadingPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.SensorReadingFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SensorReadingPayload>
+          }
+          findFirst: {
+            args: Prisma.SensorReadingFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SensorReadingPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.SensorReadingFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SensorReadingPayload>
+          }
+          findMany: {
+            args: Prisma.SensorReadingFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SensorReadingPayload>[]
+          }
+          create: {
+            args: Prisma.SensorReadingCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SensorReadingPayload>
+          }
+          createMany: {
+            args: Prisma.SensorReadingCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.SensorReadingCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SensorReadingPayload>[]
+          }
+          delete: {
+            args: Prisma.SensorReadingDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SensorReadingPayload>
+          }
+          update: {
+            args: Prisma.SensorReadingUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SensorReadingPayload>
+          }
+          deleteMany: {
+            args: Prisma.SensorReadingDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.SensorReadingUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.SensorReadingUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SensorReadingPayload>
+          }
+          aggregate: {
+            args: Prisma.SensorReadingAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateSensorReading>
+          }
+          groupBy: {
+            args: Prisma.SensorReadingGroupByArgs<ExtArgs>
+            result: $Utils.Optional<SensorReadingGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.SensorReadingCountArgs<ExtArgs>
+            result: $Utils.Optional<SensorReadingCountAggregateOutputType> | number
           }
         }
       }
@@ -928,6 +928,938 @@ export namespace Prisma {
   /**
    * Models
    */
+
+  /**
+   * Model HumidityReading
+   */
+
+  export type AggregateHumidityReading = {
+    _count: HumidityReadingCountAggregateOutputType | null
+    _avg: HumidityReadingAvgAggregateOutputType | null
+    _sum: HumidityReadingSumAggregateOutputType | null
+    _min: HumidityReadingMinAggregateOutputType | null
+    _max: HumidityReadingMaxAggregateOutputType | null
+  }
+
+  export type HumidityReadingAvgAggregateOutputType = {
+    id: number | null
+    humidity: number | null
+    temperature: number | null
+  }
+
+  export type HumidityReadingSumAggregateOutputType = {
+    id: number | null
+    humidity: number | null
+    temperature: number | null
+  }
+
+  export type HumidityReadingMinAggregateOutputType = {
+    id: number | null
+    sensor_id: string | null
+    timestamp: Date | null
+    humidity: number | null
+    temperature: number | null
+    created_at: Date | null
+  }
+
+  export type HumidityReadingMaxAggregateOutputType = {
+    id: number | null
+    sensor_id: string | null
+    timestamp: Date | null
+    humidity: number | null
+    temperature: number | null
+    created_at: Date | null
+  }
+
+  export type HumidityReadingCountAggregateOutputType = {
+    id: number
+    sensor_id: number
+    timestamp: number
+    humidity: number
+    temperature: number
+    created_at: number
+    _all: number
+  }
+
+
+  export type HumidityReadingAvgAggregateInputType = {
+    id?: true
+    humidity?: true
+    temperature?: true
+  }
+
+  export type HumidityReadingSumAggregateInputType = {
+    id?: true
+    humidity?: true
+    temperature?: true
+  }
+
+  export type HumidityReadingMinAggregateInputType = {
+    id?: true
+    sensor_id?: true
+    timestamp?: true
+    humidity?: true
+    temperature?: true
+    created_at?: true
+  }
+
+  export type HumidityReadingMaxAggregateInputType = {
+    id?: true
+    sensor_id?: true
+    timestamp?: true
+    humidity?: true
+    temperature?: true
+    created_at?: true
+  }
+
+  export type HumidityReadingCountAggregateInputType = {
+    id?: true
+    sensor_id?: true
+    timestamp?: true
+    humidity?: true
+    temperature?: true
+    created_at?: true
+    _all?: true
+  }
+
+  export type HumidityReadingAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which HumidityReading to aggregate.
+     */
+    where?: HumidityReadingWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of HumidityReadings to fetch.
+     */
+    orderBy?: HumidityReadingOrderByWithRelationInput | HumidityReadingOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: HumidityReadingWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` HumidityReadings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` HumidityReadings.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned HumidityReadings
+    **/
+    _count?: true | HumidityReadingCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: HumidityReadingAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: HumidityReadingSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: HumidityReadingMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: HumidityReadingMaxAggregateInputType
+  }
+
+  export type GetHumidityReadingAggregateType<T extends HumidityReadingAggregateArgs> = {
+        [P in keyof T & keyof AggregateHumidityReading]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateHumidityReading[P]>
+      : GetScalarType<T[P], AggregateHumidityReading[P]>
+  }
+
+
+
+
+  export type HumidityReadingGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: HumidityReadingWhereInput
+    orderBy?: HumidityReadingOrderByWithAggregationInput | HumidityReadingOrderByWithAggregationInput[]
+    by: HumidityReadingScalarFieldEnum[] | HumidityReadingScalarFieldEnum
+    having?: HumidityReadingScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: HumidityReadingCountAggregateInputType | true
+    _avg?: HumidityReadingAvgAggregateInputType
+    _sum?: HumidityReadingSumAggregateInputType
+    _min?: HumidityReadingMinAggregateInputType
+    _max?: HumidityReadingMaxAggregateInputType
+  }
+
+  export type HumidityReadingGroupByOutputType = {
+    id: number
+    sensor_id: string
+    timestamp: Date
+    humidity: number
+    temperature: number
+    created_at: Date
+    _count: HumidityReadingCountAggregateOutputType | null
+    _avg: HumidityReadingAvgAggregateOutputType | null
+    _sum: HumidityReadingSumAggregateOutputType | null
+    _min: HumidityReadingMinAggregateOutputType | null
+    _max: HumidityReadingMaxAggregateOutputType | null
+  }
+
+  type GetHumidityReadingGroupByPayload<T extends HumidityReadingGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<HumidityReadingGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof HumidityReadingGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], HumidityReadingGroupByOutputType[P]>
+            : GetScalarType<T[P], HumidityReadingGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type HumidityReadingSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    sensor_id?: boolean
+    timestamp?: boolean
+    humidity?: boolean
+    temperature?: boolean
+    created_at?: boolean
+  }, ExtArgs["result"]["humidityReading"]>
+
+  export type HumidityReadingSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    sensor_id?: boolean
+    timestamp?: boolean
+    humidity?: boolean
+    temperature?: boolean
+    created_at?: boolean
+  }, ExtArgs["result"]["humidityReading"]>
+
+  export type HumidityReadingSelectScalar = {
+    id?: boolean
+    sensor_id?: boolean
+    timestamp?: boolean
+    humidity?: boolean
+    temperature?: boolean
+    created_at?: boolean
+  }
+
+
+  export type $HumidityReadingPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "HumidityReading"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: number
+      sensor_id: string
+      timestamp: Date
+      humidity: number
+      temperature: number
+      created_at: Date
+    }, ExtArgs["result"]["humidityReading"]>
+    composites: {}
+  }
+
+  type HumidityReadingGetPayload<S extends boolean | null | undefined | HumidityReadingDefaultArgs> = $Result.GetResult<Prisma.$HumidityReadingPayload, S>
+
+  type HumidityReadingCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<HumidityReadingFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: HumidityReadingCountAggregateInputType | true
+    }
+
+  export interface HumidityReadingDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['HumidityReading'], meta: { name: 'HumidityReading' } }
+    /**
+     * Find zero or one HumidityReading that matches the filter.
+     * @param {HumidityReadingFindUniqueArgs} args - Arguments to find a HumidityReading
+     * @example
+     * // Get one HumidityReading
+     * const humidityReading = await prisma.humidityReading.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends HumidityReadingFindUniqueArgs>(args: SelectSubset<T, HumidityReadingFindUniqueArgs<ExtArgs>>): Prisma__HumidityReadingClient<$Result.GetResult<Prisma.$HumidityReadingPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one HumidityReading that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {HumidityReadingFindUniqueOrThrowArgs} args - Arguments to find a HumidityReading
+     * @example
+     * // Get one HumidityReading
+     * const humidityReading = await prisma.humidityReading.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends HumidityReadingFindUniqueOrThrowArgs>(args: SelectSubset<T, HumidityReadingFindUniqueOrThrowArgs<ExtArgs>>): Prisma__HumidityReadingClient<$Result.GetResult<Prisma.$HumidityReadingPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first HumidityReading that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {HumidityReadingFindFirstArgs} args - Arguments to find a HumidityReading
+     * @example
+     * // Get one HumidityReading
+     * const humidityReading = await prisma.humidityReading.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends HumidityReadingFindFirstArgs>(args?: SelectSubset<T, HumidityReadingFindFirstArgs<ExtArgs>>): Prisma__HumidityReadingClient<$Result.GetResult<Prisma.$HumidityReadingPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first HumidityReading that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {HumidityReadingFindFirstOrThrowArgs} args - Arguments to find a HumidityReading
+     * @example
+     * // Get one HumidityReading
+     * const humidityReading = await prisma.humidityReading.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends HumidityReadingFindFirstOrThrowArgs>(args?: SelectSubset<T, HumidityReadingFindFirstOrThrowArgs<ExtArgs>>): Prisma__HumidityReadingClient<$Result.GetResult<Prisma.$HumidityReadingPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more HumidityReadings that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {HumidityReadingFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all HumidityReadings
+     * const humidityReadings = await prisma.humidityReading.findMany()
+     * 
+     * // Get first 10 HumidityReadings
+     * const humidityReadings = await prisma.humidityReading.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const humidityReadingWithIdOnly = await prisma.humidityReading.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends HumidityReadingFindManyArgs>(args?: SelectSubset<T, HumidityReadingFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$HumidityReadingPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a HumidityReading.
+     * @param {HumidityReadingCreateArgs} args - Arguments to create a HumidityReading.
+     * @example
+     * // Create one HumidityReading
+     * const HumidityReading = await prisma.humidityReading.create({
+     *   data: {
+     *     // ... data to create a HumidityReading
+     *   }
+     * })
+     * 
+     */
+    create<T extends HumidityReadingCreateArgs>(args: SelectSubset<T, HumidityReadingCreateArgs<ExtArgs>>): Prisma__HumidityReadingClient<$Result.GetResult<Prisma.$HumidityReadingPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many HumidityReadings.
+     * @param {HumidityReadingCreateManyArgs} args - Arguments to create many HumidityReadings.
+     * @example
+     * // Create many HumidityReadings
+     * const humidityReading = await prisma.humidityReading.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends HumidityReadingCreateManyArgs>(args?: SelectSubset<T, HumidityReadingCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many HumidityReadings and returns the data saved in the database.
+     * @param {HumidityReadingCreateManyAndReturnArgs} args - Arguments to create many HumidityReadings.
+     * @example
+     * // Create many HumidityReadings
+     * const humidityReading = await prisma.humidityReading.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many HumidityReadings and only return the `id`
+     * const humidityReadingWithIdOnly = await prisma.humidityReading.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends HumidityReadingCreateManyAndReturnArgs>(args?: SelectSubset<T, HumidityReadingCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$HumidityReadingPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a HumidityReading.
+     * @param {HumidityReadingDeleteArgs} args - Arguments to delete one HumidityReading.
+     * @example
+     * // Delete one HumidityReading
+     * const HumidityReading = await prisma.humidityReading.delete({
+     *   where: {
+     *     // ... filter to delete one HumidityReading
+     *   }
+     * })
+     * 
+     */
+    delete<T extends HumidityReadingDeleteArgs>(args: SelectSubset<T, HumidityReadingDeleteArgs<ExtArgs>>): Prisma__HumidityReadingClient<$Result.GetResult<Prisma.$HumidityReadingPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one HumidityReading.
+     * @param {HumidityReadingUpdateArgs} args - Arguments to update one HumidityReading.
+     * @example
+     * // Update one HumidityReading
+     * const humidityReading = await prisma.humidityReading.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends HumidityReadingUpdateArgs>(args: SelectSubset<T, HumidityReadingUpdateArgs<ExtArgs>>): Prisma__HumidityReadingClient<$Result.GetResult<Prisma.$HumidityReadingPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more HumidityReadings.
+     * @param {HumidityReadingDeleteManyArgs} args - Arguments to filter HumidityReadings to delete.
+     * @example
+     * // Delete a few HumidityReadings
+     * const { count } = await prisma.humidityReading.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends HumidityReadingDeleteManyArgs>(args?: SelectSubset<T, HumidityReadingDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more HumidityReadings.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {HumidityReadingUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many HumidityReadings
+     * const humidityReading = await prisma.humidityReading.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends HumidityReadingUpdateManyArgs>(args: SelectSubset<T, HumidityReadingUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one HumidityReading.
+     * @param {HumidityReadingUpsertArgs} args - Arguments to update or create a HumidityReading.
+     * @example
+     * // Update or create a HumidityReading
+     * const humidityReading = await prisma.humidityReading.upsert({
+     *   create: {
+     *     // ... data to create a HumidityReading
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the HumidityReading we want to update
+     *   }
+     * })
+     */
+    upsert<T extends HumidityReadingUpsertArgs>(args: SelectSubset<T, HumidityReadingUpsertArgs<ExtArgs>>): Prisma__HumidityReadingClient<$Result.GetResult<Prisma.$HumidityReadingPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of HumidityReadings.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {HumidityReadingCountArgs} args - Arguments to filter HumidityReadings to count.
+     * @example
+     * // Count the number of HumidityReadings
+     * const count = await prisma.humidityReading.count({
+     *   where: {
+     *     // ... the filter for the HumidityReadings we want to count
+     *   }
+     * })
+    **/
+    count<T extends HumidityReadingCountArgs>(
+      args?: Subset<T, HumidityReadingCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], HumidityReadingCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a HumidityReading.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {HumidityReadingAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends HumidityReadingAggregateArgs>(args: Subset<T, HumidityReadingAggregateArgs>): Prisma.PrismaPromise<GetHumidityReadingAggregateType<T>>
+
+    /**
+     * Group by HumidityReading.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {HumidityReadingGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends HumidityReadingGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: HumidityReadingGroupByArgs['orderBy'] }
+        : { orderBy?: HumidityReadingGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, HumidityReadingGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetHumidityReadingGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the HumidityReading model
+   */
+  readonly fields: HumidityReadingFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for HumidityReading.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__HumidityReadingClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the HumidityReading model
+   */ 
+  interface HumidityReadingFieldRefs {
+    readonly id: FieldRef<"HumidityReading", 'Int'>
+    readonly sensor_id: FieldRef<"HumidityReading", 'String'>
+    readonly timestamp: FieldRef<"HumidityReading", 'DateTime'>
+    readonly humidity: FieldRef<"HumidityReading", 'Float'>
+    readonly temperature: FieldRef<"HumidityReading", 'Float'>
+    readonly created_at: FieldRef<"HumidityReading", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * HumidityReading findUnique
+   */
+  export type HumidityReadingFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the HumidityReading
+     */
+    select?: HumidityReadingSelect<ExtArgs> | null
+    /**
+     * Filter, which HumidityReading to fetch.
+     */
+    where: HumidityReadingWhereUniqueInput
+  }
+
+  /**
+   * HumidityReading findUniqueOrThrow
+   */
+  export type HumidityReadingFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the HumidityReading
+     */
+    select?: HumidityReadingSelect<ExtArgs> | null
+    /**
+     * Filter, which HumidityReading to fetch.
+     */
+    where: HumidityReadingWhereUniqueInput
+  }
+
+  /**
+   * HumidityReading findFirst
+   */
+  export type HumidityReadingFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the HumidityReading
+     */
+    select?: HumidityReadingSelect<ExtArgs> | null
+    /**
+     * Filter, which HumidityReading to fetch.
+     */
+    where?: HumidityReadingWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of HumidityReadings to fetch.
+     */
+    orderBy?: HumidityReadingOrderByWithRelationInput | HumidityReadingOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for HumidityReadings.
+     */
+    cursor?: HumidityReadingWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` HumidityReadings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` HumidityReadings.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of HumidityReadings.
+     */
+    distinct?: HumidityReadingScalarFieldEnum | HumidityReadingScalarFieldEnum[]
+  }
+
+  /**
+   * HumidityReading findFirstOrThrow
+   */
+  export type HumidityReadingFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the HumidityReading
+     */
+    select?: HumidityReadingSelect<ExtArgs> | null
+    /**
+     * Filter, which HumidityReading to fetch.
+     */
+    where?: HumidityReadingWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of HumidityReadings to fetch.
+     */
+    orderBy?: HumidityReadingOrderByWithRelationInput | HumidityReadingOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for HumidityReadings.
+     */
+    cursor?: HumidityReadingWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` HumidityReadings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` HumidityReadings.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of HumidityReadings.
+     */
+    distinct?: HumidityReadingScalarFieldEnum | HumidityReadingScalarFieldEnum[]
+  }
+
+  /**
+   * HumidityReading findMany
+   */
+  export type HumidityReadingFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the HumidityReading
+     */
+    select?: HumidityReadingSelect<ExtArgs> | null
+    /**
+     * Filter, which HumidityReadings to fetch.
+     */
+    where?: HumidityReadingWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of HumidityReadings to fetch.
+     */
+    orderBy?: HumidityReadingOrderByWithRelationInput | HumidityReadingOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing HumidityReadings.
+     */
+    cursor?: HumidityReadingWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` HumidityReadings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` HumidityReadings.
+     */
+    skip?: number
+    distinct?: HumidityReadingScalarFieldEnum | HumidityReadingScalarFieldEnum[]
+  }
+
+  /**
+   * HumidityReading create
+   */
+  export type HumidityReadingCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the HumidityReading
+     */
+    select?: HumidityReadingSelect<ExtArgs> | null
+    /**
+     * The data needed to create a HumidityReading.
+     */
+    data: XOR<HumidityReadingCreateInput, HumidityReadingUncheckedCreateInput>
+  }
+
+  /**
+   * HumidityReading createMany
+   */
+  export type HumidityReadingCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many HumidityReadings.
+     */
+    data: HumidityReadingCreateManyInput | HumidityReadingCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * HumidityReading createManyAndReturn
+   */
+  export type HumidityReadingCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the HumidityReading
+     */
+    select?: HumidityReadingSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many HumidityReadings.
+     */
+    data: HumidityReadingCreateManyInput | HumidityReadingCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * HumidityReading update
+   */
+  export type HumidityReadingUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the HumidityReading
+     */
+    select?: HumidityReadingSelect<ExtArgs> | null
+    /**
+     * The data needed to update a HumidityReading.
+     */
+    data: XOR<HumidityReadingUpdateInput, HumidityReadingUncheckedUpdateInput>
+    /**
+     * Choose, which HumidityReading to update.
+     */
+    where: HumidityReadingWhereUniqueInput
+  }
+
+  /**
+   * HumidityReading updateMany
+   */
+  export type HumidityReadingUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update HumidityReadings.
+     */
+    data: XOR<HumidityReadingUpdateManyMutationInput, HumidityReadingUncheckedUpdateManyInput>
+    /**
+     * Filter which HumidityReadings to update
+     */
+    where?: HumidityReadingWhereInput
+  }
+
+  /**
+   * HumidityReading upsert
+   */
+  export type HumidityReadingUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the HumidityReading
+     */
+    select?: HumidityReadingSelect<ExtArgs> | null
+    /**
+     * The filter to search for the HumidityReading to update in case it exists.
+     */
+    where: HumidityReadingWhereUniqueInput
+    /**
+     * In case the HumidityReading found by the `where` argument doesn't exist, create a new HumidityReading with this data.
+     */
+    create: XOR<HumidityReadingCreateInput, HumidityReadingUncheckedCreateInput>
+    /**
+     * In case the HumidityReading was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<HumidityReadingUpdateInput, HumidityReadingUncheckedUpdateInput>
+  }
+
+  /**
+   * HumidityReading delete
+   */
+  export type HumidityReadingDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the HumidityReading
+     */
+    select?: HumidityReadingSelect<ExtArgs> | null
+    /**
+     * Filter which HumidityReading to delete.
+     */
+    where: HumidityReadingWhereUniqueInput
+  }
+
+  /**
+   * HumidityReading deleteMany
+   */
+  export type HumidityReadingDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which HumidityReadings to delete
+     */
+    where?: HumidityReadingWhereInput
+  }
+
+  /**
+   * HumidityReading without action
+   */
+  export type HumidityReadingDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the HumidityReading
+     */
+    select?: HumidityReadingSelect<ExtArgs> | null
+  }
+
 
   /**
    * Model SensorReading
@@ -1834,926 +2766,6 @@ export namespace Prisma {
 
 
   /**
-   * Model HumidityReading
-   */
-
-  export type AggregateHumidityReading = {
-    _count: HumidityReadingCountAggregateOutputType | null
-    _avg: HumidityReadingAvgAggregateOutputType | null
-    _sum: HumidityReadingSumAggregateOutputType | null
-    _min: HumidityReadingMinAggregateOutputType | null
-    _max: HumidityReadingMaxAggregateOutputType | null
-  }
-
-  export type HumidityReadingAvgAggregateOutputType = {
-    id: number | null
-    humidity: number | null
-    temperature: number | null
-  }
-
-  export type HumidityReadingSumAggregateOutputType = {
-    id: number | null
-    humidity: number | null
-    temperature: number | null
-  }
-
-  export type HumidityReadingMinAggregateOutputType = {
-    id: number | null
-    sensor_id: string | null
-    timestamp: Date | null
-    humidity: number | null
-    temperature: number | null
-  }
-
-  export type HumidityReadingMaxAggregateOutputType = {
-    id: number | null
-    sensor_id: string | null
-    timestamp: Date | null
-    humidity: number | null
-    temperature: number | null
-  }
-
-  export type HumidityReadingCountAggregateOutputType = {
-    id: number
-    sensor_id: number
-    timestamp: number
-    humidity: number
-    temperature: number
-    _all: number
-  }
-
-
-  export type HumidityReadingAvgAggregateInputType = {
-    id?: true
-    humidity?: true
-    temperature?: true
-  }
-
-  export type HumidityReadingSumAggregateInputType = {
-    id?: true
-    humidity?: true
-    temperature?: true
-  }
-
-  export type HumidityReadingMinAggregateInputType = {
-    id?: true
-    sensor_id?: true
-    timestamp?: true
-    humidity?: true
-    temperature?: true
-  }
-
-  export type HumidityReadingMaxAggregateInputType = {
-    id?: true
-    sensor_id?: true
-    timestamp?: true
-    humidity?: true
-    temperature?: true
-  }
-
-  export type HumidityReadingCountAggregateInputType = {
-    id?: true
-    sensor_id?: true
-    timestamp?: true
-    humidity?: true
-    temperature?: true
-    _all?: true
-  }
-
-  export type HumidityReadingAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Filter which HumidityReading to aggregate.
-     */
-    where?: HumidityReadingWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of HumidityReadings to fetch.
-     */
-    orderBy?: HumidityReadingOrderByWithRelationInput | HumidityReadingOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the start position
-     */
-    cursor?: HumidityReadingWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` HumidityReadings from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` HumidityReadings.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Count returned HumidityReadings
-    **/
-    _count?: true | HumidityReadingCountAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to average
-    **/
-    _avg?: HumidityReadingAvgAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to sum
-    **/
-    _sum?: HumidityReadingSumAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to find the minimum value
-    **/
-    _min?: HumidityReadingMinAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to find the maximum value
-    **/
-    _max?: HumidityReadingMaxAggregateInputType
-  }
-
-  export type GetHumidityReadingAggregateType<T extends HumidityReadingAggregateArgs> = {
-        [P in keyof T & keyof AggregateHumidityReading]: P extends '_count' | 'count'
-      ? T[P] extends true
-        ? number
-        : GetScalarType<T[P], AggregateHumidityReading[P]>
-      : GetScalarType<T[P], AggregateHumidityReading[P]>
-  }
-
-
-
-
-  export type HumidityReadingGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: HumidityReadingWhereInput
-    orderBy?: HumidityReadingOrderByWithAggregationInput | HumidityReadingOrderByWithAggregationInput[]
-    by: HumidityReadingScalarFieldEnum[] | HumidityReadingScalarFieldEnum
-    having?: HumidityReadingScalarWhereWithAggregatesInput
-    take?: number
-    skip?: number
-    _count?: HumidityReadingCountAggregateInputType | true
-    _avg?: HumidityReadingAvgAggregateInputType
-    _sum?: HumidityReadingSumAggregateInputType
-    _min?: HumidityReadingMinAggregateInputType
-    _max?: HumidityReadingMaxAggregateInputType
-  }
-
-  export type HumidityReadingGroupByOutputType = {
-    id: number
-    sensor_id: string
-    timestamp: Date
-    humidity: number
-    temperature: number
-    _count: HumidityReadingCountAggregateOutputType | null
-    _avg: HumidityReadingAvgAggregateOutputType | null
-    _sum: HumidityReadingSumAggregateOutputType | null
-    _min: HumidityReadingMinAggregateOutputType | null
-    _max: HumidityReadingMaxAggregateOutputType | null
-  }
-
-  type GetHumidityReadingGroupByPayload<T extends HumidityReadingGroupByArgs> = Prisma.PrismaPromise<
-    Array<
-      PickEnumerable<HumidityReadingGroupByOutputType, T['by']> &
-        {
-          [P in ((keyof T) & (keyof HumidityReadingGroupByOutputType))]: P extends '_count'
-            ? T[P] extends boolean
-              ? number
-              : GetScalarType<T[P], HumidityReadingGroupByOutputType[P]>
-            : GetScalarType<T[P], HumidityReadingGroupByOutputType[P]>
-        }
-      >
-    >
-
-
-  export type HumidityReadingSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    sensor_id?: boolean
-    timestamp?: boolean
-    humidity?: boolean
-    temperature?: boolean
-  }, ExtArgs["result"]["humidityReading"]>
-
-  export type HumidityReadingSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    sensor_id?: boolean
-    timestamp?: boolean
-    humidity?: boolean
-    temperature?: boolean
-  }, ExtArgs["result"]["humidityReading"]>
-
-  export type HumidityReadingSelectScalar = {
-    id?: boolean
-    sensor_id?: boolean
-    timestamp?: boolean
-    humidity?: boolean
-    temperature?: boolean
-  }
-
-
-  export type $HumidityReadingPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    name: "HumidityReading"
-    objects: {}
-    scalars: $Extensions.GetPayloadResult<{
-      id: number
-      sensor_id: string
-      timestamp: Date
-      humidity: number
-      temperature: number
-    }, ExtArgs["result"]["humidityReading"]>
-    composites: {}
-  }
-
-  type HumidityReadingGetPayload<S extends boolean | null | undefined | HumidityReadingDefaultArgs> = $Result.GetResult<Prisma.$HumidityReadingPayload, S>
-
-  type HumidityReadingCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
-    Omit<HumidityReadingFindManyArgs, 'select' | 'include' | 'distinct'> & {
-      select?: HumidityReadingCountAggregateInputType | true
-    }
-
-  export interface HumidityReadingDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
-    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['HumidityReading'], meta: { name: 'HumidityReading' } }
-    /**
-     * Find zero or one HumidityReading that matches the filter.
-     * @param {HumidityReadingFindUniqueArgs} args - Arguments to find a HumidityReading
-     * @example
-     * // Get one HumidityReading
-     * const humidityReading = await prisma.humidityReading.findUnique({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findUnique<T extends HumidityReadingFindUniqueArgs>(args: SelectSubset<T, HumidityReadingFindUniqueArgs<ExtArgs>>): Prisma__HumidityReadingClient<$Result.GetResult<Prisma.$HumidityReadingPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
-
-    /**
-     * Find one HumidityReading that matches the filter or throw an error with `error.code='P2025'` 
-     * if no matches were found.
-     * @param {HumidityReadingFindUniqueOrThrowArgs} args - Arguments to find a HumidityReading
-     * @example
-     * // Get one HumidityReading
-     * const humidityReading = await prisma.humidityReading.findUniqueOrThrow({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findUniqueOrThrow<T extends HumidityReadingFindUniqueOrThrowArgs>(args: SelectSubset<T, HumidityReadingFindUniqueOrThrowArgs<ExtArgs>>): Prisma__HumidityReadingClient<$Result.GetResult<Prisma.$HumidityReadingPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
-
-    /**
-     * Find the first HumidityReading that matches the filter.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {HumidityReadingFindFirstArgs} args - Arguments to find a HumidityReading
-     * @example
-     * // Get one HumidityReading
-     * const humidityReading = await prisma.humidityReading.findFirst({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findFirst<T extends HumidityReadingFindFirstArgs>(args?: SelectSubset<T, HumidityReadingFindFirstArgs<ExtArgs>>): Prisma__HumidityReadingClient<$Result.GetResult<Prisma.$HumidityReadingPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
-
-    /**
-     * Find the first HumidityReading that matches the filter or
-     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {HumidityReadingFindFirstOrThrowArgs} args - Arguments to find a HumidityReading
-     * @example
-     * // Get one HumidityReading
-     * const humidityReading = await prisma.humidityReading.findFirstOrThrow({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findFirstOrThrow<T extends HumidityReadingFindFirstOrThrowArgs>(args?: SelectSubset<T, HumidityReadingFindFirstOrThrowArgs<ExtArgs>>): Prisma__HumidityReadingClient<$Result.GetResult<Prisma.$HumidityReadingPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
-
-    /**
-     * Find zero or more HumidityReadings that matches the filter.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {HumidityReadingFindManyArgs} args - Arguments to filter and select certain fields only.
-     * @example
-     * // Get all HumidityReadings
-     * const humidityReadings = await prisma.humidityReading.findMany()
-     * 
-     * // Get first 10 HumidityReadings
-     * const humidityReadings = await prisma.humidityReading.findMany({ take: 10 })
-     * 
-     * // Only select the `id`
-     * const humidityReadingWithIdOnly = await prisma.humidityReading.findMany({ select: { id: true } })
-     * 
-     */
-    findMany<T extends HumidityReadingFindManyArgs>(args?: SelectSubset<T, HumidityReadingFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$HumidityReadingPayload<ExtArgs>, T, "findMany">>
-
-    /**
-     * Create a HumidityReading.
-     * @param {HumidityReadingCreateArgs} args - Arguments to create a HumidityReading.
-     * @example
-     * // Create one HumidityReading
-     * const HumidityReading = await prisma.humidityReading.create({
-     *   data: {
-     *     // ... data to create a HumidityReading
-     *   }
-     * })
-     * 
-     */
-    create<T extends HumidityReadingCreateArgs>(args: SelectSubset<T, HumidityReadingCreateArgs<ExtArgs>>): Prisma__HumidityReadingClient<$Result.GetResult<Prisma.$HumidityReadingPayload<ExtArgs>, T, "create">, never, ExtArgs>
-
-    /**
-     * Create many HumidityReadings.
-     * @param {HumidityReadingCreateManyArgs} args - Arguments to create many HumidityReadings.
-     * @example
-     * // Create many HumidityReadings
-     * const humidityReading = await prisma.humidityReading.createMany({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     *     
-     */
-    createMany<T extends HumidityReadingCreateManyArgs>(args?: SelectSubset<T, HumidityReadingCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Create many HumidityReadings and returns the data saved in the database.
-     * @param {HumidityReadingCreateManyAndReturnArgs} args - Arguments to create many HumidityReadings.
-     * @example
-     * // Create many HumidityReadings
-     * const humidityReading = await prisma.humidityReading.createManyAndReturn({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * 
-     * // Create many HumidityReadings and only return the `id`
-     * const humidityReadingWithIdOnly = await prisma.humidityReading.createManyAndReturn({ 
-     *   select: { id: true },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * 
-     */
-    createManyAndReturn<T extends HumidityReadingCreateManyAndReturnArgs>(args?: SelectSubset<T, HumidityReadingCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$HumidityReadingPayload<ExtArgs>, T, "createManyAndReturn">>
-
-    /**
-     * Delete a HumidityReading.
-     * @param {HumidityReadingDeleteArgs} args - Arguments to delete one HumidityReading.
-     * @example
-     * // Delete one HumidityReading
-     * const HumidityReading = await prisma.humidityReading.delete({
-     *   where: {
-     *     // ... filter to delete one HumidityReading
-     *   }
-     * })
-     * 
-     */
-    delete<T extends HumidityReadingDeleteArgs>(args: SelectSubset<T, HumidityReadingDeleteArgs<ExtArgs>>): Prisma__HumidityReadingClient<$Result.GetResult<Prisma.$HumidityReadingPayload<ExtArgs>, T, "delete">, never, ExtArgs>
-
-    /**
-     * Update one HumidityReading.
-     * @param {HumidityReadingUpdateArgs} args - Arguments to update one HumidityReading.
-     * @example
-     * // Update one HumidityReading
-     * const humidityReading = await prisma.humidityReading.update({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: {
-     *     // ... provide data here
-     *   }
-     * })
-     * 
-     */
-    update<T extends HumidityReadingUpdateArgs>(args: SelectSubset<T, HumidityReadingUpdateArgs<ExtArgs>>): Prisma__HumidityReadingClient<$Result.GetResult<Prisma.$HumidityReadingPayload<ExtArgs>, T, "update">, never, ExtArgs>
-
-    /**
-     * Delete zero or more HumidityReadings.
-     * @param {HumidityReadingDeleteManyArgs} args - Arguments to filter HumidityReadings to delete.
-     * @example
-     * // Delete a few HumidityReadings
-     * const { count } = await prisma.humidityReading.deleteMany({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     * 
-     */
-    deleteMany<T extends HumidityReadingDeleteManyArgs>(args?: SelectSubset<T, HumidityReadingDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Update zero or more HumidityReadings.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {HumidityReadingUpdateManyArgs} args - Arguments to update one or more rows.
-     * @example
-     * // Update many HumidityReadings
-     * const humidityReading = await prisma.humidityReading.updateMany({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: {
-     *     // ... provide data here
-     *   }
-     * })
-     * 
-     */
-    updateMany<T extends HumidityReadingUpdateManyArgs>(args: SelectSubset<T, HumidityReadingUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Create or update one HumidityReading.
-     * @param {HumidityReadingUpsertArgs} args - Arguments to update or create a HumidityReading.
-     * @example
-     * // Update or create a HumidityReading
-     * const humidityReading = await prisma.humidityReading.upsert({
-     *   create: {
-     *     // ... data to create a HumidityReading
-     *   },
-     *   update: {
-     *     // ... in case it already exists, update
-     *   },
-     *   where: {
-     *     // ... the filter for the HumidityReading we want to update
-     *   }
-     * })
-     */
-    upsert<T extends HumidityReadingUpsertArgs>(args: SelectSubset<T, HumidityReadingUpsertArgs<ExtArgs>>): Prisma__HumidityReadingClient<$Result.GetResult<Prisma.$HumidityReadingPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
-
-
-    /**
-     * Count the number of HumidityReadings.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {HumidityReadingCountArgs} args - Arguments to filter HumidityReadings to count.
-     * @example
-     * // Count the number of HumidityReadings
-     * const count = await prisma.humidityReading.count({
-     *   where: {
-     *     // ... the filter for the HumidityReadings we want to count
-     *   }
-     * })
-    **/
-    count<T extends HumidityReadingCountArgs>(
-      args?: Subset<T, HumidityReadingCountArgs>,
-    ): Prisma.PrismaPromise<
-      T extends $Utils.Record<'select', any>
-        ? T['select'] extends true
-          ? number
-          : GetScalarType<T['select'], HumidityReadingCountAggregateOutputType>
-        : number
-    >
-
-    /**
-     * Allows you to perform aggregations operations on a HumidityReading.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {HumidityReadingAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
-     * @example
-     * // Ordered by age ascending
-     * // Where email contains prisma.io
-     * // Limited to the 10 users
-     * const aggregations = await prisma.user.aggregate({
-     *   _avg: {
-     *     age: true,
-     *   },
-     *   where: {
-     *     email: {
-     *       contains: "prisma.io",
-     *     },
-     *   },
-     *   orderBy: {
-     *     age: "asc",
-     *   },
-     *   take: 10,
-     * })
-    **/
-    aggregate<T extends HumidityReadingAggregateArgs>(args: Subset<T, HumidityReadingAggregateArgs>): Prisma.PrismaPromise<GetHumidityReadingAggregateType<T>>
-
-    /**
-     * Group by HumidityReading.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {HumidityReadingGroupByArgs} args - Group by arguments.
-     * @example
-     * // Group by city, order by createdAt, get count
-     * const result = await prisma.user.groupBy({
-     *   by: ['city', 'createdAt'],
-     *   orderBy: {
-     *     createdAt: true
-     *   },
-     *   _count: {
-     *     _all: true
-     *   },
-     * })
-     * 
-    **/
-    groupBy<
-      T extends HumidityReadingGroupByArgs,
-      HasSelectOrTake extends Or<
-        Extends<'skip', Keys<T>>,
-        Extends<'take', Keys<T>>
-      >,
-      OrderByArg extends True extends HasSelectOrTake
-        ? { orderBy: HumidityReadingGroupByArgs['orderBy'] }
-        : { orderBy?: HumidityReadingGroupByArgs['orderBy'] },
-      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
-      ByFields extends MaybeTupleToUnion<T['by']>,
-      ByValid extends Has<ByFields, OrderFields>,
-      HavingFields extends GetHavingFields<T['having']>,
-      HavingValid extends Has<ByFields, HavingFields>,
-      ByEmpty extends T['by'] extends never[] ? True : False,
-      InputErrors extends ByEmpty extends True
-      ? `Error: "by" must not be empty.`
-      : HavingValid extends False
-      ? {
-          [P in HavingFields]: P extends ByFields
-            ? never
-            : P extends string
-            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
-            : [
-                Error,
-                'Field ',
-                P,
-                ` in "having" needs to be provided in "by"`,
-              ]
-        }[HavingFields]
-      : 'take' extends Keys<T>
-      ? 'orderBy' extends Keys<T>
-        ? ByValid extends True
-          ? {}
-          : {
-              [P in OrderFields]: P extends ByFields
-                ? never
-                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-            }[OrderFields]
-        : 'Error: If you provide "take", you also need to provide "orderBy"'
-      : 'skip' extends Keys<T>
-      ? 'orderBy' extends Keys<T>
-        ? ByValid extends True
-          ? {}
-          : {
-              [P in OrderFields]: P extends ByFields
-                ? never
-                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-            }[OrderFields]
-        : 'Error: If you provide "skip", you also need to provide "orderBy"'
-      : ByValid extends True
-      ? {}
-      : {
-          [P in OrderFields]: P extends ByFields
-            ? never
-            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-        }[OrderFields]
-    >(args: SubsetIntersection<T, HumidityReadingGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetHumidityReadingGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
-  /**
-   * Fields of the HumidityReading model
-   */
-  readonly fields: HumidityReadingFieldRefs;
-  }
-
-  /**
-   * The delegate class that acts as a "Promise-like" for HumidityReading.
-   * Why is this prefixed with `Prisma__`?
-   * Because we want to prevent naming conflicts as mentioned in
-   * https://github.com/prisma/prisma-client-js/issues/707
-   */
-  export interface Prisma__HumidityReadingClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
-    readonly [Symbol.toStringTag]: "PrismaPromise"
-    /**
-     * Attaches callbacks for the resolution and/or rejection of the Promise.
-     * @param onfulfilled The callback to execute when the Promise is resolved.
-     * @param onrejected The callback to execute when the Promise is rejected.
-     * @returns A Promise for the completion of which ever callback is executed.
-     */
-    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
-    /**
-     * Attaches a callback for only the rejection of the Promise.
-     * @param onrejected The callback to execute when the Promise is rejected.
-     * @returns A Promise for the completion of the callback.
-     */
-    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
-    /**
-     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
-     * resolved value cannot be modified from the callback.
-     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
-     * @returns A Promise for the completion of the callback.
-     */
-    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
-  }
-
-
-
-
-  /**
-   * Fields of the HumidityReading model
-   */ 
-  interface HumidityReadingFieldRefs {
-    readonly id: FieldRef<"HumidityReading", 'Int'>
-    readonly sensor_id: FieldRef<"HumidityReading", 'String'>
-    readonly timestamp: FieldRef<"HumidityReading", 'DateTime'>
-    readonly humidity: FieldRef<"HumidityReading", 'Float'>
-    readonly temperature: FieldRef<"HumidityReading", 'Float'>
-  }
-    
-
-  // Custom InputTypes
-  /**
-   * HumidityReading findUnique
-   */
-  export type HumidityReadingFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the HumidityReading
-     */
-    select?: HumidityReadingSelect<ExtArgs> | null
-    /**
-     * Filter, which HumidityReading to fetch.
-     */
-    where: HumidityReadingWhereUniqueInput
-  }
-
-  /**
-   * HumidityReading findUniqueOrThrow
-   */
-  export type HumidityReadingFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the HumidityReading
-     */
-    select?: HumidityReadingSelect<ExtArgs> | null
-    /**
-     * Filter, which HumidityReading to fetch.
-     */
-    where: HumidityReadingWhereUniqueInput
-  }
-
-  /**
-   * HumidityReading findFirst
-   */
-  export type HumidityReadingFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the HumidityReading
-     */
-    select?: HumidityReadingSelect<ExtArgs> | null
-    /**
-     * Filter, which HumidityReading to fetch.
-     */
-    where?: HumidityReadingWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of HumidityReadings to fetch.
-     */
-    orderBy?: HumidityReadingOrderByWithRelationInput | HumidityReadingOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for searching for HumidityReadings.
-     */
-    cursor?: HumidityReadingWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` HumidityReadings from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` HumidityReadings.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of HumidityReadings.
-     */
-    distinct?: HumidityReadingScalarFieldEnum | HumidityReadingScalarFieldEnum[]
-  }
-
-  /**
-   * HumidityReading findFirstOrThrow
-   */
-  export type HumidityReadingFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the HumidityReading
-     */
-    select?: HumidityReadingSelect<ExtArgs> | null
-    /**
-     * Filter, which HumidityReading to fetch.
-     */
-    where?: HumidityReadingWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of HumidityReadings to fetch.
-     */
-    orderBy?: HumidityReadingOrderByWithRelationInput | HumidityReadingOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for searching for HumidityReadings.
-     */
-    cursor?: HumidityReadingWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` HumidityReadings from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` HumidityReadings.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of HumidityReadings.
-     */
-    distinct?: HumidityReadingScalarFieldEnum | HumidityReadingScalarFieldEnum[]
-  }
-
-  /**
-   * HumidityReading findMany
-   */
-  export type HumidityReadingFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the HumidityReading
-     */
-    select?: HumidityReadingSelect<ExtArgs> | null
-    /**
-     * Filter, which HumidityReadings to fetch.
-     */
-    where?: HumidityReadingWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of HumidityReadings to fetch.
-     */
-    orderBy?: HumidityReadingOrderByWithRelationInput | HumidityReadingOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for listing HumidityReadings.
-     */
-    cursor?: HumidityReadingWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` HumidityReadings from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` HumidityReadings.
-     */
-    skip?: number
-    distinct?: HumidityReadingScalarFieldEnum | HumidityReadingScalarFieldEnum[]
-  }
-
-  /**
-   * HumidityReading create
-   */
-  export type HumidityReadingCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the HumidityReading
-     */
-    select?: HumidityReadingSelect<ExtArgs> | null
-    /**
-     * The data needed to create a HumidityReading.
-     */
-    data: XOR<HumidityReadingCreateInput, HumidityReadingUncheckedCreateInput>
-  }
-
-  /**
-   * HumidityReading createMany
-   */
-  export type HumidityReadingCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * The data used to create many HumidityReadings.
-     */
-    data: HumidityReadingCreateManyInput | HumidityReadingCreateManyInput[]
-    skipDuplicates?: boolean
-  }
-
-  /**
-   * HumidityReading createManyAndReturn
-   */
-  export type HumidityReadingCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the HumidityReading
-     */
-    select?: HumidityReadingSelectCreateManyAndReturn<ExtArgs> | null
-    /**
-     * The data used to create many HumidityReadings.
-     */
-    data: HumidityReadingCreateManyInput | HumidityReadingCreateManyInput[]
-    skipDuplicates?: boolean
-  }
-
-  /**
-   * HumidityReading update
-   */
-  export type HumidityReadingUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the HumidityReading
-     */
-    select?: HumidityReadingSelect<ExtArgs> | null
-    /**
-     * The data needed to update a HumidityReading.
-     */
-    data: XOR<HumidityReadingUpdateInput, HumidityReadingUncheckedUpdateInput>
-    /**
-     * Choose, which HumidityReading to update.
-     */
-    where: HumidityReadingWhereUniqueInput
-  }
-
-  /**
-   * HumidityReading updateMany
-   */
-  export type HumidityReadingUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * The data used to update HumidityReadings.
-     */
-    data: XOR<HumidityReadingUpdateManyMutationInput, HumidityReadingUncheckedUpdateManyInput>
-    /**
-     * Filter which HumidityReadings to update
-     */
-    where?: HumidityReadingWhereInput
-  }
-
-  /**
-   * HumidityReading upsert
-   */
-  export type HumidityReadingUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the HumidityReading
-     */
-    select?: HumidityReadingSelect<ExtArgs> | null
-    /**
-     * The filter to search for the HumidityReading to update in case it exists.
-     */
-    where: HumidityReadingWhereUniqueInput
-    /**
-     * In case the HumidityReading found by the `where` argument doesn't exist, create a new HumidityReading with this data.
-     */
-    create: XOR<HumidityReadingCreateInput, HumidityReadingUncheckedCreateInput>
-    /**
-     * In case the HumidityReading was found with the provided `where` argument, update it with this data.
-     */
-    update: XOR<HumidityReadingUpdateInput, HumidityReadingUncheckedUpdateInput>
-  }
-
-  /**
-   * HumidityReading delete
-   */
-  export type HumidityReadingDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the HumidityReading
-     */
-    select?: HumidityReadingSelect<ExtArgs> | null
-    /**
-     * Filter which HumidityReading to delete.
-     */
-    where: HumidityReadingWhereUniqueInput
-  }
-
-  /**
-   * HumidityReading deleteMany
-   */
-  export type HumidityReadingDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Filter which HumidityReadings to delete
-     */
-    where?: HumidityReadingWhereInput
-  }
-
-  /**
-   * HumidityReading without action
-   */
-  export type HumidityReadingDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the HumidityReading
-     */
-    select?: HumidityReadingSelect<ExtArgs> | null
-  }
-
-
-  /**
    * Enums
    */
 
@@ -2767,6 +2779,18 @@ export namespace Prisma {
   export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
 
 
+  export const HumidityReadingScalarFieldEnum: {
+    id: 'id',
+    sensor_id: 'sensor_id',
+    timestamp: 'timestamp',
+    humidity: 'humidity',
+    temperature: 'temperature',
+    created_at: 'created_at'
+  };
+
+  export type HumidityReadingScalarFieldEnum = (typeof HumidityReadingScalarFieldEnum)[keyof typeof HumidityReadingScalarFieldEnum]
+
+
   export const SensorReadingScalarFieldEnum: {
     id: 'id',
     sensor_id: 'sensor_id',
@@ -2775,17 +2799,6 @@ export namespace Prisma {
   };
 
   export type SensorReadingScalarFieldEnum = (typeof SensorReadingScalarFieldEnum)[keyof typeof SensorReadingScalarFieldEnum]
-
-
-  export const HumidityReadingScalarFieldEnum: {
-    id: 'id',
-    sensor_id: 'sensor_id',
-    timestamp: 'timestamp',
-    humidity: 'humidity',
-    temperature: 'temperature'
-  };
-
-  export type HumidityReadingScalarFieldEnum = (typeof HumidityReadingScalarFieldEnum)[keyof typeof HumidityReadingScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -2868,6 +2881,65 @@ export namespace Prisma {
    */
 
 
+  export type HumidityReadingWhereInput = {
+    AND?: HumidityReadingWhereInput | HumidityReadingWhereInput[]
+    OR?: HumidityReadingWhereInput[]
+    NOT?: HumidityReadingWhereInput | HumidityReadingWhereInput[]
+    id?: IntFilter<"HumidityReading"> | number
+    sensor_id?: StringFilter<"HumidityReading"> | string
+    timestamp?: DateTimeFilter<"HumidityReading"> | Date | string
+    humidity?: FloatFilter<"HumidityReading"> | number
+    temperature?: FloatFilter<"HumidityReading"> | number
+    created_at?: DateTimeFilter<"HumidityReading"> | Date | string
+  }
+
+  export type HumidityReadingOrderByWithRelationInput = {
+    id?: SortOrder
+    sensor_id?: SortOrder
+    timestamp?: SortOrder
+    humidity?: SortOrder
+    temperature?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type HumidityReadingWhereUniqueInput = Prisma.AtLeast<{
+    id?: number
+    AND?: HumidityReadingWhereInput | HumidityReadingWhereInput[]
+    OR?: HumidityReadingWhereInput[]
+    NOT?: HumidityReadingWhereInput | HumidityReadingWhereInput[]
+    sensor_id?: StringFilter<"HumidityReading"> | string
+    timestamp?: DateTimeFilter<"HumidityReading"> | Date | string
+    humidity?: FloatFilter<"HumidityReading"> | number
+    temperature?: FloatFilter<"HumidityReading"> | number
+    created_at?: DateTimeFilter<"HumidityReading"> | Date | string
+  }, "id">
+
+  export type HumidityReadingOrderByWithAggregationInput = {
+    id?: SortOrder
+    sensor_id?: SortOrder
+    timestamp?: SortOrder
+    humidity?: SortOrder
+    temperature?: SortOrder
+    created_at?: SortOrder
+    _count?: HumidityReadingCountOrderByAggregateInput
+    _avg?: HumidityReadingAvgOrderByAggregateInput
+    _max?: HumidityReadingMaxOrderByAggregateInput
+    _min?: HumidityReadingMinOrderByAggregateInput
+    _sum?: HumidityReadingSumOrderByAggregateInput
+  }
+
+  export type HumidityReadingScalarWhereWithAggregatesInput = {
+    AND?: HumidityReadingScalarWhereWithAggregatesInput | HumidityReadingScalarWhereWithAggregatesInput[]
+    OR?: HumidityReadingScalarWhereWithAggregatesInput[]
+    NOT?: HumidityReadingScalarWhereWithAggregatesInput | HumidityReadingScalarWhereWithAggregatesInput[]
+    id?: IntWithAggregatesFilter<"HumidityReading"> | number
+    sensor_id?: StringWithAggregatesFilter<"HumidityReading"> | string
+    timestamp?: DateTimeWithAggregatesFilter<"HumidityReading"> | Date | string
+    humidity?: FloatWithAggregatesFilter<"HumidityReading"> | number
+    temperature?: FloatWithAggregatesFilter<"HumidityReading"> | number
+    created_at?: DateTimeWithAggregatesFilter<"HumidityReading"> | Date | string
+  }
+
   export type SensorReadingWhereInput = {
     AND?: SensorReadingWhereInput | SensorReadingWhereInput[]
     OR?: SensorReadingWhereInput[]
@@ -2917,58 +2989,64 @@ export namespace Prisma {
     temperature?: FloatWithAggregatesFilter<"SensorReading"> | number
   }
 
-  export type HumidityReadingWhereInput = {
-    AND?: HumidityReadingWhereInput | HumidityReadingWhereInput[]
-    OR?: HumidityReadingWhereInput[]
-    NOT?: HumidityReadingWhereInput | HumidityReadingWhereInput[]
-    id?: IntFilter<"HumidityReading"> | number
-    sensor_id?: StringFilter<"HumidityReading"> | string
-    timestamp?: DateTimeFilter<"HumidityReading"> | Date | string
-    humidity?: FloatFilter<"HumidityReading"> | number
-    temperature?: FloatFilter<"HumidityReading"> | number
+  export type HumidityReadingCreateInput = {
+    sensor_id: string
+    timestamp?: Date | string
+    humidity: number
+    temperature: number
+    created_at?: Date | string
   }
 
-  export type HumidityReadingOrderByWithRelationInput = {
-    id?: SortOrder
-    sensor_id?: SortOrder
-    timestamp?: SortOrder
-    humidity?: SortOrder
-    temperature?: SortOrder
-  }
-
-  export type HumidityReadingWhereUniqueInput = Prisma.AtLeast<{
+  export type HumidityReadingUncheckedCreateInput = {
     id?: number
-    AND?: HumidityReadingWhereInput | HumidityReadingWhereInput[]
-    OR?: HumidityReadingWhereInput[]
-    NOT?: HumidityReadingWhereInput | HumidityReadingWhereInput[]
-    sensor_id?: StringFilter<"HumidityReading"> | string
-    timestamp?: DateTimeFilter<"HumidityReading"> | Date | string
-    humidity?: FloatFilter<"HumidityReading"> | number
-    temperature?: FloatFilter<"HumidityReading"> | number
-  }, "id">
-
-  export type HumidityReadingOrderByWithAggregationInput = {
-    id?: SortOrder
-    sensor_id?: SortOrder
-    timestamp?: SortOrder
-    humidity?: SortOrder
-    temperature?: SortOrder
-    _count?: HumidityReadingCountOrderByAggregateInput
-    _avg?: HumidityReadingAvgOrderByAggregateInput
-    _max?: HumidityReadingMaxOrderByAggregateInput
-    _min?: HumidityReadingMinOrderByAggregateInput
-    _sum?: HumidityReadingSumOrderByAggregateInput
+    sensor_id: string
+    timestamp?: Date | string
+    humidity: number
+    temperature: number
+    created_at?: Date | string
   }
 
-  export type HumidityReadingScalarWhereWithAggregatesInput = {
-    AND?: HumidityReadingScalarWhereWithAggregatesInput | HumidityReadingScalarWhereWithAggregatesInput[]
-    OR?: HumidityReadingScalarWhereWithAggregatesInput[]
-    NOT?: HumidityReadingScalarWhereWithAggregatesInput | HumidityReadingScalarWhereWithAggregatesInput[]
-    id?: IntWithAggregatesFilter<"HumidityReading"> | number
-    sensor_id?: StringWithAggregatesFilter<"HumidityReading"> | string
-    timestamp?: DateTimeWithAggregatesFilter<"HumidityReading"> | Date | string
-    humidity?: FloatWithAggregatesFilter<"HumidityReading"> | number
-    temperature?: FloatWithAggregatesFilter<"HumidityReading"> | number
+  export type HumidityReadingUpdateInput = {
+    sensor_id?: StringFieldUpdateOperationsInput | string
+    timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
+    humidity?: FloatFieldUpdateOperationsInput | number
+    temperature?: FloatFieldUpdateOperationsInput | number
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type HumidityReadingUncheckedUpdateInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    sensor_id?: StringFieldUpdateOperationsInput | string
+    timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
+    humidity?: FloatFieldUpdateOperationsInput | number
+    temperature?: FloatFieldUpdateOperationsInput | number
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type HumidityReadingCreateManyInput = {
+    id?: number
+    sensor_id: string
+    timestamp?: Date | string
+    humidity: number
+    temperature: number
+    created_at?: Date | string
+  }
+
+  export type HumidityReadingUpdateManyMutationInput = {
+    sensor_id?: StringFieldUpdateOperationsInput | string
+    timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
+    humidity?: FloatFieldUpdateOperationsInput | number
+    temperature?: FloatFieldUpdateOperationsInput | number
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type HumidityReadingUncheckedUpdateManyInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    sensor_id?: StringFieldUpdateOperationsInput | string
+    timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
+    humidity?: FloatFieldUpdateOperationsInput | number
+    temperature?: FloatFieldUpdateOperationsInput | number
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type SensorReadingCreateInput = {
@@ -3014,59 +3092,6 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     sensor_id?: StringFieldUpdateOperationsInput | string
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
-    temperature?: FloatFieldUpdateOperationsInput | number
-  }
-
-  export type HumidityReadingCreateInput = {
-    sensor_id: string
-    timestamp?: Date | string
-    humidity: number
-    temperature: number
-  }
-
-  export type HumidityReadingUncheckedCreateInput = {
-    id?: number
-    sensor_id: string
-    timestamp?: Date | string
-    humidity: number
-    temperature: number
-  }
-
-  export type HumidityReadingUpdateInput = {
-    sensor_id?: StringFieldUpdateOperationsInput | string
-    timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
-    humidity?: FloatFieldUpdateOperationsInput | number
-    temperature?: FloatFieldUpdateOperationsInput | number
-  }
-
-  export type HumidityReadingUncheckedUpdateInput = {
-    id?: IntFieldUpdateOperationsInput | number
-    sensor_id?: StringFieldUpdateOperationsInput | string
-    timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
-    humidity?: FloatFieldUpdateOperationsInput | number
-    temperature?: FloatFieldUpdateOperationsInput | number
-  }
-
-  export type HumidityReadingCreateManyInput = {
-    id?: number
-    sensor_id: string
-    timestamp?: Date | string
-    humidity: number
-    temperature: number
-  }
-
-  export type HumidityReadingUpdateManyMutationInput = {
-    sensor_id?: StringFieldUpdateOperationsInput | string
-    timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
-    humidity?: FloatFieldUpdateOperationsInput | number
-    temperature?: FloatFieldUpdateOperationsInput | number
-  }
-
-  export type HumidityReadingUncheckedUpdateManyInput = {
-    id?: IntFieldUpdateOperationsInput | number
-    sensor_id?: StringFieldUpdateOperationsInput | string
-    timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
-    humidity?: FloatFieldUpdateOperationsInput | number
     temperature?: FloatFieldUpdateOperationsInput | number
   }
 
@@ -3118,34 +3143,42 @@ export namespace Prisma {
     not?: NestedFloatFilter<$PrismaModel> | number
   }
 
-  export type SensorReadingCountOrderByAggregateInput = {
+  export type HumidityReadingCountOrderByAggregateInput = {
     id?: SortOrder
     sensor_id?: SortOrder
     timestamp?: SortOrder
+    humidity?: SortOrder
     temperature?: SortOrder
+    created_at?: SortOrder
   }
 
-  export type SensorReadingAvgOrderByAggregateInput = {
+  export type HumidityReadingAvgOrderByAggregateInput = {
     id?: SortOrder
+    humidity?: SortOrder
     temperature?: SortOrder
   }
 
-  export type SensorReadingMaxOrderByAggregateInput = {
-    id?: SortOrder
-    sensor_id?: SortOrder
-    timestamp?: SortOrder
-    temperature?: SortOrder
-  }
-
-  export type SensorReadingMinOrderByAggregateInput = {
+  export type HumidityReadingMaxOrderByAggregateInput = {
     id?: SortOrder
     sensor_id?: SortOrder
     timestamp?: SortOrder
+    humidity?: SortOrder
     temperature?: SortOrder
+    created_at?: SortOrder
   }
 
-  export type SensorReadingSumOrderByAggregateInput = {
+  export type HumidityReadingMinOrderByAggregateInput = {
     id?: SortOrder
+    sensor_id?: SortOrder
+    timestamp?: SortOrder
+    humidity?: SortOrder
+    temperature?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type HumidityReadingSumOrderByAggregateInput = {
+    id?: SortOrder
+    humidity?: SortOrder
     temperature?: SortOrder
   }
 
@@ -3213,39 +3246,34 @@ export namespace Prisma {
     _max?: NestedFloatFilter<$PrismaModel>
   }
 
-  export type HumidityReadingCountOrderByAggregateInput = {
+  export type SensorReadingCountOrderByAggregateInput = {
     id?: SortOrder
     sensor_id?: SortOrder
     timestamp?: SortOrder
-    humidity?: SortOrder
     temperature?: SortOrder
   }
 
-  export type HumidityReadingAvgOrderByAggregateInput = {
+  export type SensorReadingAvgOrderByAggregateInput = {
     id?: SortOrder
-    humidity?: SortOrder
     temperature?: SortOrder
   }
 
-  export type HumidityReadingMaxOrderByAggregateInput = {
+  export type SensorReadingMaxOrderByAggregateInput = {
     id?: SortOrder
     sensor_id?: SortOrder
     timestamp?: SortOrder
-    humidity?: SortOrder
     temperature?: SortOrder
   }
 
-  export type HumidityReadingMinOrderByAggregateInput = {
+  export type SensorReadingMinOrderByAggregateInput = {
     id?: SortOrder
     sensor_id?: SortOrder
     timestamp?: SortOrder
-    humidity?: SortOrder
     temperature?: SortOrder
   }
 
-  export type HumidityReadingSumOrderByAggregateInput = {
+  export type SensorReadingSumOrderByAggregateInput = {
     id?: SortOrder
-    humidity?: SortOrder
     temperature?: SortOrder
   }
 
@@ -3389,13 +3417,13 @@ export namespace Prisma {
    * Aliases for legacy arg types
    */
     /**
-     * @deprecated Use SensorReadingDefaultArgs instead
-     */
-    export type SensorReadingArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = SensorReadingDefaultArgs<ExtArgs>
-    /**
      * @deprecated Use HumidityReadingDefaultArgs instead
      */
     export type HumidityReadingArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = HumidityReadingDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use SensorReadingDefaultArgs instead
+     */
+    export type SensorReadingArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = SensorReadingDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany

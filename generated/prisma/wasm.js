@@ -122,18 +122,19 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
   Serializable: 'Serializable'
 });
 
-exports.Prisma.SensorReadingScalarFieldEnum = {
-  id: 'id',
-  sensor_id: 'sensor_id',
-  timestamp: 'timestamp',
-  temperature: 'temperature'
-};
-
 exports.Prisma.HumidityReadingScalarFieldEnum = {
   id: 'id',
   sensor_id: 'sensor_id',
   timestamp: 'timestamp',
   humidity: 'humidity',
+  temperature: 'temperature',
+  created_at: 'created_at'
+};
+
+exports.Prisma.SensorReadingScalarFieldEnum = {
+  id: 'id',
+  sensor_id: 'sensor_id',
+  timestamp: 'timestamp',
   temperature: 'temperature'
 };
 
@@ -149,8 +150,8 @@ exports.Prisma.QueryMode = {
 
 
 exports.Prisma.ModelName = {
-  SensorReading: 'SensorReading',
-  HumidityReading: 'HumidityReading'
+  HumidityReading: 'HumidityReading',
+  SensorReading: 'SensorReading'
 };
 
 /**
