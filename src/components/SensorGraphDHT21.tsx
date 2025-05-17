@@ -101,8 +101,7 @@ export default function SensorGraphDHT21() {
           body: JSON.stringify({
             startDate: start.toISOString(),
             endDate: end.toISOString(),
-            sensorIds: SENSOR_IDS,
-            interval: 300 // 5 минут в секундах
+            sensorIds: SENSOR_IDS
           }),
         });
 
@@ -113,81 +112,9 @@ export default function SensorGraphDHT21() {
         }
 
         const historicalData = await historyResponse.json();
+        console.log("[fetchData] Received data points:", historicalData.length);
 
-        // Создаем массив временных меток с 5-минутными интервалами
-        const timePoints: number[] = [];
-        let currentTime = start.getTime();
-        while (currentTime <= end.getTime()) {
-          timePoints.push(currentTime);
-          currentTime += 5 * 60 * 1000; // Добавляем 5 минут
-        }
-
-        // Группируем исторические данные по 5-минутным интервалам
-        const groupedData = new Map<number, SensorPoint>();
-        historicalData.forEach((point: SensorPoint) => {
-          const timestamp = point.timestamp;
-          const interval = Math.floor(timestamp / (5 * 60 * 1000)) * (5 * 60 * 1000);
-          groupedData.set(interval, point);
-        });
-
-        // Получаем текущие данные
-        const liveResponse = await fetch("/api/humidity", {
-          cache: "no-store",
-          headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache'
-          }
-        });
-
-        if (liveResponse.ok) {
-          const { sensors: sensorData } = await liveResponse.json();
-          
-          // Добавляем текущие данные
-          Object.entries(sensorData || {}).forEach(([sensorId, data]: [string, any]) => {
-            if (SENSOR_IDS.includes(sensorId as SensorId) && 
-                data.timestamp && 
-                data.humidity && 
-                data.temperature) {
-              const ts = Number(data.timestamp);
-              const interval = Math.floor(ts / (5 * 60 * 1000)) * (5 * 60 * 1000);
-              
-              if (interval >= start.getTime() && interval <= end.getTime()) {
-                groupedData.set(interval, {
-                  sensor_id: sensorId,
-                  timestamp: interval,
-                  humidity: parseFloat(String(data.humidity)),
-                  temperature: parseFloat(String(data.temperature))
-                });
-              }
-            }
-          });
-
-          setLiveData(prev => ({
-            ...prev,
-            ...sensorData
-          }));
-        }
-
-        // Создаем финальный массив данных с интерполяцией
-        const finalData: SensorPoint[] = [];
-        let lastPoint: SensorPoint | null = null;
-
-        timePoints.forEach((timestamp) => {
-          const point = groupedData.get(timestamp);
-          if (point) {
-            finalData.push(point);
-            lastPoint = point;
-          } else if (lastPoint) {
-            // Интерполируем пропущенные точки
-            finalData.push({
-              ...lastPoint,
-              timestamp: timestamp
-            });
-          }
-        });
-
-        console.log("[fetchData] Final data points:", finalData.length);
-        setData(finalData);
+        setData(historicalData);
       } catch (error) {
         console.error('Error fetching sensor data:', error);
       } finally {
@@ -233,7 +160,7 @@ export default function SensorGraphDHT21() {
           source: 'data',
           autoSkip: false,
           maxRotation: 0,
-          maxTicksLimit: 13, // Показываем все метки для часового интервала (12 интервалов по 5 минут + текущее время)
+          maxTicksLimit: 13,
           font: {
             size: 12
           },
