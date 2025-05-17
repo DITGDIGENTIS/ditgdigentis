@@ -61,10 +61,10 @@ const PERIOD_OPTIONS: PeriodOption[] = [
 
 const COLORS = {
   "HUM1-1": {
-    temperature: 'rgba(255, 99, 132, 1)',
-    temperatureBg: 'rgba(255, 99, 132, 0.1)',
-    humidity: 'rgba(54, 162, 235, 1)',
-    humidityBg: 'rgba(54, 162, 235, 0.1)'
+    temperature: '#ffd602',
+    temperatureBg: 'rgba(255, 214, 2, 0.1)',
+    humidity: '#44c0ff',
+    humidityBg: 'rgba(68, 192, 255, 0.1)'
   }
 };
 
@@ -81,9 +81,9 @@ export default function SensorGraphDHT21() {
     const fetchData = async () => {
       setIsLoading(prev => !data.length && prev);
       try {
-        // Используем текущее время как конечную точку
+        // Для часового графика берем чуть больше данных для плавности
         const endDate = new Date();
-        const startDate = new Date(endDate.getTime() - selectedPeriod.minutes * 60 * 1000);
+        const startDate = new Date(endDate.getTime() - (selectedPeriod.minutes + 5) * 60 * 1000);
         
         const historyResponse = await fetch('/api/humidity-records', {
           method: 'POST',
@@ -206,13 +206,15 @@ export default function SensorGraphDHT21() {
         },
         ticks: {
           source: 'auto',
-          autoSkip: false,
+          autoSkip: selectedPeriod.value !== '1h',
           color: 'rgba(255, 255, 255, 0.8)',
           maxRotation: 0,
-          maxTicksLimit: 30,
+          maxTicksLimit: selectedPeriod.value === '1h' ? 12 : 30,
           font: {
-            size: 12
+            size: 12,
+            weight: selectedPeriod.value === '1h' ? 'bold' : 'normal'
           },
+          stepSize: selectedPeriod.value === '1h' ? 5 : undefined,
           callback: function(this: any, value: any) {
             const numValue = typeof value === 'string' ? parseInt(value, 10) : value;
             if (!isNaN(numValue)) {
@@ -222,7 +224,12 @@ export default function SensorGraphDHT21() {
               
               switch(selectedPeriod.value) {
                 case '1h':
-                  return minutes % 5 === 0 ? date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
+                  // Показываем каждые 5 минут для часового графика
+                  return date.toLocaleTimeString('ru-RU', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    second: '2-digit'
+                  });
                 case '12h':
                   return minutes % 30 === 0 ? date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
                 case '1d':
@@ -248,12 +255,16 @@ export default function SensorGraphDHT21() {
         display: true,
         position: 'left',
         grid: {
-          color: 'rgba(255, 255, 255, 0.1)'
+          color: 'rgba(255, 214, 2, 0.1)'
         },
         ticks: {
-          color: 'rgba(255, 255, 255, 0.8)',
+          color: '#ffd602',
           font: {
-            size: 12
+            size: 12,
+            weight: 'bold'
+          },
+          callback: function(value) {
+            return value + '°C';
           }
         },
         min: Math.min(...data.map(point => point.temperature)) - 1,
@@ -266,12 +277,17 @@ export default function SensorGraphDHT21() {
         display: true,
         position: 'right',
         grid: {
-          drawOnChartArea: false
+          drawOnChartArea: false,
+          color: 'rgba(68, 192, 255, 0.1)'
         },
         ticks: {
-          color: 'rgba(255, 255, 255, 0.8)',
+          color: '#44c0ff',
           font: {
-            size: 12
+            size: 12,
+            weight: 'bold'
+          },
+          callback: function(value) {
+            return value + '%';
           }
         },
         min: Math.min(...data.map(point => point.humidity)) - 1,
@@ -287,8 +303,11 @@ export default function SensorGraphDHT21() {
         labels: {
           color: 'rgba(255, 255, 255, 0.8)',
           font: {
-            size: 12
-          }
+            size: 12,
+            weight: 'bold'
+          },
+          usePointStyle: true,
+          pointStyle: 'circle'
         }
       },
       tooltip: {
@@ -297,9 +316,9 @@ export default function SensorGraphDHT21() {
         intersect: false,
         position: 'nearest',
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        titleColor: 'rgba(255, 255, 255, 1)',
+        titleColor: '#ffd602',
         bodyColor: 'rgba(255, 255, 255, 0.8)',
-        borderColor: 'rgba(255, 255, 255, 0.1)',
+        borderColor: 'rgba(255, 214, 2, 0.3)',
         borderWidth: 1,
         padding: 10,
         titleFont: {
@@ -315,7 +334,9 @@ export default function SensorGraphDHT21() {
             const item = tooltipItems[0];
             if (!item) return '';
             const date = new Date(item.parsed.x);
-            return format(date, 'dd.MM.yyyy HH:mm', { locale: uk });
+            return selectedPeriod.value === '1h' 
+              ? format(date, 'HH:mm:ss', { locale: uk })
+              : format(date, 'dd.MM.yyyy HH:mm', { locale: uk });
           },
           label: (context) => {
             const label = context.dataset.label || '';
