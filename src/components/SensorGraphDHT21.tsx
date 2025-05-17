@@ -171,46 +171,14 @@ export default function SensorGraphDHT21() {
     return () => clearInterval(interval);
   }, [selectedDate, selectedPeriod]);
 
-  const chartData = {
-    datasets: selectedSensors.flatMap(sensorId => {
-      const sensorData = data.filter(point => point.sensor_id === sensorId);
-      return [
-        {
-          label: `Температура ${sensorId}`,
-          data: sensorData.map(point => ({
-            x: point.timestamp,
-            y: point.temperature
-          })),
-          borderColor: COLORS[sensorId].temperature,
-          backgroundColor: COLORS[sensorId].temperatureBg,
-          yAxisID: 'y1',
-          tension: 0.5,
-          pointRadius: 0,
-          borderWidth: 2,
-          fill: true
-        },
-        {
-          label: `Влажность ${sensorId}`,
-          data: sensorData.map(point => ({
-            x: point.timestamp,
-            y: point.humidity
-          })),
-          borderColor: COLORS[sensorId].humidity,
-          backgroundColor: COLORS[sensorId].humidityBg,
-          yAxisID: 'y2',
-          tension: 0.5,
-          pointRadius: 0,
-          borderWidth: 2,
-          fill: true
-        }
-      ];
-    })
-  };
-
   const options: ChartOptions<'line'> = {
     responsive: true,
     maintainAspectRatio: false,
     interaction: {
+      mode: 'index',
+      intersect: false,
+    },
+    hover: {
       mode: 'index',
       intersect: false,
     },
@@ -233,7 +201,8 @@ export default function SensorGraphDHT21() {
         },
         grid: {
           color: 'rgba(255, 255, 255, 0.1)',
-          tickLength: 10
+          tickLength: 10,
+          drawOnChartArea: true
         },
         ticks: {
           color: 'rgba(255, 255, 255, 0.8)',
@@ -290,8 +259,10 @@ export default function SensorGraphDHT21() {
         }
       },
       tooltip: {
+        enabled: true,
         mode: 'index',
         intersect: false,
+        position: 'nearest',
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
         titleColor: 'rgba(255, 255, 255, 1)',
         bodyColor: 'rgba(255, 255, 255, 0.8)',
@@ -299,13 +270,146 @@ export default function SensorGraphDHT21() {
         borderWidth: 1,
         padding: 10,
         titleFont: {
-          size: 14
+          size: 14,
+          weight: 'bold'
         },
         bodyFont: {
-          size: 12
+          size: 13
+        },
+        displayColors: true,
+        callbacks: {
+          title: (tooltipItems) => {
+            const item = tooltipItems[0];
+            if (!item) return '';
+            const date = new Date(item.parsed.x);
+            return format(date, 'dd.MM.yyyy HH:mm', { locale: uk });
+          },
+          label: (context) => {
+            const label = context.dataset.label || '';
+            const value = context.parsed.y;
+            if (label.includes('Температура')) {
+              return `${label}: ${value.toFixed(1)}°C`;
+            }
+            return `${label}: ${value.toFixed(1)}%`;
+          }
         }
       }
     }
+  };
+
+  // Добавляем обработчики для мобильных устройств
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) return;
+
+    const canvas = chart.canvas;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let activeIndex = -1;
+
+    const drawVerticalLine = (x: number) => {
+      if (!ctx || !chart) return;
+      
+      const { top, bottom } = chart.chartArea;
+      ctx.save();
+      ctx.beginPath();
+      ctx.setLineDash([5, 5]);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.lineWidth = 1;
+      ctx.moveTo(x, top);
+      ctx.lineTo(x, bottom);
+      ctx.stroke();
+      ctx.restore();
+    };
+
+    const handleTouch = (e: TouchEvent) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      const x = touch.clientX - rect.left;
+      
+      const newIndex = Math.floor((x / rect.width) * data.length);
+      if (newIndex !== activeIndex && newIndex >= 0 && newIndex < data.length) {
+        activeIndex = newIndex;
+        chart.setActiveElements([{
+          datasetIndex: 0,
+          index: activeIndex
+        }]);
+        
+        requestAnimationFrame(() => {
+          chart.update('none');
+          drawVerticalLine(x);
+        });
+      }
+    };
+
+    const handleMove = (e: MouseEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      
+      const newIndex = Math.floor((x / rect.width) * data.length);
+      if (newIndex !== activeIndex && newIndex >= 0 && newIndex < data.length) {
+        activeIndex = newIndex;
+        chart.setActiveElements([{
+          datasetIndex: 0,
+          index: activeIndex
+        }]);
+        
+        requestAnimationFrame(() => {
+          chart.update('none');
+          drawVerticalLine(x);
+        });
+      }
+    };
+
+    canvas.addEventListener('touchstart', handleTouch);
+    canvas.addEventListener('touchmove', handleTouch);
+    canvas.addEventListener('mousemove', handleMove);
+
+    return () => {
+      canvas.removeEventListener('touchstart', handleTouch);
+      canvas.removeEventListener('touchmove', handleTouch);
+      canvas.removeEventListener('mousemove', handleMove);
+    };
+  }, [data]);
+
+  const chartData = {
+    datasets: selectedSensors.flatMap(sensorId => {
+      const sensorData = data.filter(point => point.sensor_id === sensorId);
+      return [
+        {
+          label: `Температура ${sensorId}`,
+          data: sensorData.map(point => ({
+            x: point.timestamp,
+            y: point.temperature
+          })),
+          borderColor: COLORS[sensorId].temperature,
+          backgroundColor: COLORS[sensorId].temperatureBg,
+          yAxisID: 'y1',
+          tension: 0.3,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          borderWidth: 2,
+          fill: true
+        },
+        {
+          label: `Влажность ${sensorId}`,
+          data: sensorData.map(point => ({
+            x: point.timestamp,
+            y: point.humidity
+          })),
+          borderColor: COLORS[sensorId].humidity,
+          backgroundColor: COLORS[sensorId].humidityBg,
+          yAxisID: 'y2',
+          tension: 0.3,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          borderWidth: 2,
+          fill: true
+        }
+      ];
+    })
   };
 
   return (
