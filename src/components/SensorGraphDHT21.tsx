@@ -31,7 +31,7 @@ ChartJS.register(
   Filler
 );
 
-const SENSOR_IDS = ['HUM1-1', 'HUM1-2'] as const;
+const SENSOR_IDS = ['HUM1-1'] as const;
 
 interface SensorPoint {
   sensor_id: string;
@@ -65,12 +65,6 @@ const COLORS = {
     temperatureBg: 'rgba(255, 99, 132, 0.1)',
     humidity: 'rgba(54, 162, 235, 1)',
     humidityBg: 'rgba(54, 162, 235, 0.1)'
-  },
-  "HUM1-2": {
-    temperature: 'rgba(255, 206, 86, 1)',
-    temperatureBg: 'rgba(255, 206, 86, 0.1)',
-    humidity: 'rgba(75, 192, 192, 1)',
-    humidityBg: 'rgba(75, 192, 192, 0.1)'
   }
 };
 
@@ -80,7 +74,6 @@ export default function SensorGraphDHT21() {
   const [selectedSensors, setSelectedSensors] = useState<SensorId[]>([...SENSOR_IDS]);
   const [data, setData] = useState<SensorPoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [liveData, setLiveData] = useState<Record<string, { humidity: number; temperature: number; timestamp: number }>>({}); 
   const chartRef = useRef<ChartJS<'line'>>(null);
 
@@ -159,29 +152,6 @@ export default function SensorGraphDHT21() {
       console.error('Error fetching sensor data:', error);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const generateTestData = async () => {
-    setIsGenerating(true);
-    try {
-      const response = await fetch('/api/test-data', {
-        method: 'POST',
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to generate test data');
-      }
-
-      const result = await response.json();
-      console.log('Generated test data:', result);
-      
-      // Refresh the data
-      fetchData();
-    } catch (error) {
-      console.error('Error generating test data:', error);
-    } finally {
-      setIsGenerating(false);
     }
   };
 
@@ -352,15 +322,6 @@ export default function SensorGraphDHT21() {
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
             />
-          </div>
-          <div className="col-auto">
-            <button
-              className="btn btn-primary"
-              onClick={generateTestData}
-              disabled={isGenerating}
-            >
-              {isGenerating ? 'Генерация...' : 'Сгенерировать тестовые данные'}
-            </button>
           </div>
           <div className="col-auto">
             {SENSOR_IDS.map(sensorId => (
