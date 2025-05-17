@@ -86,9 +86,18 @@ export default function SensorGraphDHT21() {
         const end = new Date(Math.ceil(now.getTime() / (5 * 60 * 1000)) * (5 * 60 * 1000));
         const start = new Date(end.getTime() - 60 * 60 * 1000); // 1 час назад
 
-        console.log("[fetchData] Fetching data for range:", {
-          start: start.toLocaleTimeString(),
-          end: end.toLocaleTimeString()
+        const requestBody = {
+          startDate: start.toISOString(),
+          endDate: end.toISOString(),
+          sensorIds: SENSOR_IDS
+        };
+
+        console.log("[fetchData] Request:", {
+          timeRange: {
+            start: start.toLocaleTimeString(),
+            end: end.toLocaleTimeString()
+          },
+          body: requestBody
         });
 
         const historyResponse = await fetch('/api/humidity-records', {
@@ -98,23 +107,42 @@ export default function SensorGraphDHT21() {
             'Cache-Control': 'no-cache, no-store, must-revalidate',
             'Pragma': 'no-cache'
           },
-          body: JSON.stringify({
-            startDate: start.toISOString(),
-            endDate: end.toISOString(),
-            sensorIds: SENSOR_IDS
-          }),
+          body: JSON.stringify(requestBody),
         });
 
         if (!historyResponse.ok) {
-          const error = await historyResponse.text();
-          console.error('Failed to fetch historical data:', historyResponse.status, error);
+          const errorText = await historyResponse.text();
+          console.error('Failed to fetch data:', {
+            status: historyResponse.status,
+            statusText: historyResponse.statusText,
+            error: errorText
+          });
           return;
         }
 
         const historicalData = await historyResponse.json();
-        console.log("[fetchData] Received data points:", historicalData.length);
 
-        setData(historicalData);
+        if (!Array.isArray(historicalData)) {
+          console.error('Invalid data format received:', historicalData);
+          return;
+        }
+
+        console.log("[fetchData] Received data:", {
+          count: historicalData.length,
+          firstPoint: historicalData[0],
+          lastPoint: historicalData[historicalData.length - 1]
+        });
+
+        // Ensure timestamps are numbers and sort data
+        const processedData = historicalData
+          .map(point => ({
+            ...point,
+            timestamp: typeof point.timestamp === 'number' ? point.timestamp : new Date(point.timestamp).getTime()
+          }))
+          .sort((a, b) => a.timestamp - b.timestamp);
+
+        setData(processedData);
+
       } catch (error) {
         console.error('Error fetching sensor data:', error);
       } finally {
@@ -126,6 +154,44 @@ export default function SensorGraphDHT21() {
     const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  // Prepare chart data
+  const chartData = {
+    datasets: selectedSensors.flatMap(sensorId => [
+      {
+        label: `Температура ${sensorId}`,
+        data: data
+          .filter(point => point.sensor_id === sensorId)
+          .map(point => ({
+            x: point.timestamp,
+            y: point.temperature
+          })),
+        borderColor: COLORS[sensorId].temperature,
+        backgroundColor: COLORS[sensorId].temperatureBg,
+        yAxisID: 'y1',
+        pointRadius: 2,
+        borderWidth: 2,
+        fill: true,
+        tension: 0.4
+      },
+      {
+        label: `Влажность ${sensorId}`,
+        data: data
+          .filter(point => point.sensor_id === sensorId)
+          .map(point => ({
+            x: point.timestamp,
+            y: point.humidity
+          })),
+        borderColor: COLORS[sensorId].humidity,
+        backgroundColor: COLORS[sensorId].humidityBg,
+        yAxisID: 'y2',
+        pointRadius: 2,
+        borderWidth: 2,
+        fill: true,
+        tension: 0.4
+      }
+    ])
+  };
 
   const options: ChartOptions<'line'> = {
     responsive: true,
@@ -148,25 +214,23 @@ export default function SensorGraphDHT21() {
           displayFormats: {
             minute: 'HH:mm'
           },
-          tooltipFormat: 'HH:mm',
-          round: 'minute',
-          minUnit: 'minute'
+          tooltipFormat: 'HH:mm:ss',
         },
         grid: {
           color: 'rgba(255, 255, 255, 0.1)',
-          drawOnChartArea: true
         },
         ticks: {
-          source: 'data',
-          autoSkip: false,
           maxRotation: 0,
+          autoSkip: true,
           maxTicksLimit: 13,
           font: {
             size: 12
           },
           callback: function(value) {
             const date = new Date(value);
-            return date.getMinutes() % 5 === 0 ? date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
+            const minutes = date.getMinutes();
+            // Only show labels for timestamps at 5-minute intervals
+            return minutes % 5 === 0 ? format(date, 'HH:mm') : '';
           }
         }
       },
@@ -185,6 +249,7 @@ export default function SensorGraphDHT21() {
             size: 12,
             weight: 'bold'
           },
+          stepSize: 5,
           callback: function(value) {
             return value + '°C';
           }
@@ -206,6 +271,7 @@ export default function SensorGraphDHT21() {
             size: 12,
             weight: 'bold'
           },
+          stepSize: 10,
           callback: function(value) {
             return value + '%';
           }
@@ -219,32 +285,20 @@ export default function SensorGraphDHT21() {
         labels: {
           color: 'rgba(255, 255, 255, 0.8)',
           font: {
-            size: 12,
-            weight: 'bold'
-          },
-          usePointStyle: true,
-          pointStyle: 'circle'
+            size: 12
+          }
         }
       },
       tooltip: {
-        enabled: true,
         mode: 'index',
         intersect: false,
-        position: 'nearest',
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        titleColor: '#ffd602',
-        bodyColor: 'rgba(255, 255, 255, 0.8)',
-        borderColor: 'rgba(255, 214, 2, 0.3)',
-        borderWidth: 1,
-        padding: 10,
         titleFont: {
-          size: 14,
-          weight: 'bold'
+          size: 14
         },
         bodyFont: {
-          size: 13
-        },
-        displayColors: true
+          size: 12
+        }
       }
     }
   };
@@ -316,225 +370,19 @@ export default function SensorGraphDHT21() {
     };
   }, []);
 
-  const chartData = {
-    datasets: selectedSensors.flatMap(sensorId => {
-      const sensorData = data.filter(point => point.sensor_id === sensorId);
-      console.log(`[chartData] Data points for ${sensorId}:`, sensorData.length);
-      
-      return [
-        {
-          label: `Температура ${sensorId}`,
-          data: sensorData.map(point => ({
-            x: point.timestamp,
-            y: point.temperature
-          })),
-          borderColor: COLORS[sensorId].temperature,
-          backgroundColor: COLORS[sensorId].temperatureBg,
-          yAxisID: 'y1',
-          tension: 0.1,
-          pointRadius: 1,
-          borderWidth: 2,
-          fill: true,
-          spanGaps: false
-        },
-        {
-          label: `Влажность ${sensorId}`,
-          data: sensorData.map(point => ({
-            x: point.timestamp,
-            y: point.humidity
-          })),
-          borderColor: COLORS[sensorId].humidity,
-          backgroundColor: COLORS[sensorId].humidityBg,
-          yAxisID: 'y2',
-          tension: 0.1,
-          pointRadius: 1,
-          borderWidth: 2,
-          fill: true,
-          spanGaps: false
-        }
-      ];
-    })
-  };
-
   return (
-    <div className="sensor-graph-container">
-      <div className="controls mb-3">
-        <div className="row g-3 align-items-center">
-          <div className="col-auto">
-            <select
-              className="form-select"
-              value={selectedPeriod.value}
-              onChange={(e) => setSelectedPeriod(PERIOD_OPTIONS.find(p => p.value === e.target.value) || PERIOD_OPTIONS[0])}
-            >
-              {PERIOD_OPTIONS.map(period => (
-                <option key={period.value} value={period.value}>
-                  {period.label}
-                </option>
-              ))}
-            </select>
-            </div>
-          <div className="col-auto">
-          <input
-            type="date"
-            className="form-control"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            />
-          </div>
-          <div className="col-auto">
-            {SENSOR_IDS.map(sensorId => (
-              <div key={sensorId} className="form-check form-check-inline">
-                <input
-                  type="checkbox"
-                  className="form-check-input"
-                  id={`sensor-${sensorId}`}
-                  checked={selectedSensors.includes(sensorId)}
-            onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedSensors([...selectedSensors, sensorId]);
-                    } else {
-                      setSelectedSensors(selectedSensors.filter(id => id !== sensorId));
-                    }
-                  }}
-                />
-                <label className="form-check-label" htmlFor={`sensor-${sensorId}`}>
-                  {sensorId}
-                  {liveData[sensorId] && (
-                    <span className="ms-2">
-                      ({liveData[sensorId].temperature.toFixed(1)}°C / {liveData[sensorId].humidity.toFixed(1)}%)
-                    </span>
-                  )}
-                </label>
-              </div>
-            ))}
-          </div>
+    <div className="w-full h-[400px] bg-black/20 rounded-lg p-4">
+      {isLoading ? (
+        <div className="w-full h-full flex items-center justify-center">
+          <span className="text-white">Загрузка данных...</span>
         </div>
-      </div>
-
-      <div className="chart-wrapper">
-        <div className="chart-container">
-          <div className="y-axis-left"></div>
-          <div className="chart-scroll-container">
-            {isLoading ? (
-              <div className="text-center py-5">
-                <div className="spinner-border" role="status">
-                  <span className="visually-hidden">Загрузка...</span>
-                </div>
-              </div>
-            ) : (
-              <div className="chart-content">
-                <Line ref={chartRef} options={options} data={chartData} />
-              </div>
-            )}
-          </div>
-          <div className="y-axis-right"></div>
+      ) : data.length === 0 ? (
+        <div className="w-full h-full flex items-center justify-center">
+          <span className="text-white">Нет данных за выбранный период</span>
         </div>
-      </div>
-
-        <style jsx>{`
-        .sensor-graph-container {
-          background: #1a1a1a;
-          border-radius: 8px;
-          padding: 20px;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          width: 100%;
-        }
-
-          .chart-wrapper {
-            position: relative;
-          margin-top: 20px;
-          height: 500px;
-            width: 100%;
-        }
-
-          .chart-container {
-          display: flex;
-          height: 100%;
-          width: 100%;
-          position: relative;
-        }
-
-        .y-axis-left,
-        .y-axis-right {
-            position: relative;
-          width: 50px;
-            height: 100%;
-          background-color: #1a1a1a;
-          z-index: 2;
-          }
-
-        .chart-scroll-container {
-            flex: 1;
-            overflow-x: auto;
-            overflow-y: hidden;
-          margin: 0 -1px;
-          position: relative;
-        }
-
-        .chart-content {
-          min-width: 600px;
-          height: 100%;
-        }
-
-        @media (max-width: 768px) {
-          .sensor-graph-container {
-            padding: 10px;
-          }
-
-          .chart-wrapper {
-            height: 400px;
-          }
-
-          .chart-content {
-            min-width: 400px;
-          }
-        }
-
-        .form-select,
-        .form-control,
-        .form-check-input {
-          background-color: #2a2a2a;
-          border-color: #3a3a3a;
-          color: #fff;
-        }
-
-        .form-select:focus,
-        .form-control:focus,
-        .form-check-input:focus {
-          background-color: #2a2a2a;
-          border-color: #4a4a4a;
-          color: #fff;
-          box-shadow: 0 0 0 0.25rem rgba(77, 171, 247, 0.25);
-        }
-
-        .form-check-label {
-          color: #fff;
-        }
-
-        .form-check-input:checked {
-          background-color: #4dabf7;
-          border-color: #4dabf7;
-        }
-
-        /* Стилизация скроллбара */
-        .chart-scroll-container::-webkit-scrollbar {
-          height: 8px;
-        }
-
-        .chart-scroll-container::-webkit-scrollbar-track {
-          background: #2a2a2a;
-          border-radius: 4px;
-        }
-
-        .chart-scroll-container::-webkit-scrollbar-thumb {
-          background: #4a4a4a;
-          border-radius: 4px;
-        }
-
-        .chart-scroll-container::-webkit-scrollbar-thumb:hover {
-          background: #5a5a5a;
-          }
-        `}</style>
+      ) : (
+        <Line data={chartData} options={options} ref={chartRef} />
+      )}
     </div>
   );
 }
