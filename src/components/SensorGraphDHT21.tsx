@@ -92,12 +92,12 @@ export default function SensorGraphDHT21() {
           sensorIds: SENSOR_IDS
         };
 
-        console.log("[fetchData] Request:", {
+        console.log("[fetchData] Запрос данных:", {
           timeRange: {
             start: start.toLocaleTimeString(),
             end: end.toLocaleTimeString()
           },
-          body: requestBody
+          body: JSON.stringify(requestBody, null, 2)
         });
 
         const historyResponse = await fetch('/api/humidity-records', {
@@ -110,41 +110,82 @@ export default function SensorGraphDHT21() {
           body: JSON.stringify(requestBody),
         });
 
+        console.log("[fetchData] Статус ответа:", {
+          status: historyResponse.status,
+          statusText: historyResponse.statusText,
+          headers: Object.fromEntries(historyResponse.headers.entries())
+        });
+
         if (!historyResponse.ok) {
           const errorText = await historyResponse.text();
-          console.error('Failed to fetch data:', {
+          console.error('[fetchData] Ошибка получения данных:', {
             status: historyResponse.status,
             statusText: historyResponse.statusText,
             error: errorText
           });
-          return;
+          throw new Error(`Ошибка API: ${historyResponse.status} ${historyResponse.statusText}`);
         }
 
-        const historicalData = await historyResponse.json();
+        const responseText = await historyResponse.text();
+        console.log("[fetchData] Сырой ответ:", responseText);
+
+        let historicalData;
+        try {
+          historicalData = JSON.parse(responseText);
+        } catch (e) {
+          console.error('[fetchData] Ошибка парсинга JSON:', e);
+          throw new Error('Некорректный формат данных от сервера');
+        }
 
         if (!Array.isArray(historicalData)) {
-          console.error('Invalid data format received:', historicalData);
-          return;
+          console.error('[fetchData] Неверный формат данных:', historicalData);
+          throw new Error('Данные от сервера не являются массивом');
         }
 
-        console.log("[fetchData] Received data:", {
-          count: historicalData.length,
-          firstPoint: historicalData[0],
-          lastPoint: historicalData[historicalData.length - 1]
+        console.log("[fetchData] Получены данные:", {
+          количество: historicalData.length,
+          первая_точка: historicalData[0],
+          последняя_точка: historicalData[historicalData.length - 1],
+          пример_данных: historicalData.slice(0, 3)
         });
 
         // Ensure timestamps are numbers and sort data
         const processedData = historicalData
-          .map(point => ({
-            ...point,
-            timestamp: typeof point.timestamp === 'number' ? point.timestamp : new Date(point.timestamp).getTime()
-          }))
+          .map(point => {
+            const timestamp = typeof point.timestamp === 'number' 
+              ? point.timestamp 
+              : new Date(point.timestamp).getTime();
+            
+            const processed = {
+              ...point,
+              timestamp,
+              temperature: Number(point.temperature),
+              humidity: Number(point.humidity)
+            };
+
+            console.log("[fetchData] Обработана точка данных:", {
+              до: point,
+              после: processed
+            });
+
+            return processed;
+          })
           .sort((a, b) => a.timestamp - b.timestamp);
+
+        console.log("[fetchData] Итоговые данные:", {
+          количество: processedData.length,
+          временной_диапазон: {
+            начало: new Date(processedData[0]?.timestamp).toLocaleString(),
+            конец: new Date(processedData[processedData.length - 1]?.timestamp).toLocaleString()
+          },
+          пример_данных: processedData.slice(0, 3)
+        });
 
         setData(processedData);
 
       } catch (error) {
-        console.error('Error fetching sensor data:', error);
+        console.error('[fetchData] Критическая ошибка:', error);
+        setData([]);
       } finally {
         setIsLoading(false);
       }
