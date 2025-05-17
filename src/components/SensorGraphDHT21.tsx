@@ -29,7 +29,7 @@ ChartJS.register(
   TimeScale
 );
 
-const SENSOR_IDS = ['HUM1-1', 'HUM1-2', 'HUM1-3', 'HUM1-4'] as const;
+const SENSOR_IDS = ['HUM1-1', 'HUM1-2'] as const;
 
 interface SensorPoint {
   sensor_id: string;
@@ -49,38 +49,26 @@ interface PeriodOption {
 }
 
 const PERIOD_OPTIONS: PeriodOption[] = [
-  { label: "1 година", value: "1h", minutes: 60, interval: 3, intervalUnit: 'seconds' },
-  { label: "12 годин", value: "12h", minutes: 720, interval: 30, intervalUnit: 'seconds' },
+  { label: "1 час", value: "1h", minutes: 60, interval: 3, intervalUnit: 'seconds' },
+  { label: "12 часов", value: "12h", minutes: 720, interval: 30, intervalUnit: 'seconds' },
   { label: "1 день", value: "1d", minutes: 1440, interval: 5, intervalUnit: 'minutes' },
-  { label: "1 тиждень", value: "1w", minutes: 10080, interval: 30, intervalUnit: 'minutes' },
-  { label: "1 місяць", value: "1m", minutes: 43200, interval: 3, intervalUnit: 'hours' },
-  { label: "1 рік", value: "1y", minutes: 525600, interval: 1, intervalUnit: 'days' }
+  { label: "1 неделя", value: "1w", minutes: 10080, interval: 30, intervalUnit: 'minutes' },
+  { label: "1 месяц", value: "1m", minutes: 43200, interval: 3, intervalUnit: 'hours' },
+  { label: "1 год", value: "1y", minutes: 525600, interval: 1, intervalUnit: 'days' }
 ];
 
 const COLORS = {
   "HUM1-1": {
-    temperature: 'rgba(255, 159, 67, 1)',
-    temperatureBg: 'rgba(255, 159, 67, 0.1)',
-    humidity: 'rgba(77, 171, 247, 1)',
-    humidityBg: 'rgba(77, 171, 247, 0.1)'
-  },
-  "HUM1-2": {
     temperature: 'rgba(255, 99, 132, 1)',
     temperatureBg: 'rgba(255, 99, 132, 0.1)',
     humidity: 'rgba(54, 162, 235, 1)',
     humidityBg: 'rgba(54, 162, 235, 0.1)'
   },
-  "HUM1-3": {
+  "HUM1-2": {
     temperature: 'rgba(255, 206, 86, 1)',
     temperatureBg: 'rgba(255, 206, 86, 0.1)',
     humidity: 'rgba(75, 192, 192, 1)',
     humidityBg: 'rgba(75, 192, 192, 0.1)'
-  },
-  "HUM1-4": {
-    temperature: 'rgba(153, 102, 255, 1)',
-    temperatureBg: 'rgba(153, 102, 255, 0.1)',
-    humidity: 'rgba(255, 159, 64, 1)',
-    humidityBg: 'rgba(255, 159, 64, 0.1)'
   }
 };
 
@@ -159,13 +147,17 @@ export default function SensorGraphDHT21() {
           tooltipFormat: getTimeFormat(selectedPeriod)
         },
         grid: {
-          color: 'rgba(255, 255, 255, 0.1)'
+          color: 'rgba(255, 255, 255, 0.1)',
+          tickLength: 10
         },
         ticks: {
           color: 'rgba(255, 255, 255, 0.8)',
           maxRotation: 0,
           autoSkip: true,
-          maxTicksLimit: 12
+          maxTicksLimit: 20,
+          font: {
+            size: 12
+          }
         }
       },
       y1: {
@@ -175,13 +167,20 @@ export default function SensorGraphDHT21() {
         title: {
           display: true,
           text: 'Температура (°C)',
-          color: 'rgba(255, 159, 67, 1)'
+          color: 'rgba(255, 99, 132, 1)',
+          font: {
+            size: 14,
+            weight: 'bold'
+          }
         },
         grid: {
           color: 'rgba(255, 255, 255, 0.1)'
         },
         ticks: {
-          color: 'rgba(255, 255, 255, 0.8)'
+          color: 'rgba(255, 255, 255, 0.8)',
+          font: {
+            size: 12
+          }
         }
       },
       y2: {
@@ -190,14 +189,21 @@ export default function SensorGraphDHT21() {
         position: 'right',
         title: {
           display: true,
-          text: 'Вологість (%)',
-          color: 'rgba(77, 171, 247, 1)'
+          text: 'Влажность (%)',
+          color: 'rgba(54, 162, 235, 1)',
+          font: {
+            size: 14,
+            weight: 'bold'
+          }
         },
         grid: {
           drawOnChartArea: false
         },
         ticks: {
-          color: 'rgba(255, 255, 255, 0.8)'
+          color: 'rgba(255, 255, 255, 0.8)',
+          font: {
+            size: 12
+          }
         }
       }
     },
@@ -207,7 +213,11 @@ export default function SensorGraphDHT21() {
         labels: {
           color: 'rgba(255, 255, 255, 0.8)',
           usePointStyle: true,
-          pointStyle: 'circle'
+          pointStyle: 'circle',
+          font: {
+            size: 12
+          },
+          padding: 20
         }
       },
       tooltip: {
@@ -217,7 +227,14 @@ export default function SensorGraphDHT21() {
         titleColor: 'rgba(255, 255, 255, 1)',
         bodyColor: 'rgba(255, 255, 255, 0.8)',
         borderColor: 'rgba(255, 255, 255, 0.1)',
-        borderWidth: 1
+        borderWidth: 1,
+        padding: 10,
+        titleFont: {
+          size: 14
+        },
+        bodyFont: {
+          size: 12
+        }
       }
     }
   };
@@ -259,13 +276,14 @@ export default function SensorGraphDHT21() {
           borderColor: COLORS[sensorId].temperature,
           backgroundColor: COLORS[sensorId].temperatureBg,
           yAxisID: 'y1',
-          tension: 0.4,
-          pointRadius: 2,
-          pointHoverRadius: 5,
+          tension: 0.3,
+          pointRadius: 3,
+          pointHoverRadius: 6,
+          borderWidth: 2,
           fill: true
         },
         {
-          label: `Вологість ${sensorId}`,
+          label: `Влажность ${sensorId}`,
           data: sensorData.map(point => ({
             x: point.timestamp,
             y: point.humidity
@@ -273,9 +291,10 @@ export default function SensorGraphDHT21() {
           borderColor: COLORS[sensorId].humidity,
           backgroundColor: COLORS[sensorId].humidityBg,
           yAxisID: 'y2',
-          tension: 0.4,
-          pointRadius: 2,
-          pointHoverRadius: 5,
+          tension: 0.3,
+          pointRadius: 3,
+          pointHoverRadius: 6,
+          borderWidth: 2,
           fill: true
         }
       ];
@@ -335,7 +354,7 @@ export default function SensorGraphDHT21() {
       {isLoading ? (
         <div className="text-center py-5">
           <div className="spinner-border" role="status">
-            <span className="visually-hidden">Loading...</span>
+            <span className="visually-hidden">Загрузка...</span>
           </div>
         </div>
       ) : (
@@ -350,12 +369,15 @@ export default function SensorGraphDHT21() {
           border-radius: 8px;
           padding: 20px;
           box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          overflow-x: auto;
+          min-width: 100%;
         }
 
         .graph-wrapper {
           height: 500px;
           position: relative;
           margin-top: 20px;
+          min-width: 1200px;
         }
 
         .form-select,
