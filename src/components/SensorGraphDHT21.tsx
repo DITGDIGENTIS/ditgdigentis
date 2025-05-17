@@ -82,7 +82,6 @@ export default function SensorGraphDHT21() {
     const fetchData = async () => {
       setIsLoading(prev => !data.length && prev);
       try {
-        // Calculate time range based on selected period
         const end = new Date();
         const start = new Date(end.getTime() - selectedPeriod.minutes * 60 * 1000);
 
@@ -90,7 +89,7 @@ export default function SensorGraphDHT21() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
             'Pragma': 'no-cache'
           },
           body: JSON.stringify({
@@ -109,10 +108,10 @@ export default function SensorGraphDHT21() {
         console.log("[fetchData] Historical data:", historicalData);
 
         // Получаем текущие данные
-        const liveResponse = await fetch("/api/humidity", { 
+        const liveResponse = await fetch("/api/humidity", {
           cache: "no-store",
           headers: {
-            'Cache-Control': 'no-cache',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
             'Pragma': 'no-cache'
           }
         });
@@ -163,7 +162,7 @@ export default function SensorGraphDHT21() {
           }
         });
 
-        setData(combinedData);
+        setData(combinedData.sort((a, b) => a.timestamp - b.timestamp));
         setLiveData(prev => ({
           ...prev,
           ...sensorData
@@ -176,13 +175,16 @@ export default function SensorGraphDHT21() {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, selectedPeriod.value === '1h' ? 1000 : 5000);
+    const interval = setInterval(fetchData, selectedPeriod.value === '1h' ? 3000 : 5000);
     return () => clearInterval(interval);
   }, [selectedPeriod]);
 
   const options: ChartOptions<'line'> = {
     responsive: true,
     maintainAspectRatio: false,
+    animation: {
+      duration: 0 // Отключаем анимацию для более стабильного отображения
+    },
     interaction: {
       mode: 'index',
       intersect: false,
@@ -207,28 +209,15 @@ export default function SensorGraphDHT21() {
         },
         grid: {
           color: 'rgba(255, 255, 255, 0.1)',
-          tickLength: 10,
           drawOnChartArea: true
         },
         ticks: {
           source: 'auto',
-          autoSkip: selectedPeriod.value !== '1h',
+          autoSkip: true,
           maxRotation: 0,
-          maxTicksLimit: selectedPeriod.value === '1h' ? 20 : 10,
+          maxTicksLimit: selectedPeriod.value === '1h' ? 10 : 8,
           font: {
-            size: 12,
-            weight: selectedPeriod.value === '1h' ? 'bold' : 'normal'
-          },
-          callback: function(this: any, value: any) {
-            const numValue = typeof value === 'string' ? parseInt(value, 10) : value;
-            if (!isNaN(numValue)) {
-              const date = new Date(numValue);
-              if (selectedPeriod.value === '1h') {
-                return format(date, 'HH:mm:ss');
-              }
-              return format(date, 'HH:mm');
-            }
-            return value;
+            size: 12
           }
         }
       },
@@ -407,14 +396,11 @@ export default function SensorGraphDHT21() {
           borderColor: COLORS[sensorId].temperature,
           backgroundColor: COLORS[sensorId].temperatureBg,
           yAxisID: 'y1',
-          tension: 0.3,
+          tension: 0.1,
           pointRadius: 0,
-          pointHoverRadius: 4,
-          pointHoverBackgroundColor: COLORS[sensorId].temperature,
-          pointHoverBorderColor: '#fff',
-          pointHoverBorderWidth: 2,
           borderWidth: 2,
-          fill: true
+          fill: true,
+          spanGaps: true
         },
         {
           label: `Влажность ${sensorId}`,
@@ -425,14 +411,11 @@ export default function SensorGraphDHT21() {
           borderColor: COLORS[sensorId].humidity,
           backgroundColor: COLORS[sensorId].humidityBg,
           yAxisID: 'y2',
-          tension: 0.3,
+          tension: 0.1,
           pointRadius: 0,
-          pointHoverRadius: 4,
-          pointHoverBackgroundColor: COLORS[sensorId].humidity,
-          pointHoverBorderColor: '#fff',
-          pointHoverBorderWidth: 2,
           borderWidth: 2,
-          fill: true
+          fill: true,
+          spanGaps: true
         }
       ];
     })
