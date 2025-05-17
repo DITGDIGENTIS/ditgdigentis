@@ -82,13 +82,7 @@ export default function SensorGraphDHT21() {
     const fetchData = async () => {
       try {
         const end = new Date();
-        const start = new Date(end.getTime() - selectedPeriod.minutes * 60 * 1000);
-
-        console.log("[fetchData] Requesting data for period:", {
-          start: start.toISOString(),
-          end: end.toISOString(),
-          period: selectedPeriod.value
-        });
+        const start = new Date(end.getTime() - 60 * 60 * 1000); // Всегда 1 час
 
         const historyResponse = await fetch('/api/humidity-records', {
           method: 'POST',
@@ -111,7 +105,6 @@ export default function SensorGraphDHT21() {
         }
 
         const historicalData = await historyResponse.json();
-        console.log("[fetchData] Historical data:", historicalData);
 
         if (!Array.isArray(historicalData)) {
           console.error('Invalid historical data format:', historicalData);
@@ -156,12 +149,8 @@ export default function SensorGraphDHT21() {
           }
         });
 
-        // Объединяем исторические данные с текущей точкой
         const combinedData = [...historicalData];
-        
-        // Добавляем только самые свежие текущие данные
         livePoints.forEach(livePoint => {
-          // Проверяем, что точка новее последней исторической и входит в выбранный диапазон
           const lastHistorical = historicalData[historicalData.length - 1];
           if ((!lastHistorical || livePoint.timestamp > lastHistorical.timestamp) &&
               livePoint.timestamp >= start.getTime() &&
@@ -170,7 +159,7 @@ export default function SensorGraphDHT21() {
           }
         });
 
-        setData(combinedData.sort((a, b) => a.timestamp - b.timestamp));
+        setData(combinedData);
         setLiveData(prev => ({
           ...prev,
           ...sensorData
@@ -183,16 +172,14 @@ export default function SensorGraphDHT21() {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, selectedPeriod.value === '1h' ? 3000 : 5000);
+    const interval = setInterval(fetchData, 3000);
     return () => clearInterval(interval);
-  }, [selectedPeriod]);
+  }, []); // Убрали зависимость от selectedPeriod, так как теперь всегда показываем 1 час
 
   const options: ChartOptions<'line'> = {
     responsive: true,
     maintainAspectRatio: false,
-    animation: {
-      duration: 0
-    },
+    animation: false,
     interaction: {
       mode: 'index',
       intersect: false,
@@ -206,14 +193,12 @@ export default function SensorGraphDHT21() {
         type: 'time',
         position: 'bottom',
         time: {
-          unit: selectedPeriod.intervalUnit,
+          unit: 'minute',
           displayFormats: {
-            second: 'HH:mm:ss',
             minute: 'HH:mm',
-            hour: 'HH:mm',
-            day: 'DD.MM'
+            hour: 'HH:mm'
           },
-          tooltipFormat: selectedPeriod.value === '1h' ? 'HH:mm:ss' : 'dd.MM.yyyy HH:mm'
+          tooltipFormat: 'HH:mm:ss'
         },
         grid: {
           color: 'rgba(255, 255, 255, 0.1)',
@@ -221,12 +206,11 @@ export default function SensorGraphDHT21() {
         },
         ticks: {
           source: 'auto',
-          autoSkip: selectedPeriod.value !== '1h',
+          autoSkip: true,
           maxRotation: 0,
-          maxTicksLimit: selectedPeriod.value === '1h' ? 10 : 8,
+          maxTicksLimit: 12,
           font: {
-            size: 12,
-            weight: selectedPeriod.value === '1h' ? 'bold' : 'normal'
+            size: 12
           }
         }
       },
@@ -234,7 +218,8 @@ export default function SensorGraphDHT21() {
         type: 'linear',
         display: true,
         position: 'left',
-        beginAtZero: false,
+        min: 0,
+        max: 50,
         grid: {
           color: 'rgba(255, 214, 2, 0.1)'
         },
@@ -253,7 +238,8 @@ export default function SensorGraphDHT21() {
         type: 'linear',
         display: true,
         position: 'right',
-        beginAtZero: false,
+        min: 0,
+        max: 100,
         grid: {
           drawOnChartArea: false,
           color: 'rgba(68, 192, 255, 0.1)'
@@ -302,23 +288,7 @@ export default function SensorGraphDHT21() {
         bodyFont: {
           size: 13
         },
-        displayColors: true,
-        callbacks: {
-          title: (tooltipItems) => {
-            const item = tooltipItems[0];
-            if (!item) return '';
-            const date = new Date(item.parsed.x);
-            return format(date, 'dd.MM.yyyy HH:mm', { locale: uk });
-          },
-          label: (context) => {
-            const label = context.dataset.label || '';
-            const value = context.parsed.y;
-            if (label.includes('Температура')) {
-              return `${label}: ${value.toFixed(1)}°C`;
-            }
-            return `${label}: ${value.toFixed(1)}%`;
-          }
-        }
+        displayColors: true
       }
     }
   };
@@ -407,7 +377,7 @@ export default function SensorGraphDHT21() {
           pointRadius: 0,
           borderWidth: 2,
           fill: true,
-          spanGaps: true
+          spanGaps: false
         },
         {
           label: `Влажность ${sensorId}`,
@@ -422,7 +392,7 @@ export default function SensorGraphDHT21() {
           pointRadius: 0,
           borderWidth: 2,
           fill: true,
-          spanGaps: true
+          spanGaps: false
         }
       ];
     })
