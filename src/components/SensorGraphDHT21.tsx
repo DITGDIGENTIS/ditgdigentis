@@ -211,11 +211,12 @@ const SensorGraphDHT21 = () => {
         borderColor: COLORS["HUM1-1"].temperature,
         backgroundColor: COLORS["HUM1-1"].temperatureBg,
         yAxisID: 'y1',
-        pointRadius: 0.5,
-        borderWidth: 1.5,
+        pointRadius: selectedPeriod.hours <= 1 ? 2 : 0.5,
+        borderWidth: selectedPeriod.hours <= 1 ? 2 : 1.5,
         fill: true,
-        tension: 0.1,
-        spanGaps: true
+        tension: 0.3,
+        spanGaps: true,
+        cubicInterpolationMode: 'monotone' as const
       },
       {
         label: 'Влажность',
@@ -226,14 +227,15 @@ const SensorGraphDHT21 = () => {
         borderColor: COLORS["HUM1-1"].humidity,
         backgroundColor: COLORS["HUM1-1"].humidityBg,
         yAxisID: 'y2',
-        pointRadius: 0.5,
-        borderWidth: 1.5,
+        pointRadius: selectedPeriod.hours <= 1 ? 2 : 0.5,
+        borderWidth: selectedPeriod.hours <= 1 ? 2 : 1.5,
         fill: true,
-        tension: 0.1,
-        spanGaps: true
+        tension: 0.3,
+        spanGaps: true,
+        cubicInterpolationMode: 'monotone' as const
       }
     ]
-  }), [data]);
+  }), [data, selectedPeriod.hours]);
 
   const options: ChartOptions<'line'> = useMemo(() => ({
     responsive: true,
@@ -254,9 +256,9 @@ const SensorGraphDHT21 = () => {
     layout: {
       padding: {
         top: 20,
-        right: 20,
+        right: 25,
         bottom: 10,
-        left: 20
+        left: 25
       }
     },
     scales: {
@@ -296,38 +298,14 @@ const SensorGraphDHT21 = () => {
         ticks: {
           maxRotation: 0,
           autoSkip: true,
-          maxTicksLimit: selectedPeriod.hours <= 1 ? 12 : 
+          maxTicksLimit: selectedPeriod.hours <= 1 ? 6 : 
                         selectedPeriod.hours <= 12 ? 12 :
                         selectedPeriod.hours <= 24 ? 12 : 8,
           font: {
-            size: 11
+            size: 10
           },
           padding: 8,
-          callback: function(value) {
-            const date = new Date(value);
-            const minutes = date.getMinutes();
-            const hours = date.getHours();
-
-            if (selectedPeriod.hours <= 1) {
-              // Для часа - каждые 5 минут
-              return minutes % 5 === 0 ? format(date, 'HH:mm') : '';
-            } else if (selectedPeriod.hours <= 12) {
-              // Для 12 часов - каждый час
-              return minutes === 0 ? format(date, 'HH:mm') : '';
-            } else if (selectedPeriod.hours <= 24) {
-              // Для суток - каждые 2 часа
-              return minutes === 0 && hours % 2 === 0 ? format(date, 'HH:mm') : '';
-            } else if (selectedPeriod.hours <= 24 * 7) {
-              // Для недели - каждый день
-              return hours === 0 ? format(date, 'dd.MM') : '';
-            } else if (selectedPeriod.hours <= 24 * 30) {
-              // Для месяца - каждые 3 дня
-              return hours === 0 && date.getDate() % 3 === 0 ? format(date, 'dd.MM') : '';
-            } else {
-              // Для года - каждый месяц
-              return hours === 0 && date.getDate() === 1 ? format(date, 'MM.yyyy') : '';
-            }
-          }
+          color: 'rgba(255, 255, 255, 0.8)'
         }
       },
       y1: {
@@ -350,7 +328,7 @@ const SensorGraphDHT21 = () => {
         ticks: {
           color: '#ffd602',
           font: {
-            size: 11,
+            size: 10,
             weight: 'bold'
           },
           padding: 8,
@@ -380,7 +358,7 @@ const SensorGraphDHT21 = () => {
         ticks: {
           color: '#44c0ff',
           font: {
-            size: 11,
+            size: 10,
             weight: 'bold'
           },
           padding: 8,
@@ -418,6 +396,7 @@ const SensorGraphDHT21 = () => {
       legend: {
         display: true,
         position: 'top',
+        align: 'center',
         labels: {
           color: 'rgba(255, 255, 255, 0.8)',
           font: {
@@ -426,7 +405,9 @@ const SensorGraphDHT21 = () => {
           },
           usePointStyle: true,
           pointStyle: 'circle',
-          padding: 15
+          padding: 15,
+          boxWidth: 10,
+          boxHeight: 10
         }
       }
     }
@@ -434,10 +415,10 @@ const SensorGraphDHT21 = () => {
 
   return (
     <div className="w-full space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-white">График температуры и влажности</h2>
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-0">
+        <h2 className="text-xl font-semibold text-white text-center sm:text-left">График температуры и влажности</h2>
         <select
-          className="bg-black/20 text-white border border-white/20 rounded px-3 py-1"
+          className="w-full sm:w-auto bg-black/20 text-white border border-white/20 rounded px-3 py-2"
           value={selectedPeriod.value}
           onChange={(e) => {
             const period = PERIOD_OPTIONS.find(p => p.value === e.target.value);
@@ -452,23 +433,25 @@ const SensorGraphDHT21 = () => {
         </select>
       </div>
 
-      <div className="w-full h-[600px] bg-black/20 rounded-lg p-6 overflow-x-auto">
-        <div className="min-w-[1200px] h-full">
-          {isLoading ? (
-            <div className="w-full h-full flex items-center justify-center">
-              <span className="text-white">Загрузка данных...</span>
-            </div>
-          ) : error ? (
-            <div className="w-full h-full flex items-center justify-center">
-              <span className="text-red-500">{error}</span>
-            </div>
-          ) : data.length === 0 ? (
-            <div className="w-full h-full flex items-center justify-center">
-              <span className="text-white">Нет данных за выбранный период</span>
-            </div>
-          ) : (
-            <Line data={chartData} options={options} ref={chartRef} />
-          )}
+      <div className="w-full h-screen sm:h-[600px] bg-black/20 rounded-lg p-3 sm:p-6 overflow-hidden">
+        <div className="w-full h-full overflow-x-auto overflow-y-hidden">
+          <div className="min-w-[800px] sm:min-w-[1200px] h-full">
+            {isLoading ? (
+              <div className="w-full h-full flex items-center justify-center">
+                <span className="text-white">Загрузка данных...</span>
+              </div>
+            ) : error ? (
+              <div className="w-full h-full flex items-center justify-center">
+                <span className="text-red-500">{error}</span>
+              </div>
+            ) : data.length === 0 ? (
+              <div className="w-full h-full flex items-center justify-center">
+                <span className="text-white">Нет данных за выбранный период</span>
+              </div>
+            ) : (
+              <Line data={chartData} options={options} ref={chartRef} />
+            )}
+          </div>
         </div>
       </div>
     </div>
