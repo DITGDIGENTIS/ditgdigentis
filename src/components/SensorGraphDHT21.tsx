@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
-import _ from 'lodash';
+import React, { useEffect, useState, useMemo } from 'react';
 
 interface SensorPoint {
   sensor_id: string;
@@ -12,13 +11,6 @@ interface SensorPoint {
 
 const SENSOR_IDS = ["HUM1-1", "HUM1-2"] as const;
 type SensorId = (typeof SENSOR_IDS)[number];
-
-const COLORS = {
-  "HUM1-1_humidity": "#4dabf7",
-  "HUM1-1_temperature": "#ffa500",
-  "HUM1-2_humidity": "#339af0",
-  "HUM1-2_temperature": "#ff6b6b"
-} as const;
 
 interface PeriodOption {
   label: string;
@@ -37,7 +29,74 @@ const PERIOD_OPTIONS: PeriodOption[] = [
   { label: "1 рік", value: "1y", minutes: 525600, interval: 1, intervalUnit: 'days' }
 ];
 
+type SensorColors = {
+  humidity: string;
+  temperature: string;
+};
+
+const COLORS = {
+  grid: '#f0f0f0',
+  axis: '#666',
+  text: '#333',
+  tooltip: {
+    bg: 'rgba(255, 255, 255, 0.95)',
+    border: '#ccc',
+    text: '#333'
+  },
+  "HUM1-1": {
+    humidity: "#4dabf7",
+    temperature: "#ff9f43"
+  } as SensorColors,
+  "HUM1-2": {
+    humidity: "#339af0",
+    temperature: "#ff6b6b"
+  } as SensorColors
+} as const;
+
+type ColorType = typeof COLORS;
+type SensorColorKey = keyof ColorType;
+
+// Создаем моковые данные для тестирования
+const generateMockData = (period: PeriodOption): SensorPoint[] => {
+  const points: SensorPoint[] = [];
+  const startDate = new Date();
+  startDate.setHours(0, 0, 0, 0);
+  
+  let currentDate = new Date(startDate);
+  const endDate = new Date(startDate);
+  endDate.setMinutes(endDate.getMinutes() + period.minutes);
+
+  while (currentDate < endDate) {
+    SENSOR_IDS.forEach(sensorId => {
+      points.push({
+        sensor_id: sensorId,
+        timestamp: currentDate.getTime(),
+        temperature: 20 + Math.random() * 10,
+        humidity: 40 + Math.random() * 30
+      });
+    });
+
+    switch (period.intervalUnit) {
+      case 'seconds':
+        currentDate.setSeconds(currentDate.getSeconds() + period.interval);
+        break;
+      case 'minutes':
+        currentDate.setMinutes(currentDate.getMinutes() + period.interval);
+        break;
+      case 'hours':
+        currentDate.setHours(currentDate.getHours() + period.interval);
+        break;
+      case 'days':
+        currentDate.setDate(currentDate.getDate() + period.interval);
+        break;
+    }
+  }
+
+  return points;
+};
+
 export default function SensorGraphDHT21() {
+  // Состояния
   const [data, setData] = useState<SensorPoint[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodOption>(PERIOD_OPTIONS[0]);
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
@@ -46,22 +105,24 @@ export default function SensorGraphDHT21() {
   const [hoveredPoint, setHoveredPoint] = useState<{
     x: number;
     y: number;
-    values: {
-      sensorId: string;
-      humidity: number;
-      temperature: number;
-      timestamp: number;
-    };
+    sensorId: string;
+    humidity: number;
+    temperature: number;
+    timestamp: number;
   } | null>(null);
+  const [dimensions, setDimensions] = useState({
+    width: 1200,
+    height: 600,
+    padding: { top: 40, right: 80, bottom: 60, left: 80 }
+  });
 
-  // SVG dimensions and padding
-  const width = 1200;
-  const height = 600;
-  const padding = { top: 40, right: 60, bottom: 60, left: 60 };
-  const graphWidth = width - padding.left - padding.right;
-  const graphHeight = height - padding.top - padding.bottom;
+  // Вычисляем размеры графика
+  const { graphWidth, graphHeight } = useMemo(() => ({
+    graphWidth: dimensions.width - dimensions.padding.left - dimensions.padding.right,
+    graphHeight: dimensions.height - dimensions.padding.top - dimensions.padding.bottom
+  }), [dimensions]);
 
-  // Format time based on selected period
+  // Форматирование времени
   const formatTime = (timestamp: number): string => {
     const date = new Date(timestamp);
     
@@ -88,15 +149,15 @@ export default function SensorGraphDHT21() {
     }
   };
 
-  // Generate time points based on selected period
-  const getTimePoints = (): Date[] => {
+  // Получаем временные точки
+  const getTimePoints = useMemo(() => {
+    const points: Date[] = [];
     const startDate = new Date(selectedDate);
     startDate.setHours(0, 0, 0, 0);
     
     const endDate = new Date(startDate);
     endDate.setMinutes(endDate.getMinutes() + selectedPeriod.minutes);
 
-    const points: Date[] = [];
     let currentDate = new Date(startDate);
 
     while (currentDate < endDate) {
@@ -119,27 +180,23 @@ export default function SensorGraphDHT21() {
     }
 
     return points;
-  };
+  }, [selectedDate, selectedPeriod]);
 
-  // Calculate scales for both humidity and temperature
-  const getScales = () => {
+  // Вычисляем масштабы для осей
+  const scales = useMemo(() => {
     if (!data.length) return null;
 
-    const humidityValues: number[] = [];
-    const temperatureValues: number[] = [];
-
-    data.forEach(point => {
-      if (selectedSensors.includes(point.sensor_id)) {
-        humidityValues.push(point.humidity);
-        temperatureValues.push(point.temperature);
-      }
-    });
+    const filteredData = data.filter(point => selectedSensors.includes(point.sensor_id));
+    
+    const humidityValues = filteredData.map(d => d.humidity);
+    const temperatureValues = filteredData.map(d => d.temperature);
 
     const humidityMin = Math.min(...humidityValues);
     const humidityMax = Math.max(...humidityValues);
     const tempMin = Math.min(...temperatureValues);
     const tempMax = Math.max(...temperatureValues);
 
+    // Добавляем отступы для лучшей визуализации
     const humidityPadding = (humidityMax - humidityMin) * 0.1;
     const tempPadding = (tempMax - tempMin) * 0.1;
 
@@ -151,253 +208,298 @@ export default function SensorGraphDHT21() {
       temperature: {
         min: tempMin - tempPadding,
         max: tempMax + tempPadding
+      },
+      time: {
+        min: getTimePoints[0].getTime(),
+        max: getTimePoints[getTimePoints.length - 1].getTime()
       }
     };
-  };
+  }, [data, selectedSensors, getTimePoints]);
 
-  // Calculate point coordinates
-  const getPointCoordinates = (point: SensorPoint, scales: ReturnType<typeof getScales>) => {
-    if (!scales) return null;
-
-    const timePoints = getTimePoints();
-    const xScale = graphWidth / (timePoints.length - 1);
-    
-    const pointTime = new Date(point.timestamp);
-    const timeIndex = timePoints.findIndex(time => {
-      const diff = Math.abs(time.getTime() - pointTime.getTime());
-      const threshold = selectedPeriod.interval * 
-        (selectedPeriod.intervalUnit === 'seconds' ? 1000 : 
-         selectedPeriod.intervalUnit === 'minutes' ? 60000 :
-         selectedPeriod.intervalUnit === 'hours' ? 3600000 : 86400000);
-      return diff < threshold;
-    });
-
-    if (timeIndex === -1) return null;
-
-    const x = padding.left + timeIndex * xScale;
-    
-    const humidityY = padding.top + (scales.humidity.max - point.humidity) / 
-      (scales.humidity.max - scales.humidity.min) * graphHeight;
-    
-    const temperatureY = padding.top + (scales.temperature.max - point.temperature) / 
-      (scales.temperature.max - scales.temperature.min) * graphHeight;
-
-    return { x, humidityY, temperatureY };
-  };
-
-  // Generate axis ticks
-  const generateTicks = (min: number, max: number, count: number = 5): number[] => {
+  // Генерация делений для осей
+  const generateTicks = (min: number, max: number, count: number = 6): number[] => {
     const step = (max - min) / (count - 1);
     return Array.from({ length: count }, (_, i) => min + step * i);
   };
 
-  // Render tooltip
-  const renderTooltip = () => {
-    if (!hoveredPoint) return null;
-
-    const { x, y, values } = hoveredPoint;
-    const tooltipX = x + 10;
-    const tooltipY = y - 10;
-
-    return (
-      <g className="tooltip" transform={`translate(${tooltipX},${tooltipY})`}>
-        <rect
-          x={0}
-          y={0}
-          width={200}
-          height={80}
-          fill="white"
-          stroke="#ccc"
-          rx={4}
-        />
-        <text x={10} y={20} fill="black" fontSize={12}>
-          {`Сенсор: ${values.sensorId}`}
-        </text>
-        <text x={10} y={40} fill="black" fontSize={12}>
-          {`Вологість: ${values.humidity.toFixed(1)}%`}
-        </text>
-        <text x={10} y={60} fill="black" fontSize={12}>
-          {`Температура: ${values.temperature.toFixed(1)}°C`}
-        </text>
-      </g>
-    );
-  };
-
-  // Render the main SVG
-  const renderSVG = () => {
-    const scales = getScales();
+  // Рендер осей и сетки
+  const renderAxes = () => {
     if (!scales) return null;
 
-    const timePoints = getTimePoints();
-    const xScale = graphWidth / (timePoints.length - 1);
-
-    // Generate ticks for both axes
     const humidityTicks = generateTicks(scales.humidity.min, scales.humidity.max);
     const temperatureTicks = generateTicks(scales.temperature.min, scales.temperature.max);
-    const timeTicks = timePoints.filter((_, i) => i % Math.max(1, Math.floor(timePoints.length / 10)) === 0);
+    const timeTicks = getTimePoints.filter((_, i) => 
+      i % Math.max(1, Math.floor(getTimePoints.length / 10)) === 0
+    );
 
     return (
-      <svg width={width} height={height} className="sensor-graph">
-        {/* Grid lines */}
-        <g className="grid-lines">
+      <g className="axes">
+        {/* Сетка */}
+        <g className="grid">
           {humidityTicks.map((tick, i) => (
             <line
               key={`grid-h-${i}`}
-              x1={padding.left}
-              y1={padding.top + (scales.humidity.max - tick) / (scales.humidity.max - scales.humidity.min) * graphHeight}
-              x2={width - padding.right}
-              y2={padding.top + (scales.humidity.max - tick) / (scales.humidity.max - scales.humidity.min) * graphHeight}
-              stroke="#eee"
+              x1={dimensions.padding.left}
+              y1={dimensions.padding.top + (scales.humidity.max - tick) / (scales.humidity.max - scales.humidity.min) * graphHeight}
+              x2={dimensions.width - dimensions.padding.right}
+              y2={dimensions.padding.top + (scales.humidity.max - tick) / (scales.humidity.max - scales.humidity.min) * graphHeight}
+              stroke={COLORS.grid}
               strokeWidth="1"
+              strokeDasharray="4,4"
             />
           ))}
         </g>
 
-        {/* Axis labels */}
+        {/* Оси */}
+        <g className="axis-lines">
+          {/* Ось Y (влажность) */}
+          <line
+            x1={dimensions.padding.left}
+            y1={dimensions.padding.top}
+            x2={dimensions.padding.left}
+            y2={dimensions.height - dimensions.padding.bottom}
+            stroke={COLORS.axis}
+            strokeWidth="2"
+          />
+          {/* Ось Y (температура) */}
+          <line
+            x1={dimensions.width - dimensions.padding.right}
+            y1={dimensions.padding.top}
+            x2={dimensions.width - dimensions.padding.right}
+            y2={dimensions.height - dimensions.padding.bottom}
+            stroke={COLORS.axis}
+            strokeWidth="2"
+          />
+          {/* Ось X */}
+          <line
+            x1={dimensions.padding.left}
+            y1={dimensions.height - dimensions.padding.bottom}
+            x2={dimensions.width - dimensions.padding.right}
+            y2={dimensions.height - dimensions.padding.bottom}
+            stroke={COLORS.axis}
+            strokeWidth="2"
+          />
+        </g>
+
+        {/* Подписи */}
         <g className="axis-labels">
-          {/* Y-axis labels (humidity) */}
+          {/* Подписи влажности */}
           {humidityTicks.map((tick, i) => (
             <text
-              key={`label-h-${i}`}
-              x={padding.left - 10}
-              y={padding.top + (scales.humidity.max - tick) / (scales.humidity.max - scales.humidity.min) * graphHeight}
+              key={`humidity-${i}`}
+              x={dimensions.padding.left - 10}
+              y={dimensions.padding.top + (scales.humidity.max - tick) / (scales.humidity.max - scales.humidity.min) * graphHeight}
               textAnchor="end"
               alignmentBaseline="middle"
-              fontSize={12}
-              fill="#666"
+              fill={COLORS.text}
+              fontSize="12"
             >
               {tick.toFixed(1)}%
             </text>
           ))}
-
-          {/* Y-axis labels (temperature) */}
+          
+          {/* Подписи температуры */}
           {temperatureTicks.map((tick, i) => (
             <text
-              key={`label-t-${i}`}
-              x={width - padding.right + 10}
-              y={padding.top + (scales.temperature.max - tick) / (scales.temperature.max - scales.temperature.min) * graphHeight}
+              key={`temp-${i}`}
+              x={dimensions.width - dimensions.padding.right + 10}
+              y={dimensions.padding.top + (scales.temperature.max - tick) / (scales.temperature.max - scales.temperature.min) * graphHeight}
               textAnchor="start"
               alignmentBaseline="middle"
-              fontSize={12}
-              fill="#666"
+              fill={COLORS.text}
+              fontSize="12"
             >
               {tick.toFixed(1)}°C
             </text>
           ))}
 
-          {/* X-axis labels */}
+          {/* Подписи времени */}
           {timeTicks.map((time, i) => (
             <text
-              key={`label-x-${i}`}
-              x={padding.left + (i * (graphWidth / (timeTicks.length - 1)))}
-              y={height - padding.bottom + 20}
+              key={`time-${i}`}
+              x={dimensions.padding.left + (i * graphWidth / (timeTicks.length - 1))}
+              y={dimensions.height - dimensions.padding.bottom + 25}
               textAnchor="middle"
-              fontSize={12}
-              fill="#666"
-              transform={`rotate(-45 ${padding.left + (i * (graphWidth / (timeTicks.length - 1)))} ${height - padding.bottom + 20})`}
+              fill={COLORS.text}
+              fontSize="12"
+              transform={`rotate(-45 ${dimensions.padding.left + (i * graphWidth / (timeTicks.length - 1))} ${dimensions.height - dimensions.padding.bottom + 25})`}
             >
               {formatTime(time.getTime())}
             </text>
           ))}
         </g>
 
-        {/* Data lines and points */}
-        {selectedSensors.map(sensorId => {
-          const sensorData = data.filter(point => point.sensor_id === sensorId);
-          const points = sensorData
-            .map(point => getPointCoordinates(point, scales))
-            .filter((p): p is NonNullable<typeof p> => p !== null);
-
-          if (points.length < 2) return null;
-
-          return (
-            <g key={sensorId} className="sensor-lines">
-              {/* Humidity line */}
-              <path
-                d={`M ${points.map(p => `${p.x},${p.humidityY}`).join(' L ')}`}
-                stroke={COLORS[`${sensorId}_humidity` as keyof typeof COLORS]}
-                strokeWidth="2"
-                fill="none"
-              />
-              {/* Temperature line */}
-              <path
-                d={`M ${points.map(p => `${p.x},${p.temperatureY}`).join(' L ')}`}
-                stroke={COLORS[`${sensorId}_temperature` as keyof typeof COLORS]}
-                strokeWidth="2"
-                fill="none"
-              />
-              {/* Interactive points */}
-              {points.map((point, index) => {
-                const originalData = sensorData[index];
-                return (
-                  <g key={`points-${index}`}>
-                    <circle
-                      cx={point.x}
-                      cy={point.humidityY}
-                      r="4"
-                      fill={COLORS[`${sensorId}_humidity` as keyof typeof COLORS]}
-                      opacity="0"
-                      onMouseEnter={() => setHoveredPoint({
-                        x: point.x,
-                        y: point.humidityY,
-                        values: {
-                          sensorId,
-                          humidity: originalData.humidity,
-                          temperature: originalData.temperature,
-                          timestamp: originalData.timestamp
-                        }
-                      })}
-                      onMouseLeave={() => setHoveredPoint(null)}
-                    />
-                    <circle
-                      cx={point.x}
-                      cy={point.temperatureY}
-                      r="4"
-                      fill={COLORS[`${sensorId}_temperature` as keyof typeof COLORS]}
-                      opacity="0"
-                      onMouseEnter={() => setHoveredPoint({
-                        x: point.x,
-                        y: point.temperatureY,
-                        values: {
-                          sensorId,
-                          humidity: originalData.humidity,
-                          temperature: originalData.temperature,
-                          timestamp: originalData.timestamp
-                        }
-                      })}
-                      onMouseLeave={() => setHoveredPoint(null)}
-                    />
-                  </g>
-                );
-              })}
-            </g>
-          );
-        })}
-
-        {/* Tooltip */}
-        {renderTooltip()}
-      </svg>
+        {/* Названия осей */}
+        <text
+          x={-dimensions.height / 2}
+          y={dimensions.padding.left / 3}
+          transform="rotate(-90)"
+          textAnchor="middle"
+          fill={COLORS.text}
+          fontSize="14"
+        >
+          Вологість (%)
+        </text>
+        <text
+          x={dimensions.height / 2}
+          y={dimensions.width - dimensions.padding.right / 3}
+          transform="rotate(90)"
+          textAnchor="middle"
+          fill={COLORS.text}
+          fontSize="14"
+        >
+          Температура (°C)
+        </text>
+      </g>
     );
   };
 
-  // Export data to CSV
-  const exportToCSV = (sensorId: string) => {
-    const sensorData = data.filter(point => point.sensor_id === sensorId);
-    const csvContent = [
-      "Timestamp,Humidity,Temperature",
-      ...sensorData.map(point => 
-        `${new Date(point.timestamp).toISOString()},${point.humidity},${point.temperature}`
-      )
-    ].join('\n');
+  // Рендер линий данных
+  const renderDataLines = () => {
+    if (!scales) return null;
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `sensor_${sensorId}_${selectedDate}.csv`;
-    link.click();
+    return selectedSensors.map(sensorId => {
+      const sensorData = data.filter(point => point.sensor_id === sensorId);
+      
+      // Преобразуем точки в координаты SVG
+      const points = sensorData.map(point => {
+        const x = dimensions.padding.left + 
+          ((point.timestamp - scales.time.min) / (scales.time.max - scales.time.min)) * graphWidth;
+        
+        const humidityY = dimensions.padding.top + 
+          ((scales.humidity.max - point.humidity) / (scales.humidity.max - scales.humidity.min)) * graphHeight;
+        
+        const temperatureY = dimensions.padding.top + 
+          ((scales.temperature.max - point.temperature) / (scales.temperature.max - scales.temperature.min)) * graphHeight;
+
+        return { x, humidityY, temperatureY, ...point };
+      });
+
+      if (points.length < 2) return null;
+
+      const sensorColors = COLORS[sensorId as keyof typeof COLORS] as SensorColors;
+
+      return (
+        <g key={sensorId} className="sensor-data">
+          {/* Линия влажности */}
+          <path
+            d={`M ${points.map(p => `${p.x},${p.humidityY}`).join(' L ')}`}
+            stroke={sensorColors.humidity}
+            strokeWidth="2"
+            fill="none"
+          />
+          
+          {/* Линия температуры */}
+          <path
+            d={`M ${points.map(p => `${p.x},${p.temperatureY}`).join(' L ')}`}
+            stroke={sensorColors.temperature}
+            strokeWidth="2"
+            fill="none"
+          />
+
+          {/* Точки и интерактивные области */}
+          {points.map((point, index) => (
+            <g key={`points-${index}`}>
+              {/* Точка влажности */}
+              <circle
+                cx={point.x}
+                cy={point.humidityY}
+                r="4"
+                fill={sensorColors.humidity}
+              />
+              <circle
+                cx={point.x}
+                cy={point.humidityY}
+                r="8"
+                fill="transparent"
+                onMouseEnter={() => setHoveredPoint({
+                  x: point.x,
+                  y: point.humidityY,
+                  sensorId,
+                  humidity: point.humidity,
+                  temperature: point.temperature,
+                  timestamp: point.timestamp
+                })}
+                onMouseLeave={() => setHoveredPoint(null)}
+              />
+
+              {/* Точка температуры */}
+              <circle
+                cx={point.x}
+                cy={point.temperatureY}
+                r="4"
+                fill={sensorColors.temperature}
+              />
+              <circle
+                cx={point.x}
+                cy={point.temperatureY}
+                r="8"
+                fill="transparent"
+                onMouseEnter={() => setHoveredPoint({
+                  x: point.x,
+                  y: point.temperatureY,
+                  sensorId,
+                  humidity: point.humidity,
+                  temperature: point.temperature,
+                  timestamp: point.timestamp
+                })}
+                onMouseLeave={() => setHoveredPoint(null)}
+              />
+            </g>
+          ))}
+        </g>
+      );
+    });
   };
 
-  // Fetch data from API
+  // Рендер тултипа
+  const renderTooltip = () => {
+    if (!hoveredPoint) return null;
+
+    const tooltipWidth = 200;
+    const tooltipHeight = 80;
+    const tooltipPadding = 10;
+
+    // Корректируем позицию тултипа, чтобы он не выходил за границы SVG
+    let tooltipX = hoveredPoint.x + 10;
+    let tooltipY = hoveredPoint.y - tooltipHeight - 10;
+
+    if (tooltipX + tooltipWidth > dimensions.width - dimensions.padding.right) {
+      tooltipX = hoveredPoint.x - tooltipWidth - 10;
+    }
+
+    if (tooltipY < dimensions.padding.top) {
+      tooltipY = hoveredPoint.y + 10;
+    }
+
+    return (
+      <g className="tooltip" transform={`translate(${tooltipX},${tooltipY})`}>
+        <rect
+          x={0}
+          y={0}
+          width={tooltipWidth}
+          height={tooltipHeight}
+          fill={COLORS.tooltip.bg}
+          stroke={COLORS.tooltip.border}
+          rx={4}
+        />
+        <text x={tooltipPadding} y={tooltipPadding * 2} fill={COLORS.tooltip.text} fontSize="12">
+          {`Сенсор: ${hoveredPoint.sensorId}`}
+        </text>
+        <text x={tooltipPadding} y={tooltipPadding * 3.5} fill={COLORS.tooltip.text} fontSize="12">
+          {`Вологість: ${hoveredPoint.humidity.toFixed(1)}%`}
+        </text>
+        <text x={tooltipPadding} y={tooltipPadding * 5} fill={COLORS.tooltip.text} fontSize="12">
+          {`Температура: ${hoveredPoint.temperature.toFixed(1)}°C`}
+        </text>
+        <text x={tooltipPadding} y={tooltipPadding * 6.5} fill={COLORS.tooltip.text} fontSize="12">
+          {formatTime(hoveredPoint.timestamp)}
+        </text>
+      </g>
+    );
+  };
+
+  // Эффект для загрузки данных
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
@@ -408,8 +510,12 @@ export default function SensorGraphDHT21() {
         const endDate = new Date(startDate);
         endDate.setMinutes(endDate.getMinutes() + selectedPeriod.minutes);
 
-        const response = await fetch(`/api/sensor-data?start=${startDate.toISOString()}&end=${endDate.toISOString()}&interval=${selectedPeriod.interval}&intervalUnit=${selectedPeriod.intervalUnit}`);
-        const newData = await response.json();
+        // В реальном приложении здесь был бы запрос к API
+        // const response = await fetch(`/api/sensor-data?start=${startDate.toISOString()}&end=${endDate.toISOString()}&interval=${selectedPeriod.interval}&intervalUnit=${selectedPeriod.intervalUnit}`);
+        // const newData = await response.json();
+        
+        // Пока используем моковые данные
+        const newData = generateMockData(selectedPeriod);
         setData(newData);
       } catch (error) {
         console.error('Error fetching sensor data:', error);
@@ -420,6 +526,26 @@ export default function SensorGraphDHT21() {
 
     fetchData();
   }, [selectedDate, selectedPeriod]);
+
+  // Эффект для адаптивности
+  useEffect(() => {
+    const handleResize = () => {
+      const container = document.querySelector('.sensor-graph-container');
+      if (container) {
+        const width = Math.max(320, Math.min(1200, container.clientWidth));
+        const height = Math.max(300, width * 0.5);
+        setDimensions(prev => ({
+          ...prev,
+          width,
+          height
+        }));
+      }
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   return (
     <div className="sensor-graph-container">
@@ -468,29 +594,68 @@ export default function SensorGraphDHT21() {
               </div>
             ))}
           </div>
-          <div className="col-auto">
-            {SENSOR_IDS.map(sensorId => (
-              <button
-                key={`export-${sensorId}`}
-                className="btn btn-outline-secondary btn-sm ms-2"
-                onClick={() => exportToCSV(sensorId)}
-              >
-                Export {sensorId}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
 
       {isLoading ? (
-        <div className="text-center">
+        <div className="text-center py-5">
           <div className="spinner-border" role="status">
             <span className="visually-hidden">Loading...</span>
           </div>
         </div>
       ) : (
-        renderSVG()
+        <div className="graph-wrapper" style={{ position: 'relative' }}>
+          <svg
+            width={dimensions.width}
+            height={dimensions.height}
+            className="sensor-graph"
+            style={{ maxWidth: '100%', height: 'auto' }}
+          >
+            {renderAxes()}
+            {renderDataLines()}
+            {renderTooltip()}
+          </svg>
+        </div>
       )}
+
+      <style jsx>{`
+        .sensor-graph-container {
+          background: white;
+          border-radius: 8px;
+          padding: 20px;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .graph-wrapper {
+          overflow: hidden;
+          border-radius: 4px;
+        }
+
+        .form-select,
+        .form-control {
+          min-width: 120px;
+        }
+
+        @media (max-width: 768px) {
+          .sensor-graph-container {
+            padding: 10px;
+          }
+
+          .controls {
+            flex-direction: column;
+          }
+
+          .col-auto {
+            width: 100%;
+            margin-bottom: 10px;
+          }
+
+          .form-select,
+          .form-control {
+            width: 100%;
+          }
+        }
+      `}</style>
     </div>
   );
-} 
+}

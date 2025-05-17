@@ -1,6 +1,6 @@
 "use client";
 
-import { FC, useEffect, useState, useRef, useCallback } from "react";
+import { FC, useEffect, useState, useRef } from "react";
 import Image from "next/image";
 
 interface IProps {
@@ -15,7 +15,7 @@ export const ServerStatus: FC<IProps> = ({
   const [isOnline, setIsOnline] = useState(false);
   const lastRef = useRef<boolean>(false);
 
-  const checkStatus = useCallback(async () => {
+  const checkStatus = async () => {
     try {
       console.log("Checking status for device:", deviceId);
       const res = await fetch("/api/status", {
@@ -41,13 +41,13 @@ export const ServerStatus: FC<IProps> = ({
       lastRef.current = false;
       setIsOnline(false);
     }
-  }, [deviceId]);
+  };
 
   useEffect(() => {
     checkStatus();
     const intv = setInterval(checkStatus, 2000); // каждые 2 секунды
     return () => clearInterval(intv);
-  }, [checkStatus]);
+  }, [deviceId]);
 
   return (
     <>
