@@ -68,6 +68,11 @@ const COLORS = {
   }
 };
 
+interface SegmentContext {
+  p0: { parsed: { x: number } };
+  p1: { parsed: { x: number } };
+}
+
 const SensorGraphDHT21 = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodOption>(PERIOD_OPTIONS[0]);
   const [data, setData] = useState<SensorPoint[]>([]);
@@ -80,55 +85,64 @@ const SensorGraphDHT21 = () => {
 
   const updateTimeRange = useCallback(() => {
     const now = new Date();
-    let end = new Date(now);
-    let start = new Date(now);
-
+    let startTime: Date;
+    let endTime: Date;
+    
     if (selectedPeriod.hours <= 1) {
-      // Для 1 часа - последний час
-      start.setHours(start.getHours() - 1);
+      // Округляем текущее время до текущей минуты
+      endTime = new Date(now);
+      endTime.setSeconds(0, 0);
+      
+      // Устанавливаем начало ровно на час назад
+      startTime = new Date(endTime);
+      startTime.setHours(endTime.getHours() - 1);
+      
+      console.log("[updateTimeRange 1h]", {
+        period: "1 час",
+        start: startTime.toLocaleTimeString(),
+        end: endTime.toLocaleTimeString()
+      });
     } else if (selectedPeriod.hours <= 12) {
-      // Для 12 часов - с начала текущего дня или последние 12 часов
+      endTime = new Date(now);
+      startTime = new Date(endTime);
+      
       if (now.getHours() < 12) {
-        start.setHours(0, 0, 0, 0);
-        end.setHours(12, 0, 0, 0);
+        startTime.setHours(0, 0, 0, 0);
+        endTime.setHours(12, 0, 0, 0);
       } else {
-        start.setHours(12, 0, 0, 0);
-        end.setHours(24, 0, 0, 0);
+        startTime.setHours(12, 0, 0, 0);
+        endTime.setHours(24, 0, 0, 0);
       }
+      setTimeRange({ start: startTime, end: endTime });
     } else if (selectedPeriod.hours <= 24) {
-      // Для 24 часов - текущий день
-      start.setHours(0, 0, 0, 0);
-      end = new Date(start);
-      end.setDate(end.getDate() + 1);
+      endTime = new Date(now);
+      startTime = new Date(endTime);
+      startTime.setHours(0, 0, 0, 0);
+      endTime.setHours(23, 59, 59, 999);
+      setTimeRange({ start: startTime, end: endTime });
     } else if (selectedPeriod.hours <= 24 * 7) {
-      // Для недели
-      start.setDate(start.getDate() - 7);
-      start.setHours(0, 0, 0, 0);
-      end = new Date(now);
-      end.setHours(23, 59, 59, 999);
+      endTime = new Date(now);
+      startTime = new Date(endTime);
+      startTime.setDate(startTime.getDate() - 7);
+      startTime.setHours(0, 0, 0, 0);
+      endTime.setHours(23, 59, 59, 999);
+      setTimeRange({ start: startTime, end: endTime });
     } else if (selectedPeriod.hours <= 24 * 30) {
-      // Для месяца
-      start.setMonth(start.getMonth() - 1);
-      start.setHours(0, 0, 0, 0);
-      end = new Date(now);
-      end.setHours(23, 59, 59, 999);
+      endTime = new Date(now);
+      startTime = new Date(endTime);
+      startTime.setMonth(startTime.getMonth() - 1);
+      startTime.setHours(0, 0, 0, 0);
+      endTime.setHours(23, 59, 59, 999);
+      setTimeRange({ start: startTime, end: endTime });
     } else {
-      // Для года
-      start.setFullYear(start.getFullYear() - 1);
-      start.setHours(0, 0, 0, 0);
-      end = new Date(now);
-      end.setHours(23, 59, 59, 999);
+      endTime = new Date(now);
+      startTime = new Date(endTime);
+      startTime.setFullYear(startTime.getFullYear() - 1);
+      startTime.setHours(0, 0, 0, 0);
+      endTime.setHours(23, 59, 59, 999);
+      setTimeRange({ start: startTime, end: endTime });
     }
-
-    console.log("[updateTimeRange]", {
-      period: selectedPeriod.label,
-      start: start.toLocaleString(),
-      end: end.toLocaleString(),
-      intervalSeconds: selectedPeriod.intervalSeconds
-    });
-
-    setTimeRange({ start, end });
-  }, [selectedPeriod]);
+  }, [selectedPeriod.hours]);
 
   useEffect(() => {
     updateTimeRange();
@@ -140,6 +154,14 @@ const SensorGraphDHT21 = () => {
         updateTimeRange();
         return;
       }
+
+      // Для отладки
+      console.log("[fetchData] Запрос данных:", {
+        startDate: timeRange.start.toLocaleString(),
+        endDate: timeRange.end.toLocaleString(),
+        intervalSeconds: selectedPeriod.intervalSeconds,
+        sensorIds: SENSOR_IDS
+      });
 
       const response = await fetch('/api/humidity-records', {
         method: 'POST',
@@ -158,17 +180,35 @@ const SensorGraphDHT21 = () => {
 
       if (!response.ok) {
         const errorText = await response.text();
+        console.error("[fetchData] Ошибка ответа:", {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText
+        });
         throw new Error(`Ошибка получения данных: ${response.status} ${response.statusText}\n${errorText}`);
       }
 
       const readings = await response.json();
       
-      // Проверяем, действительно ли данные изменились
-      const hasChanges = JSON.stringify(readings) !== JSON.stringify(lastDataRef.current);
-      
-      if (hasChanges) {
-        lastDataRef.current = readings;
+      // Для отладки
+      console.log("[fetchData] Получены данные:", {
+        count: readings.length,
+        firstPoint: readings[0],
+        lastPoint: readings[readings.length - 1]
+      });
+
+      if (!Array.isArray(readings) || readings.length === 0) {
+        console.warn("[fetchData] Нет данных в ответе");
+        return;
+      }
+
+      if (selectedPeriod.hours <= 1) {
+        // Для часового периода берем все точки как есть
         setData(readings);
+        lastDataRef.current = readings;
+      } else {
+        setData(readings);
+        lastDataRef.current = readings;
       }
       
       setError(null);
@@ -178,27 +218,27 @@ const SensorGraphDHT21 = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [timeRange, selectedPeriod.intervalSeconds]);
+  }, [timeRange, selectedPeriod.hours, selectedPeriod.intervalSeconds, updateTimeRange]);
 
   useEffect(() => {
-    // Очищаем предыдущий таймаут при изменении периода или временного диапазона
+    // Очищаем предыдущий интервал
     if (fetchTimeoutRef.current) {
-      clearTimeout(fetchTimeoutRef.current);
+      clearInterval(fetchTimeoutRef.current);
     }
 
+    // Немедленно запрашиваем данные
     fetchData();
 
-    // Устанавливаем новый интервал обновления
-    fetchTimeoutRef.current = setInterval(() => {
-      fetchData();
-    }, 5000);
+    // Устанавливаем интервал обновления
+    const updateInterval = selectedPeriod.hours <= 1 ? 3000 : 5000;
+    fetchTimeoutRef.current = setInterval(fetchData, updateInterval);
 
     return () => {
       if (fetchTimeoutRef.current) {
         clearInterval(fetchTimeoutRef.current);
       }
     };
-  }, [fetchData]);
+  }, [fetchData, selectedPeriod.hours]);
 
   const chartData = useMemo(() => ({
     datasets: [
@@ -208,13 +248,14 @@ const SensorGraphDHT21 = () => {
           x: point.timestamp,
           y: point.temperature
         })),
-        borderColor: COLORS["HUM1-1"].temperature,
-        backgroundColor: COLORS["HUM1-1"].temperatureBg,
+        borderColor: 'rgba(255, 214, 2, 0.9)',
+        backgroundColor: 'rgba(255, 214, 2, 0.15)',
         yAxisID: 'y1',
-        pointRadius: selectedPeriod.hours <= 1 ? 2 : 0.5,
-        borderWidth: selectedPeriod.hours <= 1 ? 2 : 1.5,
+        pointRadius: selectedPeriod.hours <= 1 ? 3 : 0,
+        pointHoverRadius: 5,
+        borderWidth: 2,
         fill: true,
-        tension: 0.3,
+        tension: 0.2,
         spanGaps: true,
         cubicInterpolationMode: 'monotone' as const
       },
@@ -224,24 +265,40 @@ const SensorGraphDHT21 = () => {
           x: point.timestamp,
           y: point.humidity
         })),
-        borderColor: COLORS["HUM1-1"].humidity,
-        backgroundColor: COLORS["HUM1-1"].humidityBg,
+        borderColor: 'rgba(68, 192, 255, 0.9)',
+        backgroundColor: 'rgba(68, 192, 255, 0.15)',
         yAxisID: 'y2',
-        pointRadius: selectedPeriod.hours <= 1 ? 2 : 0.5,
-        borderWidth: selectedPeriod.hours <= 1 ? 2 : 1.5,
+        pointRadius: selectedPeriod.hours <= 1 ? 3 : 0,
+        pointHoverRadius: 5,
+        borderWidth: 2,
         fill: true,
-        tension: 0.3,
+        tension: 0.2,
         spanGaps: true,
         cubicInterpolationMode: 'monotone' as const
       }
     ]
   }), [data, selectedPeriod.hours]);
 
+  const generateHourLabels = useCallback(() => {
+    if (!timeRange) return [];
+    const { start, end } = timeRange;
+    const labels = [];
+    const current = new Date(start);
+    
+    while (current <= end) {
+      labels.push(new Date(current));
+      current.setMinutes(current.getMinutes() + 5);
+    }
+    
+    return labels;
+  }, [timeRange]);
+
   const options: ChartOptions<'line'> = useMemo(() => ({
     responsive: true,
     maintainAspectRatio: false,
     animation: {
-      duration: 0
+      duration: 750,
+      easing: 'easeOutQuart'
     },
     interaction: {
       mode: 'nearest',
@@ -255,87 +312,98 @@ const SensorGraphDHT21 = () => {
     },
     layout: {
       padding: {
-        top: 20,
-        right: 25,
-        bottom: 10,
-        left: 25
+        top: 40,
+        right: 30,
+        bottom: 30,
+        left: 30
       }
     },
     scales: {
       x: {
         type: 'time',
         time: {
-          unit: selectedPeriod.hours <= 1 ? 'minute' : 
-                selectedPeriod.hours <= 12 ? 'hour' : 
-                selectedPeriod.hours <= 24 ? 'hour' : 
-                selectedPeriod.hours <= 24 * 7 ? 'day' : 
-                selectedPeriod.hours <= 24 * 30 ? 'day' : 'month',
-          stepSize: selectedPeriod.hours <= 1 ? 5 : 
-                   selectedPeriod.hours <= 12 ? 1 : 
-                   selectedPeriod.hours <= 24 ? 2 : 
-                   selectedPeriod.hours <= 24 * 7 ? 1 : 
-                   selectedPeriod.hours <= 24 * 30 ? 1 : 1,
+          unit: 'minute',
+          stepSize: 1,
           displayFormats: {
-            minute: 'HH:mm',
-            hour: 'HH:mm',
-            day: 'dd.MM',
-            month: 'MM.yyyy'
+            minute: 'HH:mm:ss'
           },
-          tooltipFormat: 'dd.MM.yyyy HH:mm:ss'
+          tooltipFormat: 'HH:mm:ss'
         },
         grid: {
-          color: 'rgba(255, 255, 255, 0.1)',
+          color: 'rgba(255, 255, 255, 0.06)',
+          lineWidth: 1,
           display: true,
-          drawBorder: true,
-          drawOnChartArea: true,
           drawTicks: true,
-          lineWidth: 1
+          offset: false
         },
         border: {
           color: 'rgba(255, 255, 255, 0.2)',
-          width: 1
+          width: 2,
+          dash: [4, 4]
         },
+        min: timeRange?.start.getTime(),
+        max: timeRange?.end.getTime(),
         ticks: {
+          source: 'data',
           maxRotation: 0,
           autoSkip: true,
-          maxTicksLimit: selectedPeriod.hours <= 1 ? 6 : 
-                        selectedPeriod.hours <= 12 ? 12 :
-                        selectedPeriod.hours <= 24 ? 12 : 8,
+          autoSkipPadding: 40,
+          maxTicksLimit: 20,
           font: {
-            size: 10
+            size: 12,
+            weight: 500
           },
           padding: 8,
-          color: 'rgba(255, 255, 255, 0.8)'
+          color: 'rgba(255, 255, 255, 0.8)',
+          callback: function(value) {
+            const date = new Date(Number(value));
+            return date.toLocaleTimeString([], { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              second: '2-digit',
+              hour12: false 
+            });
+          }
         }
       },
       y1: {
         type: 'linear',
         display: true,
         position: 'left',
-        min: 15,
-        max: 30,
+        min: 0,
+        max: 100,
         grid: {
-          color: 'rgba(255, 214, 2, 0.1)',
+          color: 'rgba(255, 214, 2, 0.08)',
           drawOnChartArea: true,
           drawTicks: true,
-          drawBorder: true,
           lineWidth: 1
         },
         border: {
-          color: 'rgba(255, 214, 2, 0.2)',
-          width: 1
+          color: 'rgba(255, 214, 2, 0.3)',
+          width: 2,
+          dash: [4, 4]
         },
         ticks: {
-          color: '#ffd602',
+          color: 'rgba(255, 214, 2, 0.9)',
           font: {
-            size: 10,
-            weight: 'bold'
+            size: 20,
+            weight: 500
           },
-          padding: 8,
-          stepSize: 1,
+          padding: 20,
+          stepSize: 10,
           callback: function(value) {
             return value + '°C';
           }
+        },
+        title: {
+          display: true,
+          text: 'Температура',
+          color: 'rgba(255, 214, 2, 0.9)',
+          font: {
+            size: 24,
+            weight: 600
+          },
+          padding: { top: 0, bottom: 20 }
         }
       },
       y2: {
@@ -345,44 +413,67 @@ const SensorGraphDHT21 = () => {
         min: 0,
         max: 100,
         grid: {
+          color: 'rgba(68, 192, 255, 0.08)',
           drawOnChartArea: false,
-          color: 'rgba(68, 192, 255, 0.1)',
           drawTicks: true,
-          drawBorder: true,
           lineWidth: 1
         },
         border: {
-          color: 'rgba(68, 192, 255, 0.2)',
-          width: 1
+          color: 'rgba(68, 192, 255, 0.3)',
+          width: 2,
+          dash: [4, 4]
         },
         ticks: {
-          color: '#44c0ff',
+          color: 'rgba(68, 192, 255, 0.9)',
           font: {
-            size: 10,
-            weight: 'bold'
+            size: 20,
+            weight: 500
           },
-          padding: 8,
+          padding: 20,
           stepSize: 10,
           callback: function(value) {
             return value + '%';
           }
+        },
+        title: {
+          display: true,
+          text: 'Влажность',
+          color: 'rgba(68, 192, 255, 0.9)',
+          font: {
+            size: 24,
+            weight: 600
+          },
+          padding: { top: 0, bottom: 20 }
         }
       }
     },
     plugins: {
       tooltip: {
-        mode: 'nearest',
+        enabled: true,
+        mode: 'index',
         intersect: false,
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        backgroundColor: 'rgba(0, 0, 0, 0.85)',
+        titleColor: 'rgba(255, 255, 255, 1)',
+        bodyColor: 'rgba(255, 255, 255, 0.9)',
+        padding: {
+          top: 15,
+          right: 18,
+          bottom: 15,
+          left: 18
+        },
         titleFont: {
-          size: 12,
-          weight: 'bold'
+          size: 18,
+          weight: 600
         },
         bodyFont: {
-          size: 11
+          size: 16,
+          weight: 500
         },
-        padding: 10,
-        displayColors: true,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        borderWidth: 1,
+        cornerRadius: 8,
+        boxPadding: 4,
+        usePointStyle: true,
         callbacks: {
           title: (items) => {
             if (items.length > 0) {
@@ -398,27 +489,117 @@ const SensorGraphDHT21 = () => {
         position: 'top',
         align: 'center',
         labels: {
-          color: 'rgba(255, 255, 255, 0.8)',
+          color: 'rgba(255, 255, 255, 0.9)',
+          padding: 25,
           font: {
-            size: 12,
-            weight: 'bold'
+            size: 20,
+            weight: 500
           },
           usePointStyle: true,
           pointStyle: 'circle',
-          padding: 15,
-          boxWidth: 10,
-          boxHeight: 10
+          boxWidth: 8,
+          boxHeight: 8
         }
       }
     }
-  }), [selectedPeriod.hours]);
+  }), [selectedPeriod.hours, timeRange]);
+
+  const chartStyleOverrides = useMemo(() => ({
+    maintainAspectRatio: false,
+    responsive: true,
+    layout: {
+      padding: {
+        top: 15,
+        right: 25,
+        bottom: 5,
+        left: 25
+      }
+    },
+    scales: {
+      y1: {
+        border: {
+          display: false
+        },
+        grid: {
+          color: 'rgba(255, 214, 2, 0.06)',
+          lineWidth: 1
+        },
+        ticks: {
+          font: {
+            size: 14,
+            weight: 400
+          }
+        },
+        title: {
+          font: {
+            size: 16,
+            weight: 400
+          }
+        }
+      },
+      y2: {
+        border: {
+          display: false
+        },
+        grid: {
+          color: 'rgba(68, 192, 255, 0.06)',
+          lineWidth: 1
+        },
+        ticks: {
+          font: {
+            size: 14,
+            weight: 400
+          }
+        },
+        title: {
+          font: {
+            size: 16,
+            weight: 400
+          }
+        }
+      },
+      x: {
+        border: {
+          display: false
+        },
+        grid: {
+          color: 'rgba(255, 255, 255, 0.04)',
+          lineWidth: 1
+        },
+        ticks: {
+          font: {
+            size: 14,
+            weight: 400
+          }
+        }
+      }
+    },
+    plugins: {
+      legend: {
+        labels: {
+          font: {
+            size: 14,
+            weight: 400
+          }
+        }
+      }
+    }
+  }), []);
+
+  // Проверяем наличие данных для отображения
+  const hasData = data.length > 0;
 
   return (
-    <div className="w-full space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-0">
-        <h2 className="text-xl font-semibold text-white text-center sm:text-left">График температуры и влажности</h2>
+    <div className="w-full space-y-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-8">
         <select
-          className="w-full sm:w-auto bg-black/20 text-white border border-white/20 rounded px-3 py-2"
+          className="w-full sm:w-auto min-w-[200px] px-4 sm:px-6 py-2.5 sm:py-3.5 text-base sm:text-lg font-normal
+            bg-white/5 hover:bg-white/10 
+            text-white/90 
+            border-2 border-white/10 hover:border-white/20
+            rounded-xl sm:rounded-2xl transition-all duration-200
+            focus:outline-none focus:ring-2 focus:ring-white/20
+            backdrop-blur-xl shadow-lg"
           value={selectedPeriod.value}
           onChange={(e) => {
             const period = PERIOD_OPTIONS.find(p => p.value === e.target.value);
@@ -426,34 +607,131 @@ const SensorGraphDHT21 = () => {
           }}
         >
           {PERIOD_OPTIONS.map(period => (
-            <option key={period.value} value={period.value}>
+            <option key={period.value} value={period.value} className="bg-gray-900">
               {period.label}
             </option>
           ))}
         </select>
       </div>
 
-      <div className="w-full h-screen sm:h-[600px] bg-black/20 rounded-lg p-3 sm:p-6 overflow-hidden">
-        <div className="w-full h-full overflow-x-auto overflow-y-hidden">
-          <div className="min-w-[800px] sm:min-w-[1200px] h-full">
-            {isLoading ? (
-              <div className="w-full h-full flex items-center justify-center">
-                <span className="text-white">Загрузка данных...</span>
-              </div>
-            ) : error ? (
-              <div className="w-full h-full flex items-center justify-center">
-                <span className="text-red-500">{error}</span>
-              </div>
-            ) : data.length === 0 ? (
-              <div className="w-full h-full flex items-center justify-center">
-                <span className="text-white">Нет данных за выбранный период</span>
-              </div>
-            ) : (
-              <Line data={chartData} options={options} ref={chartRef} />
-            )}
+      <div className="w-full bg-black/30 backdrop-blur-xl rounded-3xl shadow-xl">
+        <div className="relative w-full">
+          <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-black/30 via-black/10 to-transparent z-10 pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-black/30 via-black/10 to-transparent z-10 pointer-events-none" />
+          
+          <div className="w-full overflow-x-auto overflow-y-hidden hide-scrollbar">
+            <div className="min-w-[800px] w-full h-[85vh] min-h-[600px] px-6">
+              {isLoading ? (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm rounded-3xl transition-opacity duration-300">
+                  <div className="flex flex-col items-center gap-6">
+                    <div className="relative w-16 h-16">
+                      <div className="absolute inset-0 border-4 border-white/10 rounded-full" />
+                      <div className="absolute inset-0 border-4 border-t-white/90 border-r-white/40 border-b-white/20 border-l-white/40 rounded-full animate-spin" style={{ animationDuration: '1.5s' }} />
+                    </div>
+                    <span className="text-white/80 text-lg sm:text-xl font-normal animate-pulse">Загрузка данных...</span>
+                  </div>
+                </div>
+              ) : error ? (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm rounded-3xl">
+                  <div className="flex flex-col items-center gap-4 text-center px-6 max-w-md">
+                    <span className="text-red-400/90 text-lg sm:text-xl font-normal">{error}</span>
+                    <button 
+                      onClick={() => fetchData()}
+                      className="mt-2 px-6 sm:px-8 py-2.5 sm:py-3 bg-white/10 hover:bg-white/15 rounded-xl text-white/90 text-base sm:text-lg font-normal 
+                        transition-all duration-200 hover:scale-105 active:scale-95
+                        border border-white/10 hover:border-white/20
+                        focus:outline-none focus:ring-2 focus:ring-white/20"
+                    >
+                      Повторить загрузку
+                    </button>
+                  </div>
+                </div>
+              ) : !hasData ? (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm rounded-3xl">
+                  <div className="flex flex-col items-center gap-4 text-center px-6 max-w-md">
+                    <span className="text-white/80 text-lg sm:text-xl font-normal">Нет данных за выбранный период</span>
+                    <button 
+                      onClick={() => fetchData()}
+                      className="mt-2 px-6 sm:px-8 py-2.5 sm:py-3 bg-white/10 hover:bg-white/15 rounded-xl text-white/90 text-base sm:text-lg font-normal 
+                        transition-all duration-200 hover:scale-105 active:scale-95
+                        border border-white/10 hover:border-white/20
+                        focus:outline-none focus:ring-2 focus:ring-white/20"
+                    >
+                      Обновить данные
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <Line 
+                  data={chartData}
+                  options={options}
+                  ref={chartRef}
+                />
+              )}
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Обновленные стили для скроллбара */}
+      <style jsx global>{`
+        /* Базовые стили для контейнера с прокруткой */
+        .hide-scrollbar {
+          overflow-x: auto !important;
+          overflow-y: hidden !important;
+          -webkit-overflow-scrolling: touch !important;
+          scrollbar-width: thin !important;
+          scrollbar-color: rgba(255, 255, 255, 0.15) transparent !important;
+          max-width: 100vw !important;
+          position: relative !important;
+        }
+        
+        /* Стили для Webkit (Chrome, Safari, новый Edge) */
+        .hide-scrollbar::-webkit-scrollbar {
+          height: 8px !important;
+          background: transparent !important;
+          width: auto !important;
+        }
+        
+        .hide-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.15) !important;
+          border-radius: 8px !important;
+          transition: background-color 0.2s ease !important;
+        }
+        
+        .hide-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.3) !important;
+        }
+        
+        .hide-scrollbar::-webkit-scrollbar-thumb:active {
+          background: rgba(255, 255, 255, 0.4) !important;
+        }
+        
+        .hide-scrollbar::-webkit-scrollbar-track {
+          background: rgba(0, 0, 0, 0.1) !important;
+          border-radius: 8px !important;
+        }
+
+        /* Стили для графика */
+        canvas {
+          width: 100% !important;
+          height: 100% !important;
+          max-width: none !important;
+        }
+
+        /* Стили для мобильных устройств */
+        @media (max-width: 800px) {
+          .hide-scrollbar {
+            overflow-x: scroll !important;
+            -webkit-overflow-scrolling: touch !important;
+          }
+          
+          .hide-scrollbar > div {
+            min-width: 800px !important;
+            width: 800px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

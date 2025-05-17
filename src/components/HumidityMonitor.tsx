@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTint, faTemperatureLow } from "@fortawesome/free-solid-svg-icons";
+import { faTint, faTemperatureLow, faPlug, faPlugCircleXmark } from "@fortawesome/free-solid-svg-icons";
 import _ from "lodash";
 
 // Обновляем типы для более строгой типизации
@@ -40,16 +40,158 @@ type CacheData = Record<string, HumidityData> & {
 
 const SENSOR_KEYS = ["HUM1-1"];
 const TIMEOUT_MS = 10 * 60 * 1000; // 10 хв
+const BAUD_RATE = 9600;
 
 export function HumidityMonitor() {
   const [sensors, setSensors] = useState<HumidityData[]>([]);
+  const [isConnected, setIsConnected] = useState(false);
+  const [port, setPort] = useState<SerialPort | null>(null);
   const cache = useRef<CacheData>({});
+  const reader = useRef<ReadableStreamDefaultReader | null>(null);
+
+  const connectToSensor = async () => {
+    try {
+      if (!navigator.serial) {
+        console.error("Serial API не поддерживается в этом браузере");
+        return;
+      }
+
+      const newPort = await navigator.serial.requestPort();
+      await newPort.open({ baudRate: BAUD_RATE });
+      setPort(newPort);
+      setIsConnected(true);
+
+      const textDecoder = new TextDecoderStream();
+      const readableStreamClosed = newPort.readable.pipeTo(textDecoder.writable);
+      const newReader = textDecoder.readable.getReader();
+      reader.current = newReader;
+
+      console.log("[Serial] Подключено к датчику. Начинаем чтение данных...");
+
+      // Начинаем читать данные
+      while (true) {
+        const { value, done } = await newReader.read();
+        if (done) {
+          console.log("[Serial] Чтение завершено");
+          break;
+        }
+        
+        console.log("[Serial] Получены сырые данные:", {
+          rawValue: value,
+          length: value.length,
+          timestamp: new Date().toISOString()
+        });
+        
+        // Парсим данные с датчика
+        try {
+          const pairs = value.trim().split(',');
+          console.log("[Serial] Разбор данных:", {
+            pairs,
+            originalValue: value
+          });
+          
+          const data: Record<string, string> = {};
+          
+          pairs.forEach(pair => {
+            const [key, value] = pair.split(':');
+            if (key && value) {
+              data[key.trim()] = value.trim();
+              console.log("[Serial] Обработана пара:", { key: key.trim(), value: value.trim() });
+            }
+          });
+
+          console.log("[Serial] Обработанные данные:", data);
+
+          if (data.humidity && data.temperature) {
+            const humidity = parseFloat(data.humidity);
+            const temperature = parseFloat(data.temperature);
+
+            console.log("[Serial] Преобразованные значения:", {
+              humidity,
+              temperature,
+              isValidHumidity: !isNaN(humidity),
+              isValidTemperature: !isNaN(temperature)
+            });
+
+            if (!isNaN(humidity) && !isNaN(temperature)) {
+              const sensorData = {
+                sensors: {
+                  "HUM1-1": {
+                    id: "HUM1-1",
+                    humidity: humidity,
+                    temperature: temperature,
+                    timestamp: Date.now()
+                  }
+                }
+              };
+
+              console.log("[Serial] Отправка данных на сервер:", sensorData);
+
+              const response = await fetch("/api/humidity", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  'Cache-Control': 'no-cache',
+                  'Pragma': 'no-cache'
+                },
+                body: JSON.stringify(sensorData),
+              });
+
+              const result = await response.json();
+              console.log("[Serial] Ответ сервера:", result);
+            }
+          } else {
+            console.log("[Serial] Пропущены неполные данные:", data);
+          }
+        } catch (error) {
+          console.error("[Serial] Ошибка обработки данных:", {
+            error,
+            rawData: value
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Ошибка подключения к датчику:", error);
+      setIsConnected(false);
+      setPort(null);
+    }
+  };
+
+  const disconnectFromSensor = async () => {
+    try {
+      if (reader.current) {
+        await reader.current.cancel();
+        reader.current = null;
+      }
+      if (port) {
+        await port.close();
+        setPort(null);
+      }
+      setIsConnected(false);
+      console.log("Отключено от датчика");
+    } catch (error) {
+      console.error("Ошибка при отключении:", error);
+    }
+  };
 
   const saveToDatabase = async (sensorData: Record<string, RawHumidityItem>) => {
     try {
+      console.log("[saveToDatabase] Начало обработки данных:", {
+        rawData: sensorData,
+        timestamp: new Date().toISOString()
+      });
+
       const onlineSensors = _.pickBy(sensorData, (sensor) => {
         const age = Date.now() - Number(sensor.timestamp);
-        return age <= TIMEOUT_MS;
+        const isOnline = age <= TIMEOUT_MS;
+        console.log("[saveToDatabase] Проверка активности датчика:", {
+          sensor_id: sensor.id,
+          age_ms: age,
+          age_minutes: Math.round(age / 60000),
+          isOnline,
+          timestamp: new Date(Number(sensor.timestamp)).toISOString()
+        });
+        return isOnline;
       });
 
       if (_.isEmpty(onlineSensors)) {
@@ -133,6 +275,7 @@ export function HumidityMonitor() {
   useEffect(() => {
     const fetchHumidity = async () => {
       try {
+        console.log("[fetchHumidity] Запрос данных с датчиков...");
         const res = await fetch("/api/humidity", { 
           cache: "no-store",
           headers: {
@@ -141,9 +284,21 @@ export function HumidityMonitor() {
           }
         });
         
-        if (!res.ok) return;
+        if (!res.ok) {
+          console.error("[fetchHumidity] Ошибка получения данных:", {
+            status: res.status,
+            statusText: res.statusText
+          });
+          return;
+        }
 
         const { sensors: data, serverTime }: RawHumidityResponse = await res.json();
+        console.log("[fetchHumidity] Получены данные:", {
+          data,
+          serverTime,
+          currentTime: new Date().toISOString()
+        });
+
         await saveToDatabase(data);
 
         SENSOR_KEYS.forEach((key) => {
@@ -195,14 +350,29 @@ export function HumidityMonitor() {
     };
 
     fetchHumidity();
-    const int = setInterval(fetchHumidity, 5000);
-    return () => clearInterval(int);
+    const int = setInterval(fetchHumidity, 3000);
+    return () => {
+      clearInterval(int);
+      disconnectFromSensor();
+    };
   }, []);
 
   return (
     <div className="container sensor-container">
       <h2 className="text-center mt-4 mb-1">Моніторинг датчика вологості:</h2>
       
+      <div className="row justify-content-center mb-4">
+        <div className="col-12 col-md-8 text-center">
+          <button 
+            onClick={isConnected ? disconnectFromSensor : connectToSensor}
+            className={`btn ${isConnected ? 'btn-danger' : 'btn-primary'} mb-3`}
+          >
+            <FontAwesomeIcon icon={isConnected ? faPlugCircleXmark : faPlug} className="me-2" />
+            {isConnected ? 'Відключити датчик' : 'Підключити датчик'}
+          </button>
+        </div>
+      </div>
+
       <div className="row justify-content-center">
         {sensors.map((sensor) => (
           <div key={sensor.id} className="col-12 col-md-8">

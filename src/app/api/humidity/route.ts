@@ -22,11 +22,44 @@ const TIMEOUT_MS = 10 * 60 * 1000; // 10 минут
 
 export async function POST(req: Request) {
   try {
+    console.log("[API] POST /api/humidity: Начало обработки запроса");
+    
     const body = await req.json();
+    console.log("[API] Получены данные:", {
+      body,
+      headers: Object.fromEntries(req.headers.entries()),
+      timestamp: new Date().toISOString()
+    });
+
     const sensors: HumidityMap = body.sensors || {};
 
     if (_.isEmpty(sensors)) {
+      console.log("[API] Получен пустой объект sensors");
       return NextResponse.json({ status: "ok", received: 0 });
+    }
+
+    // Валидация данных
+    for (const [sensorId, data] of Object.entries(sensors)) {
+      console.log("[API] Проверка данных датчика:", {
+        sensorId,
+        humidity: data.humidity,
+        temperature: data.temperature,
+        timestamp: new Date(data.timestamp).toISOString()
+      });
+
+      const humidity = parseFloat(String(data.humidity));
+      const temperature = parseFloat(String(data.temperature || 0));
+
+      if (isNaN(humidity) || isNaN(temperature)) {
+        console.error("[API] Некорректные данные датчика:", {
+          sensorId,
+          rawData: data
+        });
+        return NextResponse.json(
+          { error: "Invalid sensor data" },
+          { status: 400 }
+        );
+      }
     }
 
     // Обновляем кэш
@@ -35,17 +68,30 @@ export async function POST(req: Request) {
       lastUpdate: Date.now(),
     };
 
+    console.log("[API] Кэш обновлен:", {
+      sensors: Object.entries(sensors).map(([id, data]) => ({
+        id,
+        humidity: data.humidity,
+        temperature: data.temperature,
+        timestamp: new Date(data.timestamp).toISOString()
+      })),
+      lastUpdate: new Date(humidityCache.lastUpdate).toISOString()
+    });
+
     return NextResponse.json({ 
       status: "ok", 
       received: Object.keys(sensors).length
     });
   } catch (err) {
+    console.error("[API] Ошибка обработки запроса:", err);
     return NextResponse.json({ status: "error" }, { status: 500 });
   }
 }
 
 export async function GET() {
   try {
+    console.log("[API] GET /api/humidity: Запрос данных");
+    
     const now = Date.now();
     const expired = now - humidityCache.lastUpdate > TIMEOUT_MS;
 
@@ -55,11 +101,19 @@ export async function GET() {
         .filter(([key]) => key.startsWith("HUM1-"))
     );
 
+    console.log("[API] Отправка данных:", {
+      expired,
+      sensors: expired ? {} : filtered,
+      cacheAge: (now - humidityCache.lastUpdate) / 1000,
+      timestamp: new Date(now).toISOString()
+    });
+
     return NextResponse.json({
       sensors: expired ? {} : filtered,
       serverTime: now
     });
   } catch (err) {
+    console.error("[API] Ошибка получения данных:", err);
     return NextResponse.json({ sensors: {} }, { status: 200 });
   }
 }

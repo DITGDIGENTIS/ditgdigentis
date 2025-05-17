@@ -7,10 +7,12 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log("[POST /api/humidity-records] Получен запрос:", {
       body,
-      headers: Object.fromEntries(request.headers.entries())
+      headers: Object.fromEntries(request.headers.entries()),
+      timestamp: new Date().toISOString()
     });
 
     const service = createHumidityService();
+    console.log("[POST /api/humidity-records] Сервис создан");
 
     // Если это запрос на получение данных по датам
     if (body.startDate && body.endDate) {
@@ -45,14 +47,23 @@ export async function POST(request: NextRequest) {
 
     // Если это запрос на создание записей
     const data = _.isArray(body) ? body : [body];
+    console.log("[POST /api/humidity-records] Подготовка данных для сохранения:", {
+      количество: data.length,
+      примеры: data.slice(0, 2),
+      timestamp: new Date().toISOString()
+    });
+
     await service.createRecords(data);
+    console.log("[POST /api/humidity-records] Данные успешно сохранены");
+    
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("[POST /api/humidity-records] Ошибка:", {
       message: error?.message || "Unknown error",
       stack: error?.stack,
       name: error?.name,
-      details: error?.details || "No additional details"
+      details: error?.details || "No additional details",
+      timestamp: new Date().toISOString()
     });
     return NextResponse.json(
       { error: "Internal server error", details: error?.message || "Unknown error" },
