@@ -83,20 +83,28 @@ export default function SensorGraphDHT21() {
       // Fetch historical data
       const startDate = startOfDay(new Date(selectedDate));
       const endDate = addDays(startDate, 1);
+      
+      console.log('Fetching data for range:', {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        sensorIds: SENSOR_IDS
+      });
+
       const response = await fetch('/api/humidity-records', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          startDate,
-          endDate,
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
           sensorIds: SENSOR_IDS
         }),
       });
       
       if (!response.ok) {
-        console.error('Failed to fetch historical data:', response.status);
+        const errorData = await response.text();
+        console.error('Failed to fetch historical data:', response.status, errorData);
         return;
       }
 
@@ -127,7 +135,9 @@ export default function SensorGraphDHT21() {
       const combinedData = [...historicalData];
       
       // Add live data points if they're newer than the last historical point
-      const lastHistoricalTimestamp = Math.max(...historicalData.map((d: SensorPoint) => d.timestamp), 0);
+      const lastHistoricalTimestamp = historicalData.length > 0 
+        ? Math.max(...historicalData.map((d: SensorPoint) => d.timestamp), 0)
+        : 0;
       
       Object.entries(liveSensors || {}).forEach(([sensorId, data]: [string, any]) => {
         if (SENSOR_IDS.includes(sensorId as SensorId) && 
@@ -137,7 +147,7 @@ export default function SensorGraphDHT21() {
             data.timestamp > lastHistoricalTimestamp) {
           combinedData.push({
             sensor_id: sensorId,
-            timestamp: data.timestamp,
+            timestamp: Number(data.timestamp),
             humidity: parseFloat(data.humidity),
             temperature: parseFloat(data.temperature)
           });
