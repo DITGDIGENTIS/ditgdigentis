@@ -123,6 +123,7 @@ export default function SensorGraphDHT21() {
   const [selectedSensors, setSelectedSensors] = useState<SensorId[]>([...SENSOR_IDS]);
   const [data, setData] = useState<SensorPoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [liveData, setLiveData] = useState<Record<string, { humidity: number; temperature: number; timestamp: number }>>({}); 
   const chartRef = useRef<ChartJS<'line'>>(null);
 
   const options: ChartOptions<'line'> = {
@@ -166,62 +167,28 @@ export default function SensorGraphDHT21() {
       },
       y1: {
         type: 'linear',
-        display: true,
+        display: false,
         position: 'left',
-        title: {
-          display: true,
-          text: 'Температура (°C)',
-          color: 'rgba(255, 99, 132, 1)',
-          font: {
-            size: 14,
-            weight: 'bold'
-          }
-        },
+        min: 0,
+        max: 50,
         grid: {
           color: 'rgba(255, 255, 255, 0.1)'
-        },
-        ticks: {
-          color: 'rgba(255, 255, 255, 0.8)',
-          font: {
-            size: 12
-          }
         }
       },
       y2: {
         type: 'linear',
-        display: true,
+        display: false,
         position: 'right',
-        title: {
-          display: true,
-          text: 'Влажность (%)',
-          color: 'rgba(54, 162, 235, 1)',
-          font: {
-            size: 14,
-            weight: 'bold'
-          }
-        },
+        min: 0,
+        max: 100,
         grid: {
           drawOnChartArea: false
-        },
-        ticks: {
-          color: 'rgba(255, 255, 255, 0.8)',
-          font: {
-            size: 12
-          }
         }
       }
     },
     plugins: {
       legend: {
-        position: 'top' as const,
-        labels: {
-          color: 'rgba(255, 255, 255, 0.8)',
-          usePointStyle: false,
-          padding: 20,
-          font: {
-            size: 12
-          }
-        }
+        display: false
       },
       tooltip: {
         mode: 'index',
@@ -246,16 +213,59 @@ export default function SensorGraphDHT21() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
+        // Fetch historical data
         const startDate = startOfDay(new Date(selectedDate));
         const endDate = addDays(startDate, 1);
-
-        // In a real application, this would be an API call
-        // const response = await fetch(`/api/sensor-data?start=${startDate.toISOString()}&end=${endDate.toISOString()}&interval=${selectedPeriod.interval}&intervalUnit=${selectedPeriod.intervalUnit}`);
-        // const newData = await response.json();
+        const response = await fetch('/api/humidity-records', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            startDate,
+            endDate,
+            sensorIds: SENSOR_IDS
+          }),
+        });
         
-        // Using mock data for now
-        const newData = generateMockData(selectedPeriod);
-        setData(newData);
+        if (!response.ok) {
+          throw new Error('Failed to fetch historical data');
+        }
+
+        const historicalData = await response.json();
+        
+        // Fetch current data
+        const liveResponse = await fetch('/api/humidity', { 
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
+
+        if (!liveResponse.ok) {
+          throw new Error('Failed to fetch live data');
+        }
+
+        const { sensors: liveSensors } = await liveResponse.json();
+        setLiveData(liveSensors || {});
+
+        // Combine historical and live data
+        const combinedData = [...historicalData];
+        
+        // Add live data points if they're newer than the last historical point
+        Object.entries(liveSensors || {}).forEach(([sensorId, data]: [string, any]) => {
+          if (SENSOR_IDS.includes(sensorId as SensorId) && data.timestamp && data.humidity && data.temperature) {
+            combinedData.push({
+              sensor_id: sensorId,
+              timestamp: data.timestamp,
+              humidity: parseFloat(data.humidity),
+              temperature: parseFloat(data.temperature)
+            });
+          }
+        });
+
+        setData(combinedData);
       } catch (error) {
         console.error('Error fetching sensor data:', error);
       } finally {
@@ -264,6 +274,8 @@ export default function SensorGraphDHT21() {
     };
 
     fetchData();
+    const interval = setInterval(fetchData, 5000);
+    return () => clearInterval(interval);
   }, [selectedDate, selectedPeriod]);
 
   const chartData = {
@@ -345,6 +357,11 @@ export default function SensorGraphDHT21() {
                 />
                 <label className="form-check-label" htmlFor={`sensor-${sensorId}`}>
                   {sensorId}
+                  {liveData[sensorId] && (
+                    <span className="ms-2">
+                      ({liveData[sensorId].temperature.toFixed(1)}°C / {liveData[sensorId].humidity.toFixed(1)}%)
+                    </span>
+                  )}
                 </label>
               </div>
             ))}
@@ -352,21 +369,44 @@ export default function SensorGraphDHT21() {
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="text-center py-5">
-          <div className="spinner-border" role="status">
-            <span className="visually-hidden">Загрузка...</span>
+      <div className="chart-container">
+        <div className="scales-container">
+          <div className="y-axis left">
+            <div className="axis-title">Температура (°C)</div>
+            <div className="axis-ticks">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="tick">
+                  {(50 - i * 10).toFixed(0)}°C
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      ) : (
-        <div className="chart-outer-container">
-          <div className="chart-container">
-            <div className="graph-wrapper">
-              <Line ref={chartRef} options={options} data={chartData} />
+          <div className="y-axis right">
+            <div className="axis-title">Влажность (%)</div>
+            <div className="axis-ticks">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="tick">
+                  {(100 - i * 20).toFixed(0)}%
+                </div>
+              ))}
             </div>
           </div>
         </div>
-      )}
+
+        <div className="scroll-container">
+          {isLoading ? (
+            <div className="text-center py-5">
+              <div className="spinner-border" role="status">
+                <span className="visually-hidden">Загрузка...</span>
+              </div>
+            </div>
+          ) : (
+            <div className="graph-wrapper">
+              <Line ref={chartRef} options={options} data={chartData} />
+            </div>
+          )}
+        </div>
+      </div>
 
       <style jsx>{`
         .sensor-graph-container {
@@ -376,41 +416,97 @@ export default function SensorGraphDHT21() {
           box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
-        .chart-outer-container {
-          position: relative;
-          margin: 0 -20px;
-        }
-
         .chart-container {
           position: relative;
-          margin: 0 20px;
+          margin-top: 20px;
+          height: 500px;
+          display: flex;
+        }
+
+        .scales-container {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          pointer-events: none;
+          z-index: 1;
+        }
+
+        .y-axis {
+          position: absolute;
+          top: 30px;
+          bottom: 30px;
+          width: 60px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          color: rgba(255, 255, 255, 0.8);
+        }
+
+        .y-axis.left {
+          left: 0;
+        }
+
+        .y-axis.right {
+          right: 0;
+        }
+
+        .axis-title {
+          position: absolute;
+          top: -25px;
+          width: 100%;
+          text-align: center;
+          font-size: 12px;
+          font-weight: bold;
+        }
+
+        .axis-ticks {
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+        }
+
+        .tick {
+          font-size: 12px;
+          padding: 2px 8px;
+          background: #1a1a1a;
+        }
+
+        .y-axis.left .tick {
+          text-align: left;
+        }
+
+        .y-axis.right .tick {
+          text-align: right;
+        }
+
+        .scroll-container {
+          flex: 1;
+          margin: 0 70px;
           overflow-x: auto;
           overflow-y: hidden;
           -webkit-overflow-scrolling: touch;
-          scrollbar-width: thin;
-          scrollbar-color: #4a4a4a #2a2a2a;
         }
 
-        .chart-container::-webkit-scrollbar {
+        .scroll-container::-webkit-scrollbar {
           height: 8px;
         }
 
-        .chart-container::-webkit-scrollbar-track {
+        .scroll-container::-webkit-scrollbar-track {
           background: #2a2a2a;
           border-radius: 4px;
         }
 
-        .chart-container::-webkit-scrollbar-thumb {
+        .scroll-container::-webkit-scrollbar-thumb {
           background-color: #4a4a4a;
           border-radius: 4px;
         }
 
         .graph-wrapper {
-          height: 500px;
-          position: relative;
-          margin-top: 20px;
           min-width: 2400px;
-          padding: 0 20px;
+          height: 100%;
         }
 
         .form-select,
@@ -444,18 +540,6 @@ export default function SensorGraphDHT21() {
             padding: 10px;
           }
 
-          .chart-outer-container {
-            margin: 0 -10px;
-          }
-
-          .chart-container {
-            margin: 0 10px;
-          }
-
-          .graph-wrapper {
-            padding: 0 10px;
-          }
-
           .col-auto {
             width: 100%;
             margin-bottom: 10px;
@@ -466,7 +550,7 @@ export default function SensorGraphDHT21() {
             width: 100%;
           }
 
-          .graph-wrapper {
+          .chart-container {
             height: 400px;
           }
         }
