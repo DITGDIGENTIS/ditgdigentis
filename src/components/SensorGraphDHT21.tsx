@@ -1,6 +1,10 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { scaleTime, scaleLinear } from 'd3-scale';
+import { timeFormat } from 'd3-time-format';
+import { useMedia, useWindowSize } from 'react-use';
 
 interface SensorPoint {
   sensor_id: string;
@@ -95,6 +99,43 @@ const generateMockData = (period: PeriodOption): SensorPoint[] => {
   return points;
 };
 
+// Анимации для элементов графика
+const lineVariants = {
+  hidden: { pathLength: 0, opacity: 0 },
+  visible: { 
+    pathLength: 1, 
+    opacity: 1,
+    transition: { 
+      duration: 1,
+      ease: "easeInOut"
+    }
+  }
+};
+
+const pointVariants = {
+  hidden: { scale: 0, opacity: 0 },
+  visible: { 
+    scale: 1, 
+    opacity: 1,
+    transition: { 
+      type: "spring",
+      stiffness: 500,
+      damping: 25
+    }
+  }
+};
+
+interface Dimensions {
+  width: number;
+  height: number;
+  padding: {
+    top: number;
+    right: number;
+    bottom: number;
+    left: number;
+  };
+}
+
 export default function SensorGraphDHT21() {
   // Состояния
   const [data, setData] = useState<SensorPoint[]>([]);
@@ -102,6 +143,16 @@ export default function SensorGraphDHT21() {
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [selectedSensors, setSelectedSensors] = useState<string[]>([...SENSOR_IDS]);
   const [isLoading, setIsLoading] = useState(false);
+  const [dimensions, setDimensions] = useState<Dimensions>({
+    width: 1200,
+    height: 600,
+    padding: {
+      top: 40,
+      right: 80,
+      bottom: 60,
+      left: 80
+    }
+  });
   const [hoveredPoint, setHoveredPoint] = useState<{
     x: number;
     y: number;
@@ -110,44 +161,84 @@ export default function SensorGraphDHT21() {
     temperature: number;
     timestamp: number;
   } | null>(null);
-  const [dimensions, setDimensions] = useState({
-    width: 1200,
-    height: 600,
-    padding: { top: 40, right: 80, bottom: 60, left: 80 }
-  });
 
-  // Вычисляем размеры графика
-  const { graphWidth, graphHeight } = useMemo(() => ({
-    graphWidth: dimensions.width - dimensions.padding.left - dimensions.padding.right,
-    graphHeight: dimensions.height - dimensions.padding.top - dimensions.padding.bottom
-  }), [dimensions]);
+  // Используем хук для определения размера окна
+  const { width: windowWidth } = useWindowSize();
+  
+  // Медиа-запросы для адаптивности
+  const isMobile = useMedia('(max-width: 768px)');
+  const isTablet = useMedia('(max-width: 1024px)');
 
-  // Форматирование времени
-  const formatTime = (timestamp: number): string => {
-    const date = new Date(timestamp);
+  // Эффект для адаптивности
+  useEffect(() => {
+    const handleResize = () => {
+      const container = document.querySelector('.sensor-graph-container');
+      if (container) {
+        const width = Math.max(320, Math.min(1200, container.clientWidth));
+        const height = Math.max(300, width * 0.5);
+        setDimensions(prev => ({
+          ...prev,
+          width,
+          height,
+          padding: {
+            top: isMobile ? 20 : 40,
+            right: isMobile ? 40 : 80,
+            bottom: isMobile ? 40 : 60,
+            left: isMobile ? 40 : 80
+          }
+        }));
+      }
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isMobile]);
+
+  // D3 scales для более точного масштабирования
+  const scales = useMemo(() => {
+    if (!data.length) return null;
+
+    const filteredData = data.filter(point => selectedSensors.includes(point.sensor_id));
     
+    const timeScale = scaleTime()
+      .domain([
+        new Date(Math.min(...filteredData.map(d => d.timestamp))),
+        new Date(Math.max(...filteredData.map(d => d.timestamp)))
+      ])
+      .range([0, dimensions.width - dimensions.padding.left - dimensions.padding.right]);
+
+    const humidityScale = scaleLinear()
+      .domain([0, Math.max(...filteredData.map(d => d.humidity)) * 1.1])
+      .range([dimensions.height - dimensions.padding.bottom, dimensions.padding.top]);
+
+    const temperatureScale = scaleLinear()
+      .domain([
+        Math.min(...filteredData.map(d => d.temperature)) * 0.9,
+        Math.max(...filteredData.map(d => d.temperature)) * 1.1
+      ])
+      .range([dimensions.height - dimensions.padding.bottom, dimensions.padding.top]);
+
+    return { timeScale, humidityScale, temperatureScale };
+  }, [data, selectedSensors, dimensions]);
+
+  // Форматирование времени с использованием d3-time-format
+  const timeFormatter = useMemo(() => {
     switch(selectedPeriod.value) {
       case "1h":
-        return date.toLocaleTimeString('uk-UA', { 
-          hour: '2-digit', 
-          minute: '2-digit',
-          second: '2-digit'
-        });
+        return timeFormat("%H:%M:%S");
       case "12h":
       case "1d":
-        return date.toLocaleTimeString('uk-UA', { 
-          hour: '2-digit', 
-          minute: '2-digit'
-        });
+        return timeFormat("%H:%M");
       case "1w":
       case "1m":
-        return `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:00`;
+        return timeFormat("%d.%m %H:%M");
       case "1y":
-        return `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+        return timeFormat("%d.%m");
       default:
-        return date.toLocaleString('uk-UA');
+        return timeFormat("%d.%m.%Y");
     }
-  };
+  }, [selectedPeriod]);
 
   // Получаем временные точки
   const getTimePoints = useMemo(() => {
@@ -182,40 +273,6 @@ export default function SensorGraphDHT21() {
     return points;
   }, [selectedDate, selectedPeriod]);
 
-  // Вычисляем масштабы для осей
-  const scales = useMemo(() => {
-    if (!data.length) return null;
-
-    const filteredData = data.filter(point => selectedSensors.includes(point.sensor_id));
-    
-    const humidityValues = filteredData.map(d => d.humidity);
-    const temperatureValues = filteredData.map(d => d.temperature);
-
-    const humidityMin = Math.min(...humidityValues);
-    const humidityMax = Math.max(...humidityValues);
-    const tempMin = Math.min(...temperatureValues);
-    const tempMax = Math.max(...temperatureValues);
-
-    // Добавляем отступы для лучшей визуализации
-    const humidityPadding = (humidityMax - humidityMin) * 0.1;
-    const tempPadding = (tempMax - tempMin) * 0.1;
-
-    return {
-      humidity: {
-        min: Math.max(0, humidityMin - humidityPadding),
-        max: Math.min(100, humidityMax + humidityPadding)
-      },
-      temperature: {
-        min: tempMin - tempPadding,
-        max: tempMax + tempPadding
-      },
-      time: {
-        min: getTimePoints[0].getTime(),
-        max: getTimePoints[getTimePoints.length - 1].getTime()
-      }
-    };
-  }, [data, selectedSensors, getTimePoints]);
-
   // Генерация делений для осей
   const generateTicks = (min: number, max: number, count: number = 6): number[] => {
     const step = (max - min) / (count - 1);
@@ -226,8 +283,8 @@ export default function SensorGraphDHT21() {
   const renderAxes = () => {
     if (!scales) return null;
 
-    const humidityTicks = generateTicks(scales.humidity.min, scales.humidity.max);
-    const temperatureTicks = generateTicks(scales.temperature.min, scales.temperature.max);
+    const humidityTicks = generateTicks(scales.humidityScale(0), scales.humidityScale(100));
+    const temperatureTicks = generateTicks(scales.temperatureScale(20), scales.temperatureScale(30));
     const timeTicks = getTimePoints.filter((_, i) => 
       i % Math.max(1, Math.floor(getTimePoints.length / 10)) === 0
     );
@@ -240,9 +297,9 @@ export default function SensorGraphDHT21() {
             <line
               key={`grid-h-${i}`}
               x1={dimensions.padding.left}
-              y1={dimensions.padding.top + (scales.humidity.max - tick) / (scales.humidity.max - scales.humidity.min) * graphHeight}
+              y1={dimensions.padding.top + (scales.humidityScale(tick) - scales.humidityScale(0)) / (scales.humidityScale(100) - scales.humidityScale(0)) * dimensions.height}
               x2={dimensions.width - dimensions.padding.right}
-              y2={dimensions.padding.top + (scales.humidity.max - tick) / (scales.humidity.max - scales.humidity.min) * graphHeight}
+              y2={dimensions.padding.top + (scales.humidityScale(tick) - scales.humidityScale(0)) / (scales.humidityScale(100) - scales.humidityScale(0)) * dimensions.height}
               stroke={COLORS.grid}
               strokeWidth="1"
               strokeDasharray="4,4"
@@ -288,7 +345,7 @@ export default function SensorGraphDHT21() {
             <text
               key={`humidity-${i}`}
               x={dimensions.padding.left - 10}
-              y={dimensions.padding.top + (scales.humidity.max - tick) / (scales.humidity.max - scales.humidity.min) * graphHeight}
+              y={dimensions.padding.top + (scales.humidityScale(tick) - scales.humidityScale(0)) / (scales.humidityScale(100) - scales.humidityScale(0)) * dimensions.height}
               textAnchor="end"
               alignmentBaseline="middle"
               fill={COLORS.text}
@@ -303,7 +360,7 @@ export default function SensorGraphDHT21() {
             <text
               key={`temp-${i}`}
               x={dimensions.width - dimensions.padding.right + 10}
-              y={dimensions.padding.top + (scales.temperature.max - tick) / (scales.temperature.max - scales.temperature.min) * graphHeight}
+              y={dimensions.padding.top + (scales.temperatureScale(tick) - scales.temperatureScale(20)) / (scales.temperatureScale(30) - scales.temperatureScale(20)) * dimensions.height}
               textAnchor="start"
               alignmentBaseline="middle"
               fill={COLORS.text}
@@ -317,14 +374,14 @@ export default function SensorGraphDHT21() {
           {timeTicks.map((time, i) => (
             <text
               key={`time-${i}`}
-              x={dimensions.padding.left + (i * graphWidth / (timeTicks.length - 1))}
+              x={dimensions.padding.left + (i * (dimensions.width - dimensions.padding.left - dimensions.padding.right) / (timeTicks.length - 1))}
               y={dimensions.height - dimensions.padding.bottom + 25}
               textAnchor="middle"
               fill={COLORS.text}
               fontSize="12"
-              transform={`rotate(-45 ${dimensions.padding.left + (i * graphWidth / (timeTicks.length - 1))} ${dimensions.height - dimensions.padding.bottom + 25})`}
+              transform={`rotate(-45 ${dimensions.padding.left + (i * (dimensions.width - dimensions.padding.left - dimensions.padding.right) / (timeTicks.length - 1))} ${dimensions.height - dimensions.padding.bottom + 25})`}
             >
-              {formatTime(time.getTime())}
+              {timeFormatter(new Date(time.getTime()))}
             </text>
           ))}
         </g>
@@ -354,96 +411,67 @@ export default function SensorGraphDHT21() {
     );
   };
 
-  // Рендер линий данных
+  // Рендер линий данных с анимацией
   const renderDataLines = () => {
     if (!scales) return null;
 
     return selectedSensors.map(sensorId => {
       const sensorData = data.filter(point => point.sensor_id === sensorId);
-      
-      // Преобразуем точки в координаты SVG
-      const points = sensorData.map(point => {
-        const x = dimensions.padding.left + 
-          ((point.timestamp - scales.time.min) / (scales.time.max - scales.time.min)) * graphWidth;
-        
-        const humidityY = dimensions.padding.top + 
-          ((scales.humidity.max - point.humidity) / (scales.humidity.max - scales.humidity.min)) * graphHeight;
-        
-        const temperatureY = dimensions.padding.top + 
-          ((scales.temperature.max - point.temperature) / (scales.temperature.max - scales.temperature.min)) * graphHeight;
-
-        return { x, humidityY, temperatureY, ...point };
-      });
-
-      if (points.length < 2) return null;
-
       const sensorColors = COLORS[sensorId as keyof typeof COLORS] as SensorColors;
+      
+      const humidityLine = sensorData.map(point => ({
+        x: scales.timeScale(new Date(point.timestamp)),
+        y: scales.humidityScale(point.humidity)
+      }));
+
+      const temperatureLine = sensorData.map(point => ({
+        x: scales.timeScale(new Date(point.timestamp)),
+        y: scales.temperatureScale(point.temperature)
+      }));
 
       return (
         <g key={sensorId} className="sensor-data">
-          {/* Линия влажности */}
-          <path
-            d={`M ${points.map(p => `${p.x},${p.humidityY}`).join(' L ')}`}
+          <motion.path
+            variants={lineVariants}
+            initial="hidden"
+            animate="visible"
+            d={`M ${humidityLine.map(p => `${p.x},${p.y}`).join(' L ')}`}
             stroke={sensorColors.humidity}
             strokeWidth="2"
             fill="none"
           />
           
-          {/* Линия температуры */}
-          <path
-            d={`M ${points.map(p => `${p.x},${p.temperatureY}`).join(' L ')}`}
+          <motion.path
+            variants={lineVariants}
+            initial="hidden"
+            animate="visible"
+            d={`M ${temperatureLine.map(p => `${p.x},${p.y}`).join(' L ')}`}
             stroke={sensorColors.temperature}
             strokeWidth="2"
             fill="none"
           />
 
-          {/* Точки и интерактивные области */}
-          {points.map((point, index) => (
+          {sensorData.map((point, index) => (
             <g key={`points-${index}`}>
-              {/* Точка влажности */}
-              <circle
-                cx={point.x}
-                cy={point.humidityY}
+              <motion.circle
+                variants={pointVariants}
+                initial="hidden"
+                animate="visible"
+                cx={scales.timeScale(new Date(point.timestamp))}
+                cy={scales.humidityScale(point.humidity)}
                 r="4"
                 fill={sensorColors.humidity}
+                whileHover={{ scale: 1.5 }}
               />
-              <circle
-                cx={point.x}
-                cy={point.humidityY}
-                r="8"
-                fill="transparent"
-                onMouseEnter={() => setHoveredPoint({
-                  x: point.x,
-                  y: point.humidityY,
-                  sensorId,
-                  humidity: point.humidity,
-                  temperature: point.temperature,
-                  timestamp: point.timestamp
-                })}
-                onMouseLeave={() => setHoveredPoint(null)}
-              />
-
-              {/* Точка температуры */}
-              <circle
-                cx={point.x}
-                cy={point.temperatureY}
+              <motion.circle
+                variants={pointVariants}
+                initial="hidden"
+                animate="visible"
+                cx={scales.timeScale(new Date(point.timestamp))}
+                cy={scales.temperatureScale(point.temperature)}
                 r="4"
                 fill={sensorColors.temperature}
-              />
-              <circle
-                cx={point.x}
-                cy={point.temperatureY}
-                r="8"
-                fill="transparent"
-                onMouseEnter={() => setHoveredPoint({
-                  x: point.x,
-                  y: point.temperatureY,
-                  sensorId,
-                  humidity: point.humidity,
-                  temperature: point.temperature,
-                  timestamp: point.timestamp
-                })}
-                onMouseLeave={() => setHoveredPoint(null)}
+                whileHover={{ scale: 1.5 }}
               />
             </g>
           ))}
@@ -452,50 +480,41 @@ export default function SensorGraphDHT21() {
     });
   };
 
-  // Рендер тултипа
+  // Рендер тултипа с анимацией
   const renderTooltip = () => {
-    if (!hoveredPoint) return null;
-
-    const tooltipWidth = 200;
-    const tooltipHeight = 80;
-    const tooltipPadding = 10;
-
-    // Корректируем позицию тултипа, чтобы он не выходил за границы SVG
-    let tooltipX = hoveredPoint.x + 10;
-    let tooltipY = hoveredPoint.y - tooltipHeight - 10;
-
-    if (tooltipX + tooltipWidth > dimensions.width - dimensions.padding.right) {
-      tooltipX = hoveredPoint.x - tooltipWidth - 10;
-    }
-
-    if (tooltipY < dimensions.padding.top) {
-      tooltipY = hoveredPoint.y + 10;
-    }
+    if (!hoveredPoint || !scales) return null;
 
     return (
-      <g className="tooltip" transform={`translate(${tooltipX},${tooltipY})`}>
-        <rect
-          x={0}
-          y={0}
-          width={tooltipWidth}
-          height={tooltipHeight}
-          fill={COLORS.tooltip.bg}
-          stroke={COLORS.tooltip.border}
-          rx={4}
-        />
-        <text x={tooltipPadding} y={tooltipPadding * 2} fill={COLORS.tooltip.text} fontSize="12">
-          {`Сенсор: ${hoveredPoint.sensorId}`}
-        </text>
-        <text x={tooltipPadding} y={tooltipPadding * 3.5} fill={COLORS.tooltip.text} fontSize="12">
-          {`Вологість: ${hoveredPoint.humidity.toFixed(1)}%`}
-        </text>
-        <text x={tooltipPadding} y={tooltipPadding * 5} fill={COLORS.tooltip.text} fontSize="12">
-          {`Температура: ${hoveredPoint.temperature.toFixed(1)}°C`}
-        </text>
-        <text x={tooltipPadding} y={tooltipPadding * 6.5} fill={COLORS.tooltip.text} fontSize="12">
-          {formatTime(hoveredPoint.timestamp)}
-        </text>
-      </g>
+      <AnimatePresence>
+        <motion.g
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.8 }}
+          transition={{ duration: 0.2 }}
+          className="tooltip"
+          transform={`translate(${hoveredPoint.x + 10},${hoveredPoint.y - 10})`}
+        >
+          <rect
+            x={0}
+            y={0}
+            width={200}
+            height={80}
+            fill={COLORS.tooltip.bg}
+            stroke={COLORS.tooltip.border}
+            rx={4}
+            filter="url(#tooltip-shadow)"
+          />
+          <text x={10} y={20} fill={COLORS.tooltip.text} fontSize={12}>
+            {`Сенсор: ${hoveredPoint.sensorId}`}
+          </text>
+          <text x={10} y={40} fill={COLORS.tooltip.text} fontSize={12}>
+            {`Вологість: ${hoveredPoint.humidity.toFixed(1)}%`}
+          </text>
+          <text x={10} y={60} fill={COLORS.tooltip.text} fontSize={12}>
+            {`Температура: ${hoveredPoint.temperature.toFixed(1)}°C`}
+          </text>
+        </motion.g>
+      </AnimatePresence>
     );
   };
 
@@ -527,26 +546,6 @@ export default function SensorGraphDHT21() {
     fetchData();
   }, [selectedDate, selectedPeriod]);
 
-  // Эффект для адаптивности
-  useEffect(() => {
-    const handleResize = () => {
-      const container = document.querySelector('.sensor-graph-container');
-      if (container) {
-        const width = Math.max(320, Math.min(1200, container.clientWidth));
-        const height = Math.max(300, width * 0.5);
-        setDimensions(prev => ({
-          ...prev,
-          width,
-          height
-        }));
-      }
-    };
-
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
   return (
     <div className="sensor-graph-container">
       <div className="controls mb-3">
@@ -563,13 +562,13 @@ export default function SensorGraphDHT21() {
                 </option>
               ))}
             </select>
-          </div>
+            </div>
           <div className="col-auto">
-            <input
-              type="date"
-              className="form-control"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
+          <input
+            type="date"
+            className="form-control"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
             />
           </div>
           <div className="col-auto">
@@ -580,7 +579,7 @@ export default function SensorGraphDHT21() {
                   className="form-check-input"
                   id={`sensor-${sensorId}`}
                   checked={selectedSensors.includes(sensorId)}
-                  onChange={(e) => {
+            onChange={(e) => {
                     if (e.target.checked) {
                       setSelectedSensors([...selectedSensors, sensorId]);
                     } else {
@@ -598,61 +597,88 @@ export default function SensorGraphDHT21() {
       </div>
 
       {isLoading ? (
-        <div className="text-center py-5">
+        <motion.div 
+          className="text-center py-5"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
           <div className="spinner-border" role="status">
             <span className="visually-hidden">Loading...</span>
           </div>
-        </div>
+        </motion.div>
       ) : (
-        <div className="graph-wrapper" style={{ position: 'relative' }}>
+        <motion.div 
+          className="graph-wrapper"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
           <svg
             width={dimensions.width}
             height={dimensions.height}
             className="sensor-graph"
             style={{ maxWidth: '100%', height: 'auto' }}
           >
+            <defs>
+              <filter id="tooltip-shadow" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.2"/>
+              </filter>
+            </defs>
             {renderAxes()}
             {renderDataLines()}
             {renderTooltip()}
           </svg>
-        </div>
+        </motion.div>
       )}
 
       <style jsx>{`
         .sensor-graph-container {
           background: white;
-          border-radius: 8px;
-          padding: 20px;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          border-radius: 12px;
+          padding: ${isMobile ? '10px' : '20px'};
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          transition: all 0.3s ease;
         }
 
         .graph-wrapper {
           overflow: hidden;
-          border-radius: 4px;
+          border-radius: 8px;
+          background: white;
         }
 
         .form-select,
         .form-control {
-          min-width: 120px;
+          min-width: ${isMobile ? '100%' : '120px'};
+          border-radius: 8px;
+          border: 1px solid #e0e0e0;
+          transition: all 0.2s ease;
+        }
+
+        .form-select:focus,
+        .form-control:focus {
+          border-color: ${COLORS["HUM1-1"].humidity};
+          box-shadow: 0 0 0 2px ${COLORS["HUM1-1"].humidity}33;
         }
 
         @media (max-width: 768px) {
           .sensor-graph-container {
-            padding: 10px;
+            border-radius: 8px;
           }
 
           .controls {
             flex-direction: column;
+            gap: 10px;
           }
 
           .col-auto {
             width: 100%;
-            margin-bottom: 10px;
           }
+        }
 
-          .form-select,
-          .form-control {
-            width: 100%;
+        @media (hover: hover) {
+          .sensor-graph-container:hover {
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.1);
           }
         }
       `}</style>
