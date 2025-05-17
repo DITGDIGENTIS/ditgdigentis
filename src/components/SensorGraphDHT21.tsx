@@ -16,8 +16,8 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import 'chartjs-adapter-date-fns';
-import { format, startOfDay, addDays, subHours } from 'date-fns';
-import { uk } from 'date-fns/locale';
+import { format, subHours } from 'date-fns';
+import { ru } from 'date-fns/locale';
 import _ from 'lodash';
 
 ChartJS.register(
@@ -46,18 +46,17 @@ type SensorId = (typeof SENSOR_IDS)[number];
 interface PeriodOption {
   label: string;
   value: string;
-  minutes: number;
-  interval: number;
-  intervalUnit: 'second' | 'minute' | 'hour' | 'day';
+  hours: number;
+  intervalSeconds: number;
 }
 
 const PERIOD_OPTIONS: PeriodOption[] = [
-  { label: "1 час", value: "1h", minutes: 60, interval: 3, intervalUnit: 'second' },
-  { label: "12 часов", value: "12h", minutes: 720, interval: 30, intervalUnit: 'minute' },
-  { label: "1 день", value: "1d", minutes: 1440, interval: 5, intervalUnit: 'minute' },
-  { label: "1 неделя", value: "1w", minutes: 10080, interval: 30, intervalUnit: 'minute' },
-  { label: "1 месяц", value: "1m", minutes: 43200, interval: 3, intervalUnit: 'hour' },
-  { label: "1 год", value: "1y", minutes: 525600, interval: 1, intervalUnit: 'day' }
+  { label: "1 час", value: "1h", hours: 1, intervalSeconds: 3 },
+  { label: "12 часов", value: "12h", hours: 12, intervalSeconds: 30 },
+  { label: "1 день", value: "24h", hours: 24, intervalSeconds: 5 * 60 },
+  { label: "1 неделя", value: "1w", hours: 24 * 7, intervalSeconds: 30 * 60 },
+  { label: "1 месяц", value: "1m", hours: 24 * 30, intervalSeconds: 3 * 60 * 60 },
+  { label: "1 год", value: "1y", hours: 24 * 365, intervalSeconds: 24 * 60 * 60 }
 ];
 
 const COLORS = {
@@ -70,156 +69,81 @@ const COLORS = {
 };
 
 export default function SensorGraphDHT21() {
-  const [selectedDate, setSelectedDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
-  const [selectedPeriod, setSelectedPeriod] = useState(PERIOD_OPTIONS[0]);
-  const [selectedSensors, setSelectedSensors] = useState<SensorId[]>([...SENSOR_IDS]);
+  const [selectedPeriod, setSelectedPeriod] = useState<PeriodOption>(PERIOD_OPTIONS[0]);
   const [data, setData] = useState<SensorPoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [liveData, setLiveData] = useState<Record<string, { humidity: number; temperature: number; timestamp: number }>>({});
+  const [error, setError] = useState<string | null>(null);
   const chartRef = useRef<ChartJS<'line'>>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Используем текущую дату и время
-        const now = new Date();
-        
-        // Округляем до ближайших 5 минут в прошлом
-        const minutes = now.getMinutes();
-        const roundedMinutes = Math.floor(minutes / 5) * 5;
-        const end = new Date(now.setMinutes(roundedMinutes, 0, 0));
-        const start = new Date(end.getTime() - 60 * 60 * 1000); // 1 час назад
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
 
-        console.log("[fetchData] Расчет времени:", {
-          текущее_время: now.toLocaleString(),
-          округленные_минуты: roundedMinutes,
-          начало_периода: start.toLocaleString(),
-          конец_периода: end.toLocaleString()
-        });
+      const now = new Date();
+      const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
+      const start = new Date(end.getTime() - selectedPeriod.hours * 60 * 60 * 1000);
 
-        const requestBody = {
+      console.log("[fetchData] Запрос данных:", {
+        период: selectedPeriod.label,
+        интервал: `${selectedPeriod.intervalSeconds} секунд`,
+        начало: start.toLocaleString(),
+        конец: end.toLocaleString()
+      });
+
+      const response = await fetch('/api/humidity-records', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        },
+        body: JSON.stringify({
           startDate: start.toISOString(),
           endDate: end.toISOString(),
-          sensorIds: SENSOR_IDS
-        };
+          sensorIds: SENSOR_IDS,
+          intervalSeconds: selectedPeriod.intervalSeconds
+        }),
+      });
 
-        console.log("[fetchData] Запрос данных:", {
-          timeRange: {
-            start: start.toLocaleTimeString(),
-            end: end.toLocaleTimeString()
-          },
-          body: JSON.stringify(requestBody, null, 2)
-        });
-
-        const historyResponse = await fetch('/api/humidity-records', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache'
-          },
-          body: JSON.stringify(requestBody),
-        });
-
-        console.log("[fetchData] Статус ответа:", {
-          status: historyResponse.status,
-          statusText: historyResponse.statusText,
-          headers: Object.fromEntries(historyResponse.headers.entries())
-        });
-
-        if (!historyResponse.ok) {
-          const errorText = await historyResponse.text();
-          console.error('[fetchData] Ошибка получения данных:', {
-            status: historyResponse.status,
-            statusText: historyResponse.statusText,
-            error: errorText
-          });
-          throw new Error(`Ошибка API: ${historyResponse.status} ${historyResponse.statusText}`);
-        }
-
-        const responseText = await historyResponse.text();
-        console.log("[fetchData] Сырой ответ:", responseText);
-
-        let historicalData;
-        try {
-          historicalData = JSON.parse(responseText);
-        } catch (e) {
-          console.error('[fetchData] Ошибка парсинга JSON:', e);
-          throw new Error('Некорректный формат данных от сервера');
-        }
-
-        if (!Array.isArray(historicalData)) {
-          console.error('[fetchData] Неверный формат данных:', historicalData);
-          throw new Error('Данные от сервера не являются массивом');
-        }
-
-        console.log("[fetchData] Получены данные:", {
-          количество: historicalData.length,
-          первая_точка: historicalData[0],
-          последняя_точка: historicalData[historicalData.length - 1],
-          пример_данных: historicalData.slice(0, 3)
-        });
-
-        // Ensure timestamps are numbers and sort data
-        const processedData = historicalData
-          .map(point => {
-            const timestamp = typeof point.timestamp === 'number' 
-              ? point.timestamp 
-              : new Date(point.timestamp).getTime();
-            
-            const processed = {
-              ...point,
-              timestamp,
-              temperature: Number(point.temperature),
-              humidity: Number(point.humidity)
-            };
-
-            console.log("[fetchData] Обработана точка данных:", {
-              до: point,
-              после: processed
-            });
-
-            return processed;
-          })
-          .sort((a, b) => a.timestamp - b.timestamp);
-
-        console.log("[fetchData] Итоговые данные:", {
-          количество: processedData.length,
-          временной_диапазон: {
-            начало: new Date(processedData[0]?.timestamp).toLocaleString(),
-            конец: new Date(processedData[processedData.length - 1]?.timestamp).toLocaleString()
-          },
-          пример_данных: processedData.slice(0, 3)
-        });
-
-        setData(processedData);
-
-      } catch (error) {
-        console.error('[fetchData] Критическая ошибка:', error);
-        setData([]);
-      } finally {
-        setIsLoading(false);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Ошибка получения данных: ${response.status} ${response.statusText}\n${errorText}`);
       }
-    };
 
+      const readings = await response.json();
+      
+      console.log("[fetchData] Получены данные:", {
+        количество: readings.length,
+        первая_запись: readings[0],
+        последняя_запись: readings[readings.length - 1]
+      });
+
+      setData(readings);
+    } catch (error) {
+      console.error("[fetchData] Ошибка:", error);
+      setError(error instanceof Error ? error.message : 'Неизвестная ошибка');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [selectedPeriod]);
 
-  // Prepare chart data
   const chartData = {
-    datasets: selectedSensors.flatMap(sensorId => [
+    datasets: [
       {
-        label: `Температура ${sensorId}`,
-        data: data
-          .filter(point => point.sensor_id === sensorId)
-          .map(point => ({
-            x: point.timestamp,
-            y: point.temperature
-          })),
-        borderColor: COLORS[sensorId].temperature,
-        backgroundColor: COLORS[sensorId].temperatureBg,
+        label: 'Температура',
+        data: data.map(point => ({
+          x: point.timestamp,
+          y: point.temperature
+        })),
+        borderColor: COLORS["HUM1-1"].temperature,
+        backgroundColor: COLORS["HUM1-1"].temperatureBg,
         yAxisID: 'y1',
         pointRadius: 2,
         borderWidth: 2,
@@ -227,22 +151,20 @@ export default function SensorGraphDHT21() {
         tension: 0.4
       },
       {
-        label: `Влажность ${sensorId}`,
-        data: data
-          .filter(point => point.sensor_id === sensorId)
-          .map(point => ({
-            x: point.timestamp,
-            y: point.humidity
-          })),
-        borderColor: COLORS[sensorId].humidity,
-        backgroundColor: COLORS[sensorId].humidityBg,
+        label: 'Влажность',
+        data: data.map(point => ({
+          x: point.timestamp,
+          y: point.humidity
+        })),
+        borderColor: COLORS["HUM1-1"].humidity,
+        backgroundColor: COLORS["HUM1-1"].humidityBg,
         yAxisID: 'y2',
         pointRadius: 2,
         borderWidth: 2,
         fill: true,
         tension: 0.4
       }
-    ])
+    ]
   };
 
   const options: ChartOptions<'line'> = {
@@ -260,29 +182,49 @@ export default function SensorGraphDHT21() {
     scales: {
       x: {
         type: 'time',
-        position: 'bottom',
         time: {
-          unit: 'minute',
+          unit: selectedPeriod.hours <= 1 ? 'minute' : 
+                selectedPeriod.hours <= 24 ? 'hour' : 
+                selectedPeriod.hours <= 24 * 7 ? 'day' : 
+                selectedPeriod.hours <= 24 * 30 ? 'day' : 'month',
           displayFormats: {
-            minute: 'HH:mm'
+            minute: 'HH:mm',
+            hour: 'HH:mm',
+            day: 'dd.MM',
+            month: 'MM.yyyy'
           },
-          tooltipFormat: 'HH:mm:ss',
+          tooltipFormat: 'dd.MM.yyyy HH:mm:ss'
         },
         grid: {
           color: 'rgba(255, 255, 255, 0.1)',
         },
         ticks: {
           maxRotation: 0,
-          autoSkip: true,
-          maxTicksLimit: 13,
+          autoSkip: false,
+          maxTicksLimit: selectedPeriod.hours <= 1 ? 12 : 
+                        selectedPeriod.hours <= 12 ? 24 :
+                        selectedPeriod.hours <= 24 ? 24 : 12,
           font: {
             size: 12
           },
           callback: function(value) {
             const date = new Date(value);
             const minutes = date.getMinutes();
-            // Only show labels for timestamps at 5-minute intervals
-            return minutes % 5 === 0 ? format(date, 'HH:mm') : '';
+            const hours = date.getHours();
+
+            if (selectedPeriod.hours <= 1) {
+              return minutes % 5 === 0 ? format(date, 'HH:mm') : '';
+            } else if (selectedPeriod.hours <= 12) {
+              return minutes === 0 || minutes === 30 ? format(date, 'HH:mm') : '';
+            } else if (selectedPeriod.hours <= 24) {
+              return minutes === 0 ? format(date, 'HH:mm') : '';
+            } else if (selectedPeriod.hours <= 24 * 7) {
+              return minutes === 0 && hours % 6 === 0 ? format(date, 'dd.MM HH:mm') : '';
+            } else if (selectedPeriod.hours <= 24 * 30) {
+              return hours === 0 && minutes === 0 ? format(date, 'dd.MM') : '';
+            } else {
+              return hours === 0 && minutes === 0 ? format(date, 'dd.MM') : '';
+            }
           }
         }
       },
@@ -290,8 +232,8 @@ export default function SensorGraphDHT21() {
         type: 'linear',
         display: true,
         position: 'left',
-        min: 0,
-        max: 50,
+        min: 15,
+        max: 30,
         grid: {
           color: 'rgba(255, 214, 2, 0.1)'
         },
@@ -301,7 +243,7 @@ export default function SensorGraphDHT21() {
             size: 12,
             weight: 'bold'
           },
-          stepSize: 5,
+          stepSize: 1,
           callback: function(value) {
             return value + '°C';
           }
@@ -331,16 +273,6 @@ export default function SensorGraphDHT21() {
       }
     },
     plugins: {
-      legend: {
-        display: true,
-        position: 'top',
-        labels: {
-          color: 'rgba(255, 255, 255, 0.8)',
-          font: {
-            size: 12
-          }
-        }
-      },
       tooltip: {
         mode: 'index',
         intersect: false,
@@ -350,91 +282,69 @@ export default function SensorGraphDHT21() {
         },
         bodyFont: {
           size: 12
+        },
+        callbacks: {
+          title: (items) => {
+            if (items.length > 0) {
+              const date = new Date(items[0].parsed.x);
+              return format(date, 'dd MMM, HH:mm:ss', { locale: ru });
+            }
+            return '';
+          }
+        }
+      },
+      legend: {
+        display: true,
+        position: 'top',
+        labels: {
+          color: 'rgba(255, 255, 255, 0.8)',
+          font: {
+            size: 12
+          },
+          usePointStyle: true,
+          pointStyle: 'circle'
         }
       }
     }
   };
 
-  useEffect(() => {
-    const chart = chartRef.current;
-    if (!chart) return;
-
-    const canvas = chart.canvas;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let currentX: number | null = null;
-
-    const drawVerticalLine = (x: number) => {
-      if (!ctx || !chart) return;
-      
-      const { top, bottom } = chart.chartArea;
-      ctx.save();
-      ctx.beginPath();
-      ctx.setLineDash([5, 5]);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-      ctx.lineWidth = 1;
-      ctx.moveTo(x, top);
-      ctx.lineTo(x, bottom);
-      ctx.stroke();
-      ctx.restore();
-    };
-
-    const handleMove = (e: MouseEvent | TouchEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      const x = e instanceof MouseEvent ? e.clientX : e.touches[0].clientX;
-      const chartX = x - rect.left;
-      currentX = chartX;
-
-      requestAnimationFrame(() => {
-        chart.update('none');
-        if (currentX !== null) {
-          drawVerticalLine(currentX);
-        }
-      });
-    };
-
-    const handleLeave = () => {
-      currentX = null;
-      chart.update('none');
-    };
-
-    canvas.addEventListener('mousemove', handleMove);
-    canvas.addEventListener('touchmove', handleMove);
-    canvas.addEventListener('mouseleave', handleLeave);
-    canvas.addEventListener('touchend', handleLeave);
-
-    // Перерисовываем линию после каждого обновления графика
-    const originalUpdate = chart.update;
-    chart.update = function(mode?: 'default' | 'resize' | 'reset' | 'none' | 'hide' | 'show' | 'active') {
-      originalUpdate.call(this, mode);
-      if (currentX !== null) {
-        drawVerticalLine(currentX);
-      }
-    };
-
-    return () => {
-      canvas.removeEventListener('mousemove', handleMove);
-      canvas.removeEventListener('touchmove', handleMove);
-      canvas.removeEventListener('mouseleave', handleLeave);
-      canvas.removeEventListener('touchend', handleLeave);
-      chart.update = originalUpdate;
-    };
-  }, []);
-
   return (
-    <div className="w-full h-[400px] bg-black/20 rounded-lg p-4">
-      {isLoading ? (
-        <div className="w-full h-full flex items-center justify-center">
-          <span className="text-white">Загрузка данных...</span>
-        </div>
-      ) : data.length === 0 ? (
-        <div className="w-full h-full flex items-center justify-center">
-          <span className="text-white">Нет данных за выбранный период</span>
-        </div>
-      ) : (
-        <Line data={chartData} options={options} ref={chartRef} />
-      )}
+    <div className="w-full space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold text-white">График температуры и влажности</h2>
+        <select
+          className="bg-black/20 text-white border border-white/20 rounded px-3 py-1"
+          value={selectedPeriod.value}
+          onChange={(e) => {
+            const period = PERIOD_OPTIONS.find(p => p.value === e.target.value);
+            if (period) setSelectedPeriod(period);
+          }}
+        >
+          {PERIOD_OPTIONS.map(period => (
+            <option key={period.value} value={period.value}>
+              {period.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="w-full h-[400px] bg-black/20 rounded-lg p-4">
+        {isLoading ? (
+          <div className="w-full h-full flex items-center justify-center">
+            <span className="text-white">Загрузка данных...</span>
+          </div>
+        ) : error ? (
+          <div className="w-full h-full flex items-center justify-center">
+            <span className="text-red-500">{error}</span>
+          </div>
+        ) : data.length === 0 ? (
+          <div className="w-full h-full flex items-center justify-center">
+            <span className="text-white">Нет данных за выбранный период</span>
+          </div>
+        ) : (
+          <Line data={chartData} options={options} ref={chartRef} />
+        )}
+      </div>
     </div>
   );
 }
