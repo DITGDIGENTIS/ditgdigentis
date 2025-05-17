@@ -127,8 +127,7 @@ exports.Prisma.HumidityReadingScalarFieldEnum = {
   sensor_id: 'sensor_id',
   timestamp: 'timestamp',
   humidity: 'humidity',
-  temperature: 'temperature',
-  created_at: 'created_at'
+  temperature: 'temperature'
 };
 
 exports.Prisma.SensorReadingScalarFieldEnum = {

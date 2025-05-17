@@ -4,14 +4,21 @@ import { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTint, faTemperatureLow } from "@fortawesome/free-solid-svg-icons";
 import _ from "lodash";
-import { HumidityDataPoint } from "../services/humidity.service";
 
-type RawHumidityItem = {
+// Обновляем типы для более строгой типизации
+interface RawHumidityItem {
   id: string;
   humidity: number | string;
   temperature?: number | string;
   timestamp: number | string;
-};
+}
+
+interface ProcessedSensorData {
+  sensor_id: string;
+  humidity: number;
+  temperature: number;
+  timestamp: Date;
+}
 
 type RawHumidityResponse = {
   sensors: Record<string, RawHumidityItem>;
@@ -45,9 +52,12 @@ export function HumidityMonitor() {
         return age <= TIMEOUT_MS;
       });
 
-      if (_.isEmpty(onlineSensors)) return;
+      if (_.isEmpty(onlineSensors)) {
+        console.log("[saveToDatabase] Нет активных датчиков для сохранения");
+        return;
+      }
 
-      const formattedSensors: HumidityDataPoint[] = _.map(onlineSensors, (sensor, id) => {
+      const formattedSensors = _.map(onlineSensors, (sensor, id) => {
         const humidity = typeof sensor.humidity === 'string' 
           ? parseFloat(sensor.humidity) 
           : sensor.humidity;
@@ -56,28 +66,67 @@ export function HumidityMonitor() {
           ? parseFloat(sensor.temperature)
           : sensor.temperature || 0;
 
+        // Проверяем валидность значений
+        if (isNaN(humidity) || isNaN(temperature)) {
+          console.warn("[saveToDatabase] Некорректные данные датчика:", {
+            id,
+            raw: sensor,
+            parsed: { humidity, temperature }
+          });
+          return null;
+        }
+
+        const timestamp = new Date(Number(sensor.timestamp));
+        if (isNaN(timestamp.getTime())) {
+          console.warn("[saveToDatabase] Некорректный timestamp:", {
+            id,
+            timestamp: sensor.timestamp
+          });
+          return null;
+        }
+
         return {
           sensor_id: id,
           humidity: _.round(humidity, 1),
           temperature: _.round(temperature, 1),
-          timestamp: new Date(Number(sensor.timestamp))
+          timestamp
         };
-      });
+      }).filter((s): s is ProcessedSensorData => s !== null);
 
-      console.log("[saveToDatabase] Saving sensor data:", formattedSensors);
+      if (formattedSensors.length === 0) {
+        console.log("[saveToDatabase] Нет валидных данных для сохранения");
+        return;
+      }
+
+      console.log("[saveToDatabase] Сохранение данных датчиков:", {
+        количество: formattedSensors.length,
+        данные: formattedSensors.map(s => ({
+          sensor_id: s.sensor_id,
+          timestamp: s.timestamp.toISOString(),
+          temperature: s.temperature,
+          humidity: s.humidity
+        }))
+      });
 
       const response = await fetch("/api/humidity-records", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
         },
         body: JSON.stringify(formattedSensors),
       });
 
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Ошибка сохранения: ${response.status} ${response.statusText}\n${errorText}`);
+      }
+
       const result = await response.json();
-      console.log("[saveToDatabase] Save result:", result);
+      console.log("[saveToDatabase] Результат сохранения:", result);
     } catch (error) {
-      console.error("Error saving humidity data:", error);
+      console.error("[saveToDatabase] Ошибка:", error);
     }
   };
 

@@ -28,18 +28,25 @@ export function createHumidityService(): HumidityService {
 
   const createRecords = async (data: HumidityDataPoint[]): Promise<void> => {
     if (!_.isArray(data) || _.isEmpty(data)) {
-      console.warn("[createRecords] Empty input");
+      console.warn("[createRecords] Пустой массив данных");
       return;
     }
 
     try {
+      console.log("[createRecords] Подключение к базе данных...");
       await prisma.$connect();
+      console.log("[createRecords] Подключение успешно");
 
       const result = await Promise.all(
         _.map(data, async (sensor) => {
           const sensorTimestamp = sensor.timestamp instanceof Date
             ? sensor.timestamp
             : new Date(sensor.timestamp!);
+
+          console.log("[createRecords] Проверка существующей записи:", {
+            sensor_id: sensor.sensor_id,
+            timestamp: sensorTimestamp.toISOString()
+          });
 
           const exists = await prisma.humidityReading.findFirst({
             where: {
@@ -49,11 +56,18 @@ export function createHumidityService(): HumidityService {
           });
 
           if (exists) {
-            console.log(`[createRecords] Skipped existing: ${sensor.sensor_id} @ ${sensorTimestamp.toISOString()}`);
+            console.log(`[createRecords] Пропущена существующая запись: ${sensor.sensor_id} @ ${sensorTimestamp.toISOString()}`);
             return null;
           }
 
           try {
+            console.log("[createRecords] Создание новой записи:", {
+              sensor_id: sensor.sensor_id,
+              timestamp: sensorTimestamp.toISOString(),
+              temperature: sensor.temperature,
+              humidity: sensor.humidity
+            });
+
             return await prisma.humidityReading.create({
               data: {
                 sensor_id: sensor.sensor_id,
@@ -63,15 +77,19 @@ export function createHumidityService(): HumidityService {
               },
             });
           } catch (err) {
-            console.error("[createRecords] Failed to save", sensor.sensor_id, err);
+            console.error("[createRecords] Ошибка сохранения:", {
+              error: err,
+              data: sensor
+            });
             return null;
           }
         })
       );
 
-      console.log(`[createRecords] Inserted ${_.filter(result, Boolean).length} new records`);
+      const successCount = _.filter(result, Boolean).length;
+      console.log(`[createRecords] Создано ${successCount} новых записей из ${data.length}`);
     } catch (err) {
-      console.error("[createRecords] Unexpected error:", err);
+      console.error("[createRecords] Критическая ошибка:", err);
       throw err;
     } finally {
       await prisma.$disconnect();

@@ -5,15 +5,18 @@ import _ from "lodash";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    console.log("[POST /api/humidity-records] Request body:", body);
+    console.log("[POST /api/humidity-records] Получен запрос:", {
+      body,
+      headers: Object.fromEntries(request.headers.entries())
+    });
     
     const service = createHumidityService();
 
     // Если это запрос на получение данных по датам
     if (body.startDate && body.endDate) {
-      console.log("[POST /api/humidity-records] Fetching readings for date range:", {
-        startDate: body.startDate,
-        endDate: body.endDate,
+      console.log("[POST /api/humidity-records] Запрос данных за период:", {
+        startDate: new Date(body.startDate).toLocaleString(),
+        endDate: new Date(body.endDate).toLocaleString(),
         sensorIds: body.sensorIds
       });
       
@@ -23,7 +26,14 @@ export async function POST(request: NextRequest) {
         sensorIds: body.sensorIds
       });
       
-      console.log(`[POST /api/humidity-records] Found ${readings.length} readings`);
+      console.log(`[POST /api/humidity-records] Найдено ${readings.length} записей:`, {
+        примеры: readings.slice(0, 3),
+        временной_диапазон: readings.length > 0 ? {
+          первая: new Date(readings[0].timestamp).toLocaleString(),
+          последняя: new Date(readings[readings.length - 1].timestamp).toLocaleString()
+        } : null
+      });
+
       return NextResponse.json(readings);
     }
 
@@ -36,7 +46,7 @@ export async function POST(request: NextRequest) {
              item.humidity >= 0 && 
              item.humidity <= 100;
     })) {
-      console.log("[POST /api/humidity-records] Invalid data format:", data);
+      console.log("[POST /api/humidity-records] Неверный формат данных:", data);
       return NextResponse.json(
         { error: "Invalid data format" },
         { status: 400 }
@@ -46,7 +56,7 @@ export async function POST(request: NextRequest) {
     await service.createRecords(data);
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error("[POST /api/humidity-records] Error details:", {
+    console.error("[POST /api/humidity-records] Ошибка:", {
       message: error?.message || "Unknown error",
       stack: error?.stack,
       name: error?.name

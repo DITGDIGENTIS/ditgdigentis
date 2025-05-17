@@ -81,10 +81,21 @@ export default function SensorGraphDHT21() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Округляем текущее время до ближайших 5 минут
+        // Используем текущую дату и время
         const now = new Date();
-        const end = new Date(Math.ceil(now.getTime() / (5 * 60 * 1000)) * (5 * 60 * 1000));
+        
+        // Округляем до ближайших 5 минут в прошлом
+        const minutes = now.getMinutes();
+        const roundedMinutes = Math.floor(minutes / 5) * 5;
+        const end = new Date(now.setMinutes(roundedMinutes, 0, 0));
         const start = new Date(end.getTime() - 60 * 60 * 1000); // 1 час назад
+
+        console.log("[fetchData] Расчет времени:", {
+          текущее_время: now.toLocaleString(),
+          округленные_минуты: roundedMinutes,
+          начало_периода: start.toLocaleString(),
+          конец_периода: end.toLocaleString()
+        });
 
         const requestBody = {
           startDate: start.toISOString(),

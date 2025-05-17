@@ -21,7 +21,6 @@ model HumidityReading {
   timestamp   DateTime @default(now())
   humidity    Float
   temperature Float
-  created_at  DateTime @default(now())
 
   @@index([sensor_id])
   @@index([timestamp])

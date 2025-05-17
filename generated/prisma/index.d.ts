@@ -959,7 +959,6 @@ export namespace Prisma {
     timestamp: Date | null
     humidity: number | null
     temperature: number | null
-    created_at: Date | null
   }
 
   export type HumidityReadingMaxAggregateOutputType = {
@@ -968,7 +967,6 @@ export namespace Prisma {
     timestamp: Date | null
     humidity: number | null
     temperature: number | null
-    created_at: Date | null
   }
 
   export type HumidityReadingCountAggregateOutputType = {
@@ -977,7 +975,6 @@ export namespace Prisma {
     timestamp: number
     humidity: number
     temperature: number
-    created_at: number
     _all: number
   }
 
@@ -1000,7 +997,6 @@ export namespace Prisma {
     timestamp?: true
     humidity?: true
     temperature?: true
-    created_at?: true
   }
 
   export type HumidityReadingMaxAggregateInputType = {
@@ -1009,7 +1005,6 @@ export namespace Prisma {
     timestamp?: true
     humidity?: true
     temperature?: true
-    created_at?: true
   }
 
   export type HumidityReadingCountAggregateInputType = {
@@ -1018,7 +1013,6 @@ export namespace Prisma {
     timestamp?: true
     humidity?: true
     temperature?: true
-    created_at?: true
     _all?: true
   }
 
@@ -1114,7 +1108,6 @@ export namespace Prisma {
     timestamp: Date
     humidity: number
     temperature: number
-    created_at: Date
     _count: HumidityReadingCountAggregateOutputType | null
     _avg: HumidityReadingAvgAggregateOutputType | null
     _sum: HumidityReadingSumAggregateOutputType | null
@@ -1142,7 +1135,6 @@ export namespace Prisma {
     timestamp?: boolean
     humidity?: boolean
     temperature?: boolean
-    created_at?: boolean
   }, ExtArgs["result"]["humidityReading"]>
 
   export type HumidityReadingSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -1151,7 +1143,6 @@ export namespace Prisma {
     timestamp?: boolean
     humidity?: boolean
     temperature?: boolean
-    created_at?: boolean
   }, ExtArgs["result"]["humidityReading"]>
 
   export type HumidityReadingSelectScalar = {
@@ -1160,7 +1151,6 @@ export namespace Prisma {
     timestamp?: boolean
     humidity?: boolean
     temperature?: boolean
-    created_at?: boolean
   }
 
 
@@ -1173,7 +1163,6 @@ export namespace Prisma {
       timestamp: Date
       humidity: number
       temperature: number
-      created_at: Date
     }, ExtArgs["result"]["humidityReading"]>
     composites: {}
   }
@@ -1572,7 +1561,6 @@ export namespace Prisma {
     readonly timestamp: FieldRef<"HumidityReading", 'DateTime'>
     readonly humidity: FieldRef<"HumidityReading", 'Float'>
     readonly temperature: FieldRef<"HumidityReading", 'Float'>
-    readonly created_at: FieldRef<"HumidityReading", 'DateTime'>
   }
     
 
@@ -2784,8 +2772,7 @@ export namespace Prisma {
     sensor_id: 'sensor_id',
     timestamp: 'timestamp',
     humidity: 'humidity',
-    temperature: 'temperature',
-    created_at: 'created_at'
+    temperature: 'temperature'
   };
 
   export type HumidityReadingScalarFieldEnum = (typeof HumidityReadingScalarFieldEnum)[keyof typeof HumidityReadingScalarFieldEnum]
@@ -2890,7 +2877,6 @@ export namespace Prisma {
     timestamp?: DateTimeFilter<"HumidityReading"> | Date | string
     humidity?: FloatFilter<"HumidityReading"> | number
     temperature?: FloatFilter<"HumidityReading"> | number
-    created_at?: DateTimeFilter<"HumidityReading"> | Date | string
   }
 
   export type HumidityReadingOrderByWithRelationInput = {
@@ -2899,7 +2885,6 @@ export namespace Prisma {
     timestamp?: SortOrder
     humidity?: SortOrder
     temperature?: SortOrder
-    created_at?: SortOrder
   }
 
   export type HumidityReadingWhereUniqueInput = Prisma.AtLeast<{
@@ -2911,7 +2896,6 @@ export namespace Prisma {
     timestamp?: DateTimeFilter<"HumidityReading"> | Date | string
     humidity?: FloatFilter<"HumidityReading"> | number
     temperature?: FloatFilter<"HumidityReading"> | number
-    created_at?: DateTimeFilter<"HumidityReading"> | Date | string
   }, "id">
 
   export type HumidityReadingOrderByWithAggregationInput = {
@@ -2920,7 +2904,6 @@ export namespace Prisma {
     timestamp?: SortOrder
     humidity?: SortOrder
     temperature?: SortOrder
-    created_at?: SortOrder
     _count?: HumidityReadingCountOrderByAggregateInput
     _avg?: HumidityReadingAvgOrderByAggregateInput
     _max?: HumidityReadingMaxOrderByAggregateInput
@@ -2937,7 +2920,6 @@ export namespace Prisma {
     timestamp?: DateTimeWithAggregatesFilter<"HumidityReading"> | Date | string
     humidity?: FloatWithAggregatesFilter<"HumidityReading"> | number
     temperature?: FloatWithAggregatesFilter<"HumidityReading"> | number
-    created_at?: DateTimeWithAggregatesFilter<"HumidityReading"> | Date | string
   }
 
   export type SensorReadingWhereInput = {
@@ -2994,7 +2976,6 @@ export namespace Prisma {
     timestamp?: Date | string
     humidity: number
     temperature: number
-    created_at?: Date | string
   }
 
   export type HumidityReadingUncheckedCreateInput = {
@@ -3003,7 +2984,6 @@ export namespace Prisma {
     timestamp?: Date | string
     humidity: number
     temperature: number
-    created_at?: Date | string
   }
 
   export type HumidityReadingUpdateInput = {
@@ -3011,7 +2991,6 @@ export namespace Prisma {
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
     humidity?: FloatFieldUpdateOperationsInput | number
     temperature?: FloatFieldUpdateOperationsInput | number
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type HumidityReadingUncheckedUpdateInput = {
@@ -3020,7 +2999,6 @@ export namespace Prisma {
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
     humidity?: FloatFieldUpdateOperationsInput | number
     temperature?: FloatFieldUpdateOperationsInput | number
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type HumidityReadingCreateManyInput = {
@@ -3029,7 +3007,6 @@ export namespace Prisma {
     timestamp?: Date | string
     humidity: number
     temperature: number
-    created_at?: Date | string
   }
 
   export type HumidityReadingUpdateManyMutationInput = {
@@ -3037,7 +3014,6 @@ export namespace Prisma {
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
     humidity?: FloatFieldUpdateOperationsInput | number
     temperature?: FloatFieldUpdateOperationsInput | number
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type HumidityReadingUncheckedUpdateManyInput = {
@@ -3046,7 +3022,6 @@ export namespace Prisma {
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
     humidity?: FloatFieldUpdateOperationsInput | number
     temperature?: FloatFieldUpdateOperationsInput | number
-    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type SensorReadingCreateInput = {
@@ -3149,7 +3124,6 @@ export namespace Prisma {
     timestamp?: SortOrder
     humidity?: SortOrder
     temperature?: SortOrder
-    created_at?: SortOrder
   }
 
   export type HumidityReadingAvgOrderByAggregateInput = {
@@ -3164,7 +3138,6 @@ export namespace Prisma {
     timestamp?: SortOrder
     humidity?: SortOrder
     temperature?: SortOrder
-    created_at?: SortOrder
   }
 
   export type HumidityReadingMinOrderByAggregateInput = {
@@ -3173,7 +3146,6 @@ export namespace Prisma {
     timestamp?: SortOrder
     humidity?: SortOrder
     temperature?: SortOrder
-    created_at?: SortOrder
   }
 
   export type HumidityReadingSumOrderByAggregateInput = {
