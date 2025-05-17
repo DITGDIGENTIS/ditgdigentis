@@ -36,6 +36,12 @@ export const Furniset: FC = () => {
         <span id="clock" className="fw-semibold" style={{ fontSize: "2.6rem" }}>{time}</span>
       </div>
       <HumidityMonitor />
+      <div className="container mt-4">
+        <h4 className="text-center mb-3" style={{ fontSize: "1.4rem", color: "#fff", fontWeight: "bold" }}>
+          График температуры и влажности (DHT21)
+        </h4>
+        <SensorGraphDHT21 />
+      </div>
       <SensorMonitor />
       <div className="container mt-4">
         <h4 className="text-center mb-3" style={{ fontSize: "1.4rem", color: "#fff", fontWeight: "bold" }}>
