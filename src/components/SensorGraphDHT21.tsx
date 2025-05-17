@@ -132,6 +132,7 @@ export default function SensorGraphDHT21() {
     scales: {
       x: {
         type: 'time',
+        position: 'bottom',
         time: {
           unit: selectedPeriod.value === '1h' ? 'minute' : 
                 selectedPeriod.value === '12h' ? 'hour' :
@@ -212,12 +213,11 @@ export default function SensorGraphDHT21() {
         position: 'top' as const,
         labels: {
           color: 'rgba(255, 255, 255, 0.8)',
-          usePointStyle: true,
-          pointStyle: 'circle',
+          usePointStyle: false,
+          padding: 20,
           font: {
             size: 12
-          },
-          padding: 20
+          }
         }
       },
       tooltip: {
@@ -276,9 +276,8 @@ export default function SensorGraphDHT21() {
           borderColor: COLORS[sensorId].temperature,
           backgroundColor: COLORS[sensorId].temperatureBg,
           yAxisID: 'y1',
-          tension: 0.3,
-          pointRadius: 3,
-          pointHoverRadius: 6,
+          tension: 0.5,
+          pointRadius: 0,
           borderWidth: 2,
           fill: true
         },
@@ -291,9 +290,8 @@ export default function SensorGraphDHT21() {
           borderColor: COLORS[sensorId].humidity,
           backgroundColor: COLORS[sensorId].humidityBg,
           yAxisID: 'y2',
-          tension: 0.3,
-          pointRadius: 3,
-          pointHoverRadius: 6,
+          tension: 0.5,
+          pointRadius: 0,
           borderWidth: 2,
           fill: true
         }
@@ -358,8 +356,10 @@ export default function SensorGraphDHT21() {
           </div>
         </div>
       ) : (
-        <div className="graph-wrapper">
-          <Line ref={chartRef} options={options} data={chartData} />
+        <div className="chart-container">
+          <div className="graph-wrapper">
+            <Line ref={chartRef} options={options} data={chartData} />
+          </div>
         </div>
       )}
 
@@ -369,8 +369,13 @@ export default function SensorGraphDHT21() {
           border-radius: 8px;
           padding: 20px;
           box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          overflow-x: auto;
-          min-width: 100%;
+        }
+
+        .chart-container {
+          position: relative;
+          width: 100%;
+          overflow-x: scroll;
+          overflow-y: hidden;
         }
 
         .graph-wrapper {
