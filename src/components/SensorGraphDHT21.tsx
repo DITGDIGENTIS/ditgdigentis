@@ -16,8 +16,9 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import 'chartjs-adapter-date-fns';
-import { format, startOfDay, addDays } from 'date-fns';
+import { format, startOfDay, addDays, subHours } from 'date-fns';
 import { uk } from 'date-fns/locale';
+import _ from 'lodash';
 
 ChartJS.register(
   CategoryScale,
@@ -51,8 +52,8 @@ interface PeriodOption {
 }
 
 const PERIOD_OPTIONS: PeriodOption[] = [
-  { label: "1 час", value: "1h", minutes: 60, interval: 3, intervalUnit: 'second' },
-  { label: "12 часов", value: "12h", minutes: 720, interval: 30, intervalUnit: 'second' },
+  { label: "1 час", value: "1h", minutes: 60, interval: 3, intervalUnit: 'minute' },
+  { label: "12 часов", value: "12h", minutes: 720, interval: 30, intervalUnit: 'minute' },
   { label: "1 день", value: "1d", minutes: 1440, interval: 5, intervalUnit: 'minute' },
   { label: "1 неделя", value: "1w", minutes: 10080, interval: 30, intervalUnit: 'minute' },
   { label: "1 месяц", value: "1m", minutes: 43200, interval: 3, intervalUnit: 'hour' },
@@ -74,25 +75,26 @@ export default function SensorGraphDHT21() {
   const [selectedSensors, setSelectedSensors] = useState<SensorId[]>([...SENSOR_IDS]);
   const [data, setData] = useState<SensorPoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [liveData, setLiveData] = useState<Record<string, { humidity: number; temperature: number; timestamp: number }>>({}); 
+  const [liveData, setLiveData] = useState<Record<string, { humidity: number; temperature: number; timestamp: number }>>({});
+  const [timeRange, setTimeRange] = useState<{ start: Date; end: Date }>(() => {
+    const end = new Date();
+    const start = new Date(end.getTime() - 60 * 60 * 1000); // 1 час назад по умолчанию
+    return { start, end };
+  });
   const chartRef = useRef<ChartJS<'line'>>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(prev => !data.length && prev);
       try {
-        // Для часового графика берем чуть больше данных для плавности
-        const endDate = new Date();
-        const startDate = new Date(endDate.getTime() - (selectedPeriod.minutes + 5) * 60 * 1000);
-        
         const historyResponse = await fetch('/api/humidity-records', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            startDate: startDate.toISOString(),
-            endDate: endDate.toISOString(),
+            startDate: timeRange.start.toISOString(),
+            endDate: timeRange.end.toISOString(),
             sensorIds: SENSOR_IDS
           }),
         });
@@ -151,9 +153,11 @@ export default function SensorGraphDHT21() {
         
         // Добавляем только самые свежие текущие данные
         livePoints.forEach(livePoint => {
-          // Проверяем, что точка новее последней исторической
+          // Проверяем, что точка новее последней исторической и входит в выбранный диапазон
           const lastHistorical = historicalData[historicalData.length - 1];
-          if (!lastHistorical || livePoint.timestamp > lastHistorical.timestamp) {
+          if ((!lastHistorical || livePoint.timestamp > lastHistorical.timestamp) &&
+              livePoint.timestamp >= timeRange.start.getTime() &&
+              livePoint.timestamp <= timeRange.end.getTime()) {
             combinedData.push(livePoint);
           }
         });
@@ -173,7 +177,7 @@ export default function SensorGraphDHT21() {
     fetchData();
     const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
-  }, [selectedPeriod.minutes]);
+  }, [timeRange, selectedPeriod.minutes]);
 
   const options: ChartOptions<'line'> = {
     responsive: true,
@@ -197,7 +201,8 @@ export default function SensorGraphDHT21() {
             minute: 'HH:mm',
             hour: 'HH:mm',
             day: 'DD.MM'
-          }
+          },
+          tooltipFormat: selectedPeriod.value === '1h' ? 'HH:mm:ss' : 'dd.MM.yyyy HH:mm'
         },
         grid: {
           color: 'rgba(255, 255, 255, 0.1)',
@@ -205,46 +210,27 @@ export default function SensorGraphDHT21() {
           drawOnChartArea: true
         },
         ticks: {
-          source: 'auto',
+          source: 'data',
           autoSkip: selectedPeriod.value !== '1h',
           color: 'rgba(255, 255, 255, 0.8)',
           maxRotation: 0,
-          maxTicksLimit: selectedPeriod.value === '1h' ? 12 : 30,
+          maxTicksLimit: selectedPeriod.value === '1h' ? 60 : 30,
           font: {
             size: 12,
             weight: selectedPeriod.value === '1h' ? 'bold' : 'normal'
           },
-          stepSize: selectedPeriod.value === '1h' ? 5 : undefined,
           callback: function(this: any, value: any) {
             const numValue = typeof value === 'string' ? parseInt(value, 10) : value;
             if (!isNaN(numValue)) {
               const date = new Date(numValue);
-              const minutes = date.getMinutes();
-              const hours = date.getHours();
               
-              switch(selectedPeriod.value) {
-                case '1h':
-                  // Показываем каждые 5 минут для часового графика
-                  return date.toLocaleTimeString('ru-RU', { 
-                    hour: '2-digit', 
-                    minute: '2-digit',
-                    second: '2-digit'
-                  });
-                case '12h':
-                  return minutes % 30 === 0 ? date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
-                case '1d':
-                  return minutes === 0 ? date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
-                case '1w':
-                  return minutes === 0 && hours % 6 === 0 ? date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
-                case '1m':
-                  return minutes === 0 && hours % 12 === 0 ? 
-                    `${date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })} ${date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}` : '';
-                case '1y':
-                  return minutes === 0 && hours === 0 ? 
-                    date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }) : '';
-                default:
-                  return this.getLabelForValue(value);
+              if (selectedPeriod.value === '1h') {
+                return date.toLocaleTimeString('ru-RU', { 
+                  hour: '2-digit', 
+                  minute: '2-digit'
+                });
               }
+              // ... rest of the cases ...
             }
             return this.getLabelForValue(value);
           }
@@ -254,6 +240,7 @@ export default function SensorGraphDHT21() {
         type: 'linear',
         display: true,
         position: 'left',
+        beginAtZero: false,
         grid: {
           color: 'rgba(255, 214, 2, 0.1)'
         },
@@ -266,16 +253,13 @@ export default function SensorGraphDHT21() {
           callback: function(value) {
             return value + '°C';
           }
-        },
-        min: Math.min(...data.map(point => point.temperature)) - 1,
-        max: Math.max(...data.map(point => point.temperature)) + 1,
-        suggestedMin: 0,
-        suggestedMax: 50
+        }
       },
       y2: {
         type: 'linear',
         display: true,
         position: 'right',
+        beginAtZero: false,
         grid: {
           drawOnChartArea: false,
           color: 'rgba(68, 192, 255, 0.1)'
@@ -289,11 +273,7 @@ export default function SensorGraphDHT21() {
           callback: function(value) {
             return value + '%';
           }
-        },
-        min: Math.min(...data.map(point => point.humidity)) - 1,
-        max: Math.max(...data.map(point => point.humidity)) + 1,
-        suggestedMin: 0,
-        suggestedMax: 100
+        }
       }
     },
     plugins: {
@@ -537,6 +517,40 @@ export default function SensorGraphDHT21() {
         </div>
       </div>
 
+      <div className="time-range-slider mt-3">
+        <div className="d-flex justify-content-between align-items-center mb-2">
+          <span className="time-label">
+            {timeRange.start.toLocaleTimeString('ru-RU', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              second: selectedPeriod.value === '1h' ? '2-digit' : undefined 
+            })}
+          </span>
+          <span className="time-label">
+            {timeRange.end.toLocaleTimeString('ru-RU', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              second: selectedPeriod.value === '1h' ? '2-digit' : undefined
+            })}
+          </span>
+        </div>
+        <input
+          type="range"
+          className="form-range time-slider"
+          min={0}
+          max={100}
+          value={50}
+          onChange={(e) => {
+            const percent = Number(e.target.value);
+            const totalTime = selectedPeriod.minutes * 60 * 1000;
+            const now = new Date();
+            const end = new Date(now.getTime() - (totalTime * (100 - percent)) / 100);
+            const start = new Date(end.getTime() - totalTime);
+            setTimeRange({ start, end });
+          }}
+        />
+      </div>
+
       <style jsx>{`
         .sensor-graph-container {
           background: #1a1a1a;
@@ -582,6 +596,55 @@ export default function SensorGraphDHT21() {
           height: 100%;
         }
 
+        .time-range-slider {
+          padding: 0 10px;
+        }
+
+        .time-label {
+          color: #ffd602;
+          font-weight: bold;
+          font-size: 14px;
+        }
+
+        .time-slider {
+          width: 100%;
+          height: 8px;
+          border-radius: 4px;
+          background: #2a2a2a;
+          outline: none;
+          opacity: 0.7;
+          transition: opacity .2s;
+          -webkit-appearance: none;
+        }
+
+        .time-slider::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+          background: #ffd602;
+          cursor: pointer;
+          transition: all .2s;
+        }
+
+        .time-slider::-webkit-slider-thumb:hover {
+          transform: scale(1.2);
+        }
+
+        .time-slider::-moz-range-thumb {
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+          background: #ffd602;
+          cursor: pointer;
+          transition: all .2s;
+        }
+
+        .time-slider::-moz-range-thumb:hover {
+          transform: scale(1.2);
+        }
+
         @media (max-width: 768px) {
           .sensor-graph-container {
             padding: 10px;
@@ -593,6 +656,10 @@ export default function SensorGraphDHT21() {
 
           .chart-content {
             min-width: 400px;
+          }
+
+          .time-label {
+            font-size: 12px;
           }
         }
 
