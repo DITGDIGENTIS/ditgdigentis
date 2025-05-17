@@ -98,7 +98,9 @@ export function createHumidityService(): HumidityService {
 
   const getAllReadings = async (filters?: ReadingFilters): Promise<HumidityDataPoint[]> => {
     try {
+      console.log("[getAllReadings] Подключение к базе данных...");
       await prisma.$connect();
+      console.log("[getAllReadings] Подключение успешно");
 
       const where: any = {};
 
@@ -122,7 +124,10 @@ export function createHumidityService(): HumidityService {
         };
       }
 
-      console.log("[getAllReadings] Query filters:", where);
+      console.log("[getAllReadings] Параметры запроса:", {
+        where,
+        filters
+      });
 
       const readings = await prisma.humidityReading.findMany({
         where,
@@ -137,7 +142,11 @@ export function createHumidityService(): HumidityService {
         skip: filters?.offset,
       });
 
-      console.log(`[getAllReadings] Found ${readings.length} readings`);
+      console.log(`[getAllReadings] Найдено ${readings.length} записей:`, {
+        количество: readings.length,
+        примеры: readings.slice(0, 3),
+        параметры_запроса: where
+      });
 
       const formatted = _.map(readings, (r) => ({
         sensor_id: r.sensor_id,
@@ -148,22 +157,7 @@ export function createHumidityService(): HumidityService {
 
       return formatted;
     } catch (err) {
-      console.error("[getAllReadings] Error:", err);
-      throw err;
-    } finally {
-      await prisma.$disconnect();
-    }
-  };
-
-  const deleteSensorRecords = async (sensorId: string): Promise<number> => {
-    try {
-      await prisma.$connect();
-      const result = await prisma.humidityReading.deleteMany({
-        where: { sensor_id: sensorId },
-      });
-      return result.count;
-    } catch (err) {
-      console.error("[deleteSensorRecords] Error:", err);
+      console.error("[getAllReadings] Ошибка:", err);
       throw err;
     } finally {
       await prisma.$disconnect();
@@ -173,6 +167,19 @@ export function createHumidityService(): HumidityService {
   return {
     createRecords,
     getAllReadings,
-    deleteSensorRecords,
+    deleteSensorRecords: async (sensorId: string) => {
+      try {
+        await prisma.$connect();
+        const result = await prisma.humidityReading.deleteMany({
+          where: { sensor_id: sensorId },
+        });
+        return result.count;
+      } catch (err) {
+        console.error("[deleteSensorRecords] Ошибка:", err);
+        throw err;
+      } finally {
+        await prisma.$disconnect();
+      }
+    }
   };
 } 

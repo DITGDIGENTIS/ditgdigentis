@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -68,37 +68,78 @@ const COLORS = {
   }
 };
 
-export default function SensorGraphDHT21() {
+const SensorGraphDHT21 = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodOption>(PERIOD_OPTIONS[0]);
   const [data, setData] = useState<SensorPoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [timeRange, setTimeRange] = useState<{ start: Date; end: Date } | null>(null);
   const chartRef = useRef<ChartJS<'line'>>(null);
+  const fetchTimeoutRef = useRef<NodeJS.Timeout>();
+  const lastDataRef = useRef<SensorPoint[]>([]);
 
-  const fetchData = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
+  const updateTimeRange = useCallback(() => {
+    const now = new Date();
+    let end = new Date(now);
+    let start = new Date(now);
 
-      const now = new Date();
-      const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
-      let start;
-
-      if (selectedPeriod.hours <= 1) {
-        start = new Date(now.getTime() - selectedPeriod.hours * 60 * 60 * 1000);
+    if (selectedPeriod.hours <= 1) {
+      // Для 1 часа - последний час
+      start.setHours(start.getHours() - 1);
+    } else if (selectedPeriod.hours <= 12) {
+      // Для 12 часов - с начала текущего дня или последние 12 часов
+      if (now.getHours() < 12) {
+        start.setHours(0, 0, 0, 0);
+        end.setHours(12, 0, 0, 0);
       } else {
-        start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-        if (selectedPeriod.hours > 24) {
-          start = new Date(start.getTime() - (selectedPeriod.hours - 24) * 60 * 60 * 1000);
-        }
+        start.setHours(12, 0, 0, 0);
+        end.setHours(24, 0, 0, 0);
       }
+    } else if (selectedPeriod.hours <= 24) {
+      // Для 24 часов - текущий день
+      start.setHours(0, 0, 0, 0);
+      end = new Date(start);
+      end.setDate(end.getDate() + 1);
+    } else if (selectedPeriod.hours <= 24 * 7) {
+      // Для недели
+      start.setDate(start.getDate() - 7);
+      start.setHours(0, 0, 0, 0);
+      end = new Date(now);
+      end.setHours(23, 59, 59, 999);
+    } else if (selectedPeriod.hours <= 24 * 30) {
+      // Для месяца
+      start.setMonth(start.getMonth() - 1);
+      start.setHours(0, 0, 0, 0);
+      end = new Date(now);
+      end.setHours(23, 59, 59, 999);
+    } else {
+      // Для года
+      start.setFullYear(start.getFullYear() - 1);
+      start.setHours(0, 0, 0, 0);
+      end = new Date(now);
+      end.setHours(23, 59, 59, 999);
+    }
 
-      console.log("[fetchData] Запрос данных:", {
-        период: selectedPeriod.label,
-        интервал: `${selectedPeriod.intervalSeconds} секунд`,
-        начало: start.toLocaleString(),
-        конец: end.toLocaleString()
-      });
+    console.log("[updateTimeRange]", {
+      period: selectedPeriod.label,
+      start: start.toLocaleString(),
+      end: end.toLocaleString(),
+      intervalSeconds: selectedPeriod.intervalSeconds
+    });
+
+    setTimeRange({ start, end });
+  }, [selectedPeriod]);
+
+  useEffect(() => {
+    updateTimeRange();
+  }, [selectedPeriod, updateTimeRange]);
+
+  const fetchData = useCallback(async () => {
+    try {
+      if (!timeRange) {
+        updateTimeRange();
+        return;
+      }
 
       const response = await fetch('/api/humidity-records', {
         method: 'POST',
@@ -108,8 +149,8 @@ export default function SensorGraphDHT21() {
           'Pragma': 'no-cache'
         },
         body: JSON.stringify({
-          startDate: start.toISOString(),
-          endDate: end.toISOString(),
+          startDate: timeRange.start.toISOString(),
+          endDate: timeRange.end.toISOString(),
           sensorIds: SENSOR_IDS,
           intervalSeconds: selectedPeriod.intervalSeconds
         }),
@@ -122,28 +163,44 @@ export default function SensorGraphDHT21() {
 
       const readings = await response.json();
       
-      console.log("[fetchData] Получены данные:", {
-        количество: readings.length,
-        первая_запись: readings[0],
-        последняя_запись: readings[readings.length - 1]
-      });
-
-      setData(readings);
+      // Проверяем, действительно ли данные изменились
+      const hasChanges = JSON.stringify(readings) !== JSON.stringify(lastDataRef.current);
+      
+      if (hasChanges) {
+        lastDataRef.current = readings;
+        setData(readings);
+      }
+      
+      setError(null);
     } catch (error) {
       console.error("[fetchData] Ошибка:", error);
       setError(error instanceof Error ? error.message : 'Неизвестная ошибка');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [timeRange, selectedPeriod.intervalSeconds]);
 
   useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 5000);
-    return () => clearInterval(interval);
-  }, [selectedPeriod]);
+    // Очищаем предыдущий таймаут при изменении периода или временного диапазона
+    if (fetchTimeoutRef.current) {
+      clearTimeout(fetchTimeoutRef.current);
+    }
 
-  const chartData = {
+    fetchData();
+
+    // Устанавливаем новый интервал обновления
+    fetchTimeoutRef.current = setInterval(() => {
+      fetchData();
+    }, 5000);
+
+    return () => {
+      if (fetchTimeoutRef.current) {
+        clearInterval(fetchTimeoutRef.current);
+      }
+    };
+  }, [fetchData]);
+
+  const chartData = useMemo(() => ({
     datasets: [
       {
         label: 'Температура',
@@ -154,10 +211,11 @@ export default function SensorGraphDHT21() {
         borderColor: COLORS["HUM1-1"].temperature,
         backgroundColor: COLORS["HUM1-1"].temperatureBg,
         yAxisID: 'y1',
-        pointRadius: 2,
-        borderWidth: 2,
+        pointRadius: 0.5,
+        borderWidth: 1.5,
         fill: true,
-        tension: 0.4
+        tension: 0.1,
+        spanGaps: true
       },
       {
         label: 'Влажность',
@@ -168,34 +226,53 @@ export default function SensorGraphDHT21() {
         borderColor: COLORS["HUM1-1"].humidity,
         backgroundColor: COLORS["HUM1-1"].humidityBg,
         yAxisID: 'y2',
-        pointRadius: 2,
-        borderWidth: 2,
+        pointRadius: 0.5,
+        borderWidth: 1.5,
         fill: true,
-        tension: 0.4
+        tension: 0.1,
+        spanGaps: true
       }
     ]
-  };
+  }), [data]);
 
-  const options: ChartOptions<'line'> = {
+  const options: ChartOptions<'line'> = useMemo(() => ({
     responsive: true,
     maintainAspectRatio: false,
-    animation: false,
+    animation: {
+      duration: 0
+    },
     interaction: {
-      mode: 'index',
-      intersect: false,
+      mode: 'nearest',
+      axis: 'x',
+      intersect: false
     },
     hover: {
-      mode: 'index',
-      intersect: false,
+      mode: 'nearest',
+      axis: 'x',
+      intersect: false
+    },
+    layout: {
+      padding: {
+        top: 20,
+        right: 20,
+        bottom: 10,
+        left: 20
+      }
     },
     scales: {
       x: {
         type: 'time',
         time: {
           unit: selectedPeriod.hours <= 1 ? 'minute' : 
+                selectedPeriod.hours <= 12 ? 'hour' : 
                 selectedPeriod.hours <= 24 ? 'hour' : 
                 selectedPeriod.hours <= 24 * 7 ? 'day' : 
                 selectedPeriod.hours <= 24 * 30 ? 'day' : 'month',
+          stepSize: selectedPeriod.hours <= 1 ? 5 : 
+                   selectedPeriod.hours <= 12 ? 1 : 
+                   selectedPeriod.hours <= 24 ? 2 : 
+                   selectedPeriod.hours <= 24 * 7 ? 1 : 
+                   selectedPeriod.hours <= 24 * 30 ? 1 : 1,
           displayFormats: {
             minute: 'HH:mm',
             hour: 'HH:mm',
@@ -206,35 +283,49 @@ export default function SensorGraphDHT21() {
         },
         grid: {
           color: 'rgba(255, 255, 255, 0.1)',
+          display: true,
+          drawBorder: true,
+          drawOnChartArea: true,
+          drawTicks: true,
+          lineWidth: 1
+        },
+        border: {
+          color: 'rgba(255, 255, 255, 0.2)',
+          width: 1
         },
         ticks: {
           maxRotation: 0,
-          autoSkip: false,
+          autoSkip: true,
           maxTicksLimit: selectedPeriod.hours <= 1 ? 12 : 
-                        selectedPeriod.hours <= 12 ? 24 :
-                        selectedPeriod.hours <= 24 ? 24 : 12,
+                        selectedPeriod.hours <= 12 ? 12 :
+                        selectedPeriod.hours <= 24 ? 12 : 8,
           font: {
-            size: 12
+            size: 11
           },
+          padding: 8,
           callback: function(value) {
             const date = new Date(value);
             const minutes = date.getMinutes();
             const hours = date.getHours();
 
             if (selectedPeriod.hours <= 1) {
+              // Для часа - каждые 5 минут
               return minutes % 5 === 0 ? format(date, 'HH:mm') : '';
             } else if (selectedPeriod.hours <= 12) {
-              return minutes === 0 ? format(date, 'HH:mm') : 
-                     minutes === 30 ? format(date, 'HH:mm') : '';
+              // Для 12 часов - каждый час
+              return minutes === 0 ? format(date, 'HH:mm') : '';
             } else if (selectedPeriod.hours <= 24) {
+              // Для суток - каждые 2 часа
               return minutes === 0 && hours % 2 === 0 ? format(date, 'HH:mm') : '';
             } else if (selectedPeriod.hours <= 24 * 7) {
-              return minutes === 0 && hours % 12 === 0 ? format(date, 'dd.MM HH:mm') : '';
+              // Для недели - каждый день
+              return hours === 0 ? format(date, 'dd.MM') : '';
             } else if (selectedPeriod.hours <= 24 * 30) {
-              return hours === 0 && minutes === 0 ? format(date, 'dd.MM') : '';
+              // Для месяца - каждые 3 дня
+              return hours === 0 && date.getDate() % 3 === 0 ? format(date, 'dd.MM') : '';
             } else {
-              const dayOfWeek = date.getDay();
-              return hours === 0 && minutes === 0 && dayOfWeek === 1 ? format(date, 'dd.MM') : '';
+              // Для года - каждый месяц
+              return hours === 0 && date.getDate() === 1 ? format(date, 'MM.yyyy') : '';
             }
           }
         }
@@ -246,14 +337,23 @@ export default function SensorGraphDHT21() {
         min: 15,
         max: 30,
         grid: {
-          color: 'rgba(255, 214, 2, 0.1)'
+          color: 'rgba(255, 214, 2, 0.1)',
+          drawOnChartArea: true,
+          drawTicks: true,
+          drawBorder: true,
+          lineWidth: 1
+        },
+        border: {
+          color: 'rgba(255, 214, 2, 0.2)',
+          width: 1
         },
         ticks: {
           color: '#ffd602',
           font: {
-            size: 12,
+            size: 11,
             weight: 'bold'
           },
+          padding: 8,
           stepSize: 1,
           callback: function(value) {
             return value + '°C';
@@ -268,14 +368,22 @@ export default function SensorGraphDHT21() {
         max: 100,
         grid: {
           drawOnChartArea: false,
-          color: 'rgba(68, 192, 255, 0.1)'
+          color: 'rgba(68, 192, 255, 0.1)',
+          drawTicks: true,
+          drawBorder: true,
+          lineWidth: 1
+        },
+        border: {
+          color: 'rgba(68, 192, 255, 0.2)',
+          width: 1
         },
         ticks: {
           color: '#44c0ff',
           font: {
-            size: 12,
+            size: 11,
             weight: 'bold'
           },
+          padding: 8,
           stepSize: 10,
           callback: function(value) {
             return value + '%';
@@ -285,15 +393,18 @@ export default function SensorGraphDHT21() {
     },
     plugins: {
       tooltip: {
-        mode: 'index',
+        mode: 'nearest',
         intersect: false,
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
         titleFont: {
-          size: 14
+          size: 12,
+          weight: 'bold'
         },
         bodyFont: {
-          size: 12
+          size: 11
         },
+        padding: 10,
+        displayColors: true,
         callbacks: {
           title: (items) => {
             if (items.length > 0) {
@@ -310,14 +421,16 @@ export default function SensorGraphDHT21() {
         labels: {
           color: 'rgba(255, 255, 255, 0.8)',
           font: {
-            size: 12
+            size: 12,
+            weight: 'bold'
           },
           usePointStyle: true,
-          pointStyle: 'circle'
+          pointStyle: 'circle',
+          padding: 15
         }
       }
     }
-  };
+  }), [selectedPeriod.hours]);
 
   return (
     <div className="w-full space-y-4">
@@ -339,23 +452,27 @@ export default function SensorGraphDHT21() {
         </select>
       </div>
 
-      <div className="w-full h-[400px] bg-black/20 rounded-lg p-4">
-        {isLoading ? (
-          <div className="w-full h-full flex items-center justify-center">
-            <span className="text-white">Загрузка данных...</span>
-          </div>
-        ) : error ? (
-          <div className="w-full h-full flex items-center justify-center">
-            <span className="text-red-500">{error}</span>
-          </div>
-        ) : data.length === 0 ? (
-          <div className="w-full h-full flex items-center justify-center">
-            <span className="text-white">Нет данных за выбранный период</span>
-          </div>
-        ) : (
-          <Line data={chartData} options={options} ref={chartRef} />
-        )}
+      <div className="w-full h-[600px] bg-black/20 rounded-lg p-6 overflow-x-auto">
+        <div className="min-w-[1200px] h-full">
+          {isLoading ? (
+            <div className="w-full h-full flex items-center justify-center">
+              <span className="text-white">Загрузка данных...</span>
+            </div>
+          ) : error ? (
+            <div className="w-full h-full flex items-center justify-center">
+              <span className="text-red-500">{error}</span>
+            </div>
+          ) : data.length === 0 ? (
+            <div className="w-full h-full flex items-center justify-center">
+              <span className="text-white">Нет данных за выбранный период</span>
+            </div>
+          ) : (
+            <Line data={chartData} options={options} ref={chartRef} />
+          )}
+        </div>
       </div>
     </div>
   );
 }
+
+export default SensorGraphDHT21;
