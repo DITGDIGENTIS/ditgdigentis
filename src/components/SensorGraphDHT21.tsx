@@ -80,7 +80,31 @@ export default function SensorGraphDHT21() {
   const fetchData = async () => {
     setIsLoading(prev => !data.length && prev);
     try {
-      const res = await fetch("/api/humidity", { 
+      // Получаем исторические данные из базы
+      const startDate = startOfDay(new Date());
+      const endDate = new Date();
+      
+      const historyResponse = await fetch('/api/humidity-records', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+          sensorIds: SENSOR_IDS
+        }),
+      });
+
+      if (!historyResponse.ok) {
+        console.error('Failed to fetch historical data:', historyResponse.status);
+        return;
+      }
+
+      const historicalData = await historyResponse.json();
+
+      // Получаем текущие данные
+      const liveResponse = await fetch("/api/humidity", { 
         cache: "no-store",
         headers: {
           'Cache-Control': 'no-cache',
@@ -88,15 +112,16 @@ export default function SensorGraphDHT21() {
         }
       });
       
-      if (!res.ok) {
-        console.error('Failed to fetch data:', res.status);
+      if (!liveResponse.ok) {
+        console.error('Failed to fetch live data:', liveResponse.status);
+        setData(historicalData);
         return;
       }
 
-      const { sensors: sensorData, serverTime } = await res.json();
+      const { sensors: sensorData, serverTime } = await liveResponse.json();
       
-      // Форматируем данные как точки для графика
-      const newData: SensorPoint[] = [];
+      // Форматируем текущие данные
+      const livePoints: SensorPoint[] = [];
       
       Object.entries(sensorData || {}).forEach(([sensorId, data]: [string, any]) => {
         if (SENSOR_IDS.includes(sensorId as SensorId) && 
@@ -108,7 +133,7 @@ export default function SensorGraphDHT21() {
           const t = parseFloat(String(data.temperature));
           
           if (!isNaN(ts) && !isNaN(h) && !isNaN(t)) {
-            newData.push({
+            livePoints.push({
               sensor_id: sensorId,
               timestamp: ts,
               humidity: h,
@@ -118,13 +143,19 @@ export default function SensorGraphDHT21() {
         }
       });
 
-      setData(prev => {
-        // Добавляем новые данные, сохраняя историю
-        const combinedData = [...prev, ...newData];
-        // Оставляем только последние 100 точек для производительности
-        return combinedData.slice(-100);
+      // Объединяем исторические данные с текущей точкой
+      const combinedData = [...historicalData];
+      
+      // Добавляем только самые свежие текущие данные
+      livePoints.forEach(livePoint => {
+        // Проверяем, что точка новее последней исторической
+        const lastHistorical = historicalData[historicalData.length - 1];
+        if (!lastHistorical || livePoint.timestamp > lastHistorical.timestamp) {
+          combinedData.push(livePoint);
+        }
       });
 
+      setData(combinedData);
       setLiveData(prev => ({
         ...prev,
         ...sensorData
