@@ -27,12 +27,16 @@ type HumidityData = {
   age: number;
 };
 
+type CacheData = Record<string, HumidityData> & {
+  lastSaveTime?: number;
+};
+
 const SENSOR_KEYS = ["HUM1-1"];
 const TIMEOUT_MS = 10 * 60 * 1000; // 10 хв
 
 export function HumidityMonitor() {
   const [sensors, setSensors] = useState<HumidityData[]>([]);
-  const cache = useRef<Record<string, HumidityData>>({});
+  const cache = useRef<CacheData>({});
 
   const saveToDatabase = async (sensorData: Record<string, RawHumidityItem>) => {
     try {

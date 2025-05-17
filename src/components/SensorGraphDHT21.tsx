@@ -80,10 +80,15 @@ export default function SensorGraphDHT21() {
 
   useEffect(() => {
     const fetchData = async () => {
-      setIsLoading(prev => !data.length && prev);
       try {
         const end = new Date();
         const start = new Date(end.getTime() - selectedPeriod.minutes * 60 * 1000);
+
+        console.log("[fetchData] Requesting data for period:", {
+          start: start.toISOString(),
+          end: end.toISOString(),
+          period: selectedPeriod.value
+        });
 
         const historyResponse = await fetch('/api/humidity-records', {
           method: 'POST',
@@ -100,12 +105,18 @@ export default function SensorGraphDHT21() {
         });
 
         if (!historyResponse.ok) {
-          console.error('Failed to fetch historical data:', historyResponse.status);
+          const error = await historyResponse.text();
+          console.error('Failed to fetch historical data:', historyResponse.status, error);
           return;
         }
 
         const historicalData = await historyResponse.json();
         console.log("[fetchData] Historical data:", historicalData);
+
+        if (!Array.isArray(historicalData)) {
+          console.error('Invalid historical data format:', historicalData);
+          return;
+        }
 
         // Получаем текущие данные
         const liveResponse = await fetch("/api/humidity", {
@@ -115,7 +126,7 @@ export default function SensorGraphDHT21() {
             'Pragma': 'no-cache'
           }
         });
-        
+
         if (!liveResponse.ok) {
           console.error('Failed to fetch live data:', liveResponse.status);
           setData(historicalData);
@@ -123,11 +134,8 @@ export default function SensorGraphDHT21() {
         }
 
         const { sensors: sensorData } = await liveResponse.json();
-        console.log("[fetchData] Live data:", sensorData);
         
-        // Форматируем текущие данные
         const livePoints: SensorPoint[] = [];
-        
         Object.entries(sensorData || {}).forEach(([sensorId, data]: [string, any]) => {
           if (SENSOR_IDS.includes(sensorId as SensorId) && 
               data.timestamp && 
@@ -183,7 +191,7 @@ export default function SensorGraphDHT21() {
     responsive: true,
     maintainAspectRatio: false,
     animation: {
-      duration: 0 // Отключаем анимацию для более стабильного отображения
+      duration: 0
     },
     interaction: {
       mode: 'index',
@@ -213,11 +221,12 @@ export default function SensorGraphDHT21() {
         },
         ticks: {
           source: 'auto',
-          autoSkip: true,
+          autoSkip: selectedPeriod.value !== '1h',
           maxRotation: 0,
           maxTicksLimit: selectedPeriod.value === '1h' ? 10 : 8,
           font: {
-            size: 12
+            size: 12,
+            weight: selectedPeriod.value === '1h' ? 'bold' : 'normal'
           }
         }
       },
@@ -299,9 +308,7 @@ export default function SensorGraphDHT21() {
             const item = tooltipItems[0];
             if (!item) return '';
             const date = new Date(item.parsed.x);
-            return selectedPeriod.value === '1h' 
-              ? format(date, 'HH:mm:ss', { locale: uk })
-              : format(date, 'dd.MM.yyyy HH:mm', { locale: uk });
+            return format(date, 'dd.MM.yyyy HH:mm', { locale: uk });
           },
           label: (context) => {
             const label = context.dataset.label || '';
@@ -437,13 +444,13 @@ export default function SensorGraphDHT21() {
                 </option>
               ))}
             </select>
-          </div>
+            </div>
           <div className="col-auto">
-            <input
-              type="date"
-              className="form-control"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
+          <input
+            type="date"
+            className="form-control"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
             />
           </div>
           <div className="col-auto">
@@ -454,7 +461,7 @@ export default function SensorGraphDHT21() {
                   className="form-check-input"
                   id={`sensor-${sensorId}`}
                   checked={selectedSensors.includes(sensorId)}
-                  onChange={(e) => {
+            onChange={(e) => {
                     if (e.target.checked) {
                       setSelectedSensors([...selectedSensors, sensorId]);
                     } else {
@@ -496,7 +503,7 @@ export default function SensorGraphDHT21() {
         </div>
       </div>
 
-      <style jsx>{`
+        <style jsx>{`
         .sensor-graph-container {
           background: #1a1a1a;
           border-radius: 8px;
@@ -505,14 +512,14 @@ export default function SensorGraphDHT21() {
           width: 100%;
         }
 
-        .chart-wrapper {
-          position: relative;
+          .chart-wrapper {
+            position: relative;
           margin-top: 20px;
           height: 500px;
-          width: 100%;
+            width: 100%;
         }
 
-        .chart-container {
+          .chart-container {
           display: flex;
           height: 100%;
           width: 100%;
@@ -521,17 +528,17 @@ export default function SensorGraphDHT21() {
 
         .y-axis-left,
         .y-axis-right {
-          position: relative;
+            position: relative;
           width: 50px;
-          height: 100%;
+            height: 100%;
           background-color: #1a1a1a;
           z-index: 2;
-        }
+          }
 
         .chart-scroll-container {
-          flex: 1;
-          overflow-x: auto;
-          overflow-y: hidden;
+            flex: 1;
+            overflow-x: auto;
+            overflow-y: hidden;
           margin: 0 -1px;
           position: relative;
         }
@@ -598,8 +605,8 @@ export default function SensorGraphDHT21() {
 
         .chart-scroll-container::-webkit-scrollbar-thumb:hover {
           background: #5a5a5a;
-        }
-      `}</style>
+          }
+        `}</style>
     </div>
   );
 }
