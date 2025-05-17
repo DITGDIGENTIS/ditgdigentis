@@ -84,6 +84,11 @@ export default function SensorGraphDHT21() {
         const end = new Date();
         const start = new Date(end.getTime() - 60 * 60 * 1000); // Всегда 1 час
 
+        console.log("[fetchData] Fetching data for range:", {
+          start: start.toISOString(),
+          end: end.toISOString()
+        });
+
         const historyResponse = await fetch('/api/humidity-records', {
           method: 'POST',
           headers: {
@@ -105,6 +110,7 @@ export default function SensorGraphDHT21() {
         }
 
         const historicalData = await historyResponse.json();
+        console.log("[fetchData] Received historical data:", historicalData);
 
         if (!Array.isArray(historicalData)) {
           console.error('Invalid historical data format:', historicalData);
@@ -122,11 +128,14 @@ export default function SensorGraphDHT21() {
 
         if (!liveResponse.ok) {
           console.error('Failed to fetch live data:', liveResponse.status);
-          setData(historicalData);
+          if (historicalData.length > 0) {
+            setData(historicalData);
+          }
           return;
         }
 
         const { sensors: sensorData } = await liveResponse.json();
+        console.log("[fetchData] Received live data:", sensorData);
         
         const livePoints: SensorPoint[] = [];
         Object.entries(sensorData || {}).forEach(([sensorId, data]: [string, any]) => {
@@ -149,15 +158,31 @@ export default function SensorGraphDHT21() {
           }
         });
 
-        const combinedData = [...historicalData];
-        livePoints.forEach(livePoint => {
-          const lastHistorical = historicalData[historicalData.length - 1];
-          if ((!lastHistorical || livePoint.timestamp > lastHistorical.timestamp) &&
-              livePoint.timestamp >= start.getTime() &&
-              livePoint.timestamp <= end.getTime()) {
-            combinedData.push(livePoint);
-          }
-        });
+        let combinedData = [...historicalData];
+        
+        // Добавляем текущие точки только если они новее последней исторической
+        if (livePoints.length > 0) {
+          livePoints.forEach(livePoint => {
+            if (livePoint.timestamp >= start.getTime() && 
+                livePoint.timestamp <= end.getTime()) {
+              // Проверяем, нет ли уже точки с таким timestamp
+              const existingPointIndex = combinedData.findIndex(
+                point => point.timestamp === livePoint.timestamp
+              );
+              
+              if (existingPointIndex === -1) {
+                combinedData.push(livePoint);
+              } else {
+                combinedData[existingPointIndex] = livePoint;
+              }
+            }
+          });
+        }
+
+        // Сортируем данные по времени
+        combinedData = combinedData.sort((a, b) => a.timestamp - b.timestamp);
+        
+        console.log("[fetchData] Final data points:", combinedData.length);
 
         setData(combinedData);
         setLiveData(prev => ({
@@ -174,7 +199,7 @@ export default function SensorGraphDHT21() {
     fetchData();
     const interval = setInterval(fetchData, 3000);
     return () => clearInterval(interval);
-  }, []); // Убрали зависимость от selectedPeriod, так как теперь всегда показываем 1 час
+  }, []);
 
   const options: ChartOptions<'line'> = {
     responsive: true,
@@ -363,6 +388,8 @@ export default function SensorGraphDHT21() {
   const chartData = {
     datasets: selectedSensors.flatMap(sensorId => {
       const sensorData = data.filter(point => point.sensor_id === sensorId);
+      console.log(`[chartData] Data points for ${sensorId}:`, sensorData.length);
+      
       return [
         {
           label: `Температура ${sensorId}`,
@@ -374,7 +401,7 @@ export default function SensorGraphDHT21() {
           backgroundColor: COLORS[sensorId].temperatureBg,
           yAxisID: 'y1',
           tension: 0.1,
-          pointRadius: 0,
+          pointRadius: 1,
           borderWidth: 2,
           fill: true,
           spanGaps: false
@@ -389,7 +416,7 @@ export default function SensorGraphDHT21() {
           backgroundColor: COLORS[sensorId].humidityBg,
           yAxisID: 'y2',
           tension: 0.1,
-          pointRadius: 0,
+          pointRadius: 1,
           borderWidth: 2,
           fill: true,
           spanGaps: false
