@@ -149,12 +149,14 @@ const config = {
         "value": "rhel-openssl-3.0.x"
       }
     ],
-    "previewFeatures": [],
+    "previewFeatures": [
+      "postgresqlExtensions"
+    ],
     "sourceFilePath": "/Users/a1/Desktop/ditgdigentis/prisma/schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
-    "rootEnvPath": null,
+    "rootEnvPath": "../../.env",
     "schemaEnvPath": "../../.env"
   },
   "relativePath": "../../prisma",
@@ -164,6 +166,7 @@ const config = {
     "db"
   ],
   "activeProvider": "postgresql",
+  "postinstall": false,
   "inlineDatasources": {
     "db": {
       "url": {
@@ -172,8 +175,8 @@ const config = {
       }
     }
   },
-  "inlineSchema": "// This is your Prisma schema file,\n// learn more about it in the docs: https://pris.ly/d/prisma-schema\n\ngenerator client {\n  provider      = \"prisma-client-js\"\n  binaryTargets = [\"native\", \"rhel-openssl-3.0.x\"]\n  output        = \"../generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\nmodel HumidityReading {\n  id          Int      @id @default(autoincrement())\n  sensor_id   String\n  timestamp   DateTime @default(now())\n  humidity    Float\n  temperature Float\n  created_at  DateTime @default(now())\n\n  @@index([sensor_id])\n  @@index([timestamp])\n}\n\nmodel SensorReading {\n  id          Int      @id @default(autoincrement())\n  sensor_id   String\n  timestamp   DateTime @default(now())\n  temperature Float\n}\n",
-  "inlineSchemaHash": "5502532065040cdf8a5a6e6fff3cb2483761515b804bfaa5dd40837f202983f8",
+  "inlineSchema": "// This is your Prisma schema file,\n// learn more about it in the docs: https://pris.ly/d/prisma-schema\n\ngenerator client {\n  provider        = \"prisma-client-js\"\n  binaryTargets   = [\"native\", \"rhel-openssl-3.0.x\"]\n  output          = \"../generated/prisma\"\n  previewFeatures = [\"postgresqlExtensions\"]\n}\n\ndatasource db {\n  provider   = \"postgresql\"\n  url        = env(\"DATABASE_URL\")\n  directUrl  = env(\"DIRECT_URL\")\n  extensions = [pgcrypto]\n}\n\nmodel HumidityReading {\n  id          Int      @id @default(autoincrement())\n  sensor_id   String\n  timestamp   DateTime @default(now())\n  humidity    Float\n  temperature Float\n  created_at  DateTime @default(now())\n\n  @@index([sensor_id])\n  @@index([timestamp])\n}\n\nmodel SensorReading {\n  id          Int      @id @default(autoincrement())\n  sensor_id   String\n  timestamp   DateTime @default(now())\n  temperature Float\n}\n",
+  "inlineSchemaHash": "47910e51798328db1bc3ea6f3e3e4171f0afc12a2f832cbde25a6118b26877a8",
   "copyEngine": true
 }
 config.dirname = '/'

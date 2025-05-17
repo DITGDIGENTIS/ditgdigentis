@@ -60,13 +60,18 @@ export function HumidityMonitor() {
         };
       });
 
-      await fetch("/api/humidity-records", {
+      console.log("[saveToDatabase] Saving sensor data:", formattedSensors);
+
+      const response = await fetch("/api/humidity-records", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(formattedSensors),
       });
+
+      const result = await response.json();
+      console.log("[saveToDatabase] Save result:", result);
     } catch (error) {
       console.error("Error saving humidity data:", error);
     }

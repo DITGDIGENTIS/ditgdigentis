@@ -47,16 +47,16 @@ interface PeriodOption {
   value: string;
   minutes: number;
   interval: number;
-  intervalUnit: 'seconds' | 'minutes' | 'hours' | 'days';
+  intervalUnit: 'second' | 'minute' | 'hour' | 'day';
 }
 
 const PERIOD_OPTIONS: PeriodOption[] = [
-  { label: "1 час", value: "1h", minutes: 60, interval: 3, intervalUnit: 'seconds' },
-  { label: "12 часов", value: "12h", minutes: 720, interval: 30, intervalUnit: 'seconds' },
-  { label: "1 день", value: "1d", minutes: 1440, interval: 5, intervalUnit: 'minutes' },
-  { label: "1 неделя", value: "1w", minutes: 10080, interval: 30, intervalUnit: 'minutes' },
-  { label: "1 месяц", value: "1m", minutes: 43200, interval: 3, intervalUnit: 'hours' },
-  { label: "1 год", value: "1y", minutes: 525600, interval: 1, intervalUnit: 'days' }
+  { label: "1 час", value: "1h", minutes: 60, interval: 3, intervalUnit: 'second' },
+  { label: "12 часов", value: "12h", minutes: 720, interval: 30, intervalUnit: 'second' },
+  { label: "1 день", value: "1d", minutes: 1440, interval: 5, intervalUnit: 'minute' },
+  { label: "1 неделя", value: "1w", minutes: 10080, interval: 30, intervalUnit: 'minute' },
+  { label: "1 месяц", value: "1m", minutes: 43200, interval: 3, intervalUnit: 'hour' },
+  { label: "1 год", value: "1y", minutes: 525600, interval: 1, intervalUnit: 'day' }
 ];
 
 const COLORS = {
@@ -77,101 +77,107 @@ export default function SensorGraphDHT21() {
   const [liveData, setLiveData] = useState<Record<string, { humidity: number; temperature: number; timestamp: number }>>({}); 
   const chartRef = useRef<ChartJS<'line'>>(null);
 
-  const fetchData = async () => {
-    setIsLoading(prev => !data.length && prev);
-    try {
-      // Получаем исторические данные из базы
-      const startDate = startOfDay(new Date());
-      const endDate = new Date();
-      
-      const historyResponse = await fetch('/api/humidity-records', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString(),
-          sensorIds: SENSOR_IDS
-        }),
-      });
-
-      if (!historyResponse.ok) {
-        console.error('Failed to fetch historical data:', historyResponse.status);
-        return;
-      }
-
-      const historicalData = await historyResponse.json();
-
-      // Получаем текущие данные
-      const liveResponse = await fetch("/api/humidity", { 
-        cache: "no-store",
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
-      });
-      
-      if (!liveResponse.ok) {
-        console.error('Failed to fetch live data:', liveResponse.status);
-        setData(historicalData);
-        return;
-      }
-
-      const { sensors: sensorData, serverTime } = await liveResponse.json();
-      
-      // Форматируем текущие данные
-      const livePoints: SensorPoint[] = [];
-      
-      Object.entries(sensorData || {}).forEach(([sensorId, data]: [string, any]) => {
-        if (SENSOR_IDS.includes(sensorId as SensorId) && 
-            data.timestamp && 
-            data.humidity && 
-            data.temperature) {
-          const ts = Number(data.timestamp);
-          const h = parseFloat(String(data.humidity));
-          const t = parseFloat(String(data.temperature));
-          
-          if (!isNaN(ts) && !isNaN(h) && !isNaN(t)) {
-            livePoints.push({
-              sensor_id: sensorId,
-              timestamp: ts,
-              humidity: h,
-              temperature: t
-            });
-          }
-        }
-      });
-
-      // Объединяем исторические данные с текущей точкой
-      const combinedData = [...historicalData];
-      
-      // Добавляем только самые свежие текущие данные
-      livePoints.forEach(livePoint => {
-        // Проверяем, что точка новее последней исторической
-        const lastHistorical = historicalData[historicalData.length - 1];
-        if (!lastHistorical || livePoint.timestamp > lastHistorical.timestamp) {
-          combinedData.push(livePoint);
-        }
-      });
-
-      setData(combinedData);
-      setLiveData(prev => ({
-        ...prev,
-        ...sensorData
-      }));
-    } catch (error) {
-      console.error('Error fetching sensor data:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(prev => !data.length && prev);
+      try {
+        // Устанавливаем начало и конец периода
+        const now = new Date();
+        const startDate = new Date(now);
+        startDate.setHours(0, 0, 0, 0);
+        
+        const endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + 1);
+        
+        const historyResponse = await fetch('/api/humidity-records', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
+            sensorIds: SENSOR_IDS
+          }),
+        });
+
+        if (!historyResponse.ok) {
+          console.error('Failed to fetch historical data:', historyResponse.status);
+          return;
+        }
+
+        const historicalData = await historyResponse.json();
+        console.log("[fetchData] Historical data:", historicalData);
+
+        // Получаем текущие данные
+        const liveResponse = await fetch("/api/humidity", { 
+          cache: "no-store",
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
+        
+        if (!liveResponse.ok) {
+          console.error('Failed to fetch live data:', liveResponse.status);
+          setData(historicalData);
+          return;
+        }
+
+        const { sensors: sensorData } = await liveResponse.json();
+        console.log("[fetchData] Live data:", sensorData);
+        
+        // Форматируем текущие данные
+        const livePoints: SensorPoint[] = [];
+        
+        Object.entries(sensorData || {}).forEach(([sensorId, data]: [string, any]) => {
+          if (SENSOR_IDS.includes(sensorId as SensorId) && 
+              data.timestamp && 
+              data.humidity && 
+              data.temperature) {
+            const ts = Number(data.timestamp);
+            const h = parseFloat(String(data.humidity));
+            const t = parseFloat(String(data.temperature));
+            
+            if (!isNaN(ts) && !isNaN(h) && !isNaN(t)) {
+              livePoints.push({
+                sensor_id: sensorId,
+                timestamp: ts,
+                humidity: h,
+                temperature: t
+              });
+            }
+          }
+        });
+
+        // Объединяем исторические данные с текущей точкой
+        const combinedData = [...historicalData];
+        
+        // Добавляем только самые свежие текущие данные
+        livePoints.forEach(livePoint => {
+          // Проверяем, что точка новее последней исторической
+          const lastHistorical = historicalData[historicalData.length - 1];
+          if (!lastHistorical || livePoint.timestamp > lastHistorical.timestamp) {
+            combinedData.push(livePoint);
+          }
+        });
+
+        setData(combinedData);
+        setLiveData(prev => ({
+          ...prev,
+          ...sensorData
+        }));
+      } catch (error) {
+        console.error('Error fetching sensor data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     fetchData();
     const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [selectedPeriod.minutes]);
 
   const options: ChartOptions<'line'> = {
     responsive: true,
@@ -189,16 +195,12 @@ export default function SensorGraphDHT21() {
         type: 'time',
         position: 'bottom',
         time: {
-          unit: selectedPeriod.value === '1h' ? 'minute' : 
-                selectedPeriod.value === '12h' ? 'hour' :
-                selectedPeriod.value === '1d' ? 'hour' :
-                selectedPeriod.value === '1w' ? 'day' :
-                selectedPeriod.value === '1m' ? 'day' : 'month',
+          unit: selectedPeriod.intervalUnit,
           displayFormats: {
+            second: 'HH:mm:ss',
             minute: 'HH:mm',
             hour: 'HH:mm',
-            day: 'dd.MM',
-            month: 'MM.yyyy'
+            day: 'DD.MM'
           }
         },
         grid: {
@@ -207,12 +209,23 @@ export default function SensorGraphDHT21() {
           drawOnChartArea: true
         },
         ticks: {
+          source: 'auto',
+          autoSkip: false,
           color: 'rgba(255, 255, 255, 0.8)',
           maxRotation: 0,
-          autoSkip: true,
-          maxTicksLimit: 15,
+          maxTicksLimit: 30,
           font: {
             size: 12
+          },
+          callback: function(this: any, value: any) {
+            const numValue = typeof value === 'string' ? parseInt(value, 10) : value;
+            if (!isNaN(numValue)) {
+              const date = new Date(numValue);
+              if (selectedPeriod.value === '1h') {
+                return date.getMinutes() % 5 === 0 ? date.toTimeString().slice(0, 5) : '';
+              }
+            }
+            return this.getLabelForValue(value);
           }
         }
       },
@@ -426,13 +439,13 @@ export default function SensorGraphDHT21() {
                 </option>
               ))}
             </select>
-          </div>
+            </div>
           <div className="col-auto">
-            <input
-              type="date"
-              className="form-control"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
+          <input
+            type="date"
+            className="form-control"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
             />
           </div>
           <div className="col-auto">
@@ -443,7 +456,7 @@ export default function SensorGraphDHT21() {
                   className="form-check-input"
                   id={`sensor-${sensorId}`}
                   checked={selectedSensors.includes(sensorId)}
-                  onChange={(e) => {
+            onChange={(e) => {
                     if (e.target.checked) {
                       setSelectedSensors([...selectedSensors, sensorId]);
                     } else {
@@ -481,36 +494,36 @@ export default function SensorGraphDHT21() {
         </div>
       </div>
 
-      <style jsx>{`
+        <style jsx>{`
         .sensor-graph-container {
           background: #1a1a1a;
           border-radius: 8px;
           padding: 20px;
           box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          width: 100%;
+            width: 100%;
         }
 
-        .chart-container {
-          position: relative;
+          .chart-container {
+            position: relative;
           margin-top: 20px;
           height: 500px;
           width: 100%;
         }
 
         .scroll-container {
-          width: 100%;
-          height: 100%;
-          overflow-x: auto;
-          overflow-y: hidden;
+            width: 100%;
+            height: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
         }
 
         .graph-wrapper {
           width: 100%;
           min-width: 800px;
-          height: 100%;
-        }
+            height: 100%;
+          }
 
-        @media (max-width: 768px) {
+          @media (max-width: 768px) {
           .sensor-graph-container {
             padding: 10px;
           }
@@ -544,8 +557,8 @@ export default function SensorGraphDHT21() {
         .form-check-input:checked {
           background-color: #4dabf7;
           border-color: #4dabf7;
-        }
-      `}</style>
+          }
+        `}</style>
     </div>
   );
 }

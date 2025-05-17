@@ -23,6 +23,7 @@ export interface HumidityService {
 }
 
 export function createHumidityService(): HumidityService {
+  console.log("[DEBUG] Database URL:", process.env.DATABASE_URL);
   const prisma = new PrismaClient();
 
   const createRecords = async (data: HumidityDataPoint[]): Promise<void> => {
