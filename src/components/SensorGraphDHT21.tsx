@@ -80,84 +80,55 @@ export default function SensorGraphDHT21() {
   const fetchData = async () => {
     setIsLoading(prev => !data.length && prev);
     try {
-      // Fetch historical data
-      const startDate = startOfDay(new Date(selectedDate));
-      const endDate = addDays(startDate, 1);
-      
-      console.log('Fetching data for range:', {
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-        sensorIds: SENSOR_IDS
-      });
-
-      const response = await fetch('/api/humidity-records', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString(),
-          sensorIds: SENSOR_IDS
-        }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.text();
-        console.error('Failed to fetch historical data:', response.status, errorData);
-        return;
-      }
-
-      const historicalData = await response.json();
-      
-      // Fetch current data
-      const liveResponse = await fetch('/api/humidity', { 
-        cache: 'no-store',
+      const res = await fetch("/api/humidity", { 
+        cache: "no-store",
         headers: {
           'Cache-Control': 'no-cache',
           'Pragma': 'no-cache'
         }
       });
-
-      if (!liveResponse.ok) {
-        console.error('Failed to fetch live data:', liveResponse.status);
-        setData(historicalData);
+      
+      if (!res.ok) {
+        console.error('Failed to fetch data:', res.status);
         return;
       }
 
-      const { sensors: liveSensors } = await liveResponse.json();
-      setLiveData(prev => ({
-        ...prev,
-        ...liveSensors
-      }));
-
-      // Combine historical and live data
-      const combinedData = [...historicalData];
+      const { sensors: sensorData, serverTime } = await res.json();
       
-      // Add live data points if they're newer than the last historical point
-      const lastHistoricalTimestamp = historicalData.length > 0 
-        ? Math.max(...historicalData.map((d: SensorPoint) => d.timestamp), 0)
-        : 0;
+      // Форматируем данные как точки для графика
+      const newData: SensorPoint[] = [];
       
-      Object.entries(liveSensors || {}).forEach(([sensorId, data]: [string, any]) => {
+      Object.entries(sensorData || {}).forEach(([sensorId, data]: [string, any]) => {
         if (SENSOR_IDS.includes(sensorId as SensorId) && 
             data.timestamp && 
             data.humidity && 
-            data.temperature && 
-            data.timestamp > lastHistoricalTimestamp) {
-          combinedData.push({
-            sensor_id: sensorId,
-            timestamp: Number(data.timestamp),
-            humidity: parseFloat(data.humidity),
-            temperature: parseFloat(data.temperature)
-          });
+            data.temperature) {
+          const ts = Number(data.timestamp);
+          const h = parseFloat(String(data.humidity));
+          const t = parseFloat(String(data.temperature));
+          
+          if (!isNaN(ts) && !isNaN(h) && !isNaN(t)) {
+            newData.push({
+              sensor_id: sensorId,
+              timestamp: ts,
+              humidity: h,
+              temperature: t
+            });
+          }
         }
       });
 
       setData(prev => {
-        if (combinedData.length === 0) return prev;
-        return combinedData;
+        // Добавляем новые данные, сохраняя историю
+        const combinedData = [...prev, ...newData];
+        // Оставляем только последние 100 точек для производительности
+        return combinedData.slice(-100);
       });
+
+      setLiveData(prev => ({
+        ...prev,
+        ...sensorData
+      }));
     } catch (error) {
       console.error('Error fetching sensor data:', error);
     } finally {
@@ -169,7 +140,7 @@ export default function SensorGraphDHT21() {
     fetchData();
     const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
-  }, [selectedDate, selectedPeriod]);
+  }, []);
 
   const options: ChartOptions<'line'> = {
     responsive: true,
