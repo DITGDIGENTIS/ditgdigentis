@@ -5,15 +5,25 @@ import _ from "lodash";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    console.log("[POST /api/humidity-records] Request body:", body);
+    
     const service = createHumidityService();
 
     // Если это запрос на получение данных по датам
     if (body.startDate && body.endDate) {
+      console.log("[POST /api/humidity-records] Fetching readings for date range:", {
+        startDate: body.startDate,
+        endDate: body.endDate,
+        sensorIds: body.sensorIds
+      });
+      
       const readings = await service.getAllReadings({
         startDate: new Date(body.startDate),
         endDate: new Date(body.endDate),
         sensorIds: body.sensorIds
       });
+      
+      console.log(`[POST /api/humidity-records] Found ${readings.length} readings`);
       return NextResponse.json(readings);
     }
 
@@ -26,6 +36,7 @@ export async function POST(request: NextRequest) {
              item.humidity >= 0 && 
              item.humidity <= 100;
     })) {
+      console.log("[POST /api/humidity-records] Invalid data format:", data);
       return NextResponse.json(
         { error: "Invalid data format" },
         { status: 400 }
@@ -34,10 +45,14 @@ export async function POST(request: NextRequest) {
 
     await service.createRecords(data);
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("[POST /api/humidity-records] Error:", error);
+  } catch (error: any) {
+    console.error("[POST /api/humidity-records] Error details:", {
+      message: error?.message || "Unknown error",
+      stack: error?.stack,
+      name: error?.name
+    });
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", details: error?.message || "Unknown error" },
       { status: 500 }
     );
   }
