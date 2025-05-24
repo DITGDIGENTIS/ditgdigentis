@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
         sensorIds: body.sensorIds
       });
       
-      const readings = await service.getAllReadings({
+      const readings = await service.getAggregatedReadings({
         startDate: new Date(body.startDate),
         endDate: new Date(body.endDate),
         sensorIds: body.sensorIds
@@ -67,20 +67,6 @@ export async function POST(request: NextRequest) {
     });
     return NextResponse.json(
       { error: "Internal server error", details: error?.message || "Unknown error" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function GET() {
-  try {
-    const service = createHumidityService();
-    const readings = await service.getAllReadings();
-    return NextResponse.json(readings);
-  } catch (error) {
-    console.error("[GET /api/humidity-records] Error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
       { status: 500 }
     );
   }

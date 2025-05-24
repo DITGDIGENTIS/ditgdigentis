@@ -47,7 +47,7 @@ export const Furniset: FC = () => {
         <h4 className="text-center mb-3" style={{ fontSize: "1.4rem", color: "#fff", fontWeight: "bold" }}>
           Графік (SENSOR)
         </h4>
-        {/* <SensorGraph /> */}
+        <SensorGraph />
       </div>
     </div>
   );

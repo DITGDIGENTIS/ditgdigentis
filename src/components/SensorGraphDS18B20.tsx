@@ -32,6 +32,7 @@ const getTodayUTC = () => {
 
 export default function SensorGraphDS18B20() {
   const [selectedDate, setSelectedDate] = useState(() => getTodayUTC());
+  const [endDate, setEndDate] = useState(() => getTodayUTC());
   const [sensorData, setSensorData] = useState<SensorDataPoint[]>([]);
   const [liveData, setLiveData] = useState<Record<string, SensorDataPoint>>({});
   const [selectedPeriod, setSelectedPeriod] = useState(PERIOD_OPTIONS[0]);
@@ -42,29 +43,24 @@ export default function SensorGraphDS18B20() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [historicalRes, liveRes] = await Promise.all([
-          fetch("/api/sensor-readings", { cache: "no-store" }),
-          fetch("/api/sensors", { cache: "no-store" }),
-        ]);
+        const url = new URL("/api/sensor-readings", window.location.origin);
+        url.searchParams.set("startDate", selectedDate);
+        url.searchParams.set("endDate", endDate);
+        // sensorIds можно добавить при необходимости
 
-        const readings = await historicalRes.json();
-        const live = await liveRes.json();
-
-        const formattedReadings = Array.isArray(readings) ? readings : [];
-        
-        setSensorData(formattedReadings);
-        setLiveData(live?.sensors || {});
+        const response = await fetch(url.toString(), { cache: "no-store" });
+        const readings = await response.json();
+        setSensorData(Array.isArray(readings) ? readings : []);
         setLastUpdate(new Date());
       } catch (e) {
         console.error("Failed to fetch sensor data", e);
         setSensorData([]);
-        setLiveData({});
       }
     };
     fetchData();
     const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
-  }, [selectedDate, selectedPeriod]);
+  }, [selectedDate, endDate, selectedPeriod]);
 
   useEffect(() => {
     if (containerRef.current) {
@@ -173,7 +169,8 @@ export default function SensorGraphDS18B20() {
       <div className="d-flex flex-wrap gap-2 mb-3 align-items-center justify-content-between">
         <h5 className="text-warning mb-0">Графік температури</h5>
         <div className="d-flex gap-2 flex-wrap">
-          <input type="date" className="form-control" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
+          <input type="date" className="form-control" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} max={endDate} />
+          <input type="date" className="form-control" value={endDate} onChange={(e) => setEndDate(e.target.value)} min={selectedDate} />
           <div className="d-flex flex-wrap align-items-center gap-2">
             {SENSOR_OPTIONS.map((sensor, index) => {
               const color = COLORS[index % COLORS.length];
@@ -214,7 +211,9 @@ export default function SensorGraphDS18B20() {
         </div>
       </div>
 
-      <div className="text-warning mb-3">Оновлено: {lastUpdate.toLocaleTimeString()}</div>
+      <div className="text-warning mb-3">
+        Оновлено: {lastUpdate.toLocaleTimeString()} | Вибраний період: {selectedDate} - {endDate}
+      </div>
 
       <div style={{ display: "flex", position: "relative" }}>
         <div style={{ position: "absolute", left: 0, top: 0, height: chartHeight + 80, width: yAxisWidth, backgroundColor: "#2b2b2b", zIndex: 2 }}>

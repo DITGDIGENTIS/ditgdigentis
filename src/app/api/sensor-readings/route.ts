@@ -1,14 +1,23 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createSensorService } from "@/services/sensor.service";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const start = Date.now();
 
   try {
-    console.log("API: Starting to fetch sensor readings");
+    const searchParams = request.nextUrl.searchParams;
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
+    const sensorIds = searchParams.getAll("sensorIds");
+
+    console.log("API: Starting to fetch sensor readings", { startDate, endDate, sensorIds });
 
     const sensorService = createSensorService();
-    const readings = await sensorService.getAllReadings();
+    const readings = await sensorService.getAggregatedReadings({
+      startDate: startDate ? new Date(startDate) : undefined,
+      endDate: endDate ? new Date(endDate) : undefined,
+      sensorIds: sensorIds.length > 0 ? sensorIds : undefined,
+    });
 
     console.log(`API: Sensor service returned ${readings.length} entries`);
 
