@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
-import _ from "lodash";
+import React, { useEffect, useState } from "react";
+import * as _ from "lodash";
 import {
   LineChart,
   Line,
@@ -86,7 +86,9 @@ type PeriodOption = (typeof PERIOD_OPTIONS)[number];
 
 export default function SensorGraphDHT21() {
   const [historicalData, setHistoricalData] = useState<SensorPoint[]>([]);
-  const [selectedPeriod, setSelectedPeriod] = useState<PeriodOption>(PERIOD_OPTIONS[0]);
+  const [selectedPeriod, setSelectedPeriod] = useState<PeriodOption>(
+    PERIOD_OPTIONS[0]
+  );
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [selectedSensors, setSelectedSensors] = useState<string[]>([
     ...SENSOR_IDS,
@@ -146,14 +148,16 @@ export default function SensorGraphDHT21() {
     }
 
     const intervalMs = selectedPeriod.minutes * 60 * 1000;
-    
+
     // Сортируем данные по времени
-    const sortedData = _.sortBy(data, 'timestamp');
-    
+    const sortedData = _.sortBy(data, "timestamp");
+
     // Берем первую точку и затем каждую N-ю точку
     return _.chain(sortedData)
-      .filter((point, index) => index === 0 || index % selectedPeriod.minutes === 0)
-      .map(point => ({
+      .filter(
+        (point, index) => index === 0 || index % selectedPeriod.minutes === 0
+      )
+      .map((point) => ({
         ...point,
         time: formatTime(point.timestamp),
       }))
@@ -161,13 +165,24 @@ export default function SensorGraphDHT21() {
   };
 
   const formatData = (): ChartDataPoint[] => {
-    console.log('Starting data formatting with period:', selectedPeriod);
+    console.log("Starting data formatting with period:", selectedPeriod);
     const result = aggregateData(historicalData);
-    console.log('Formatted data result:', result);
+    console.log("Formatted data result:", result);
     return result;
   };
 
   const data = formatData();
+
+  // Находим максимальные значения с небольшим запасом
+  const maxHumidity = Math.ceil((_.max(_.flatMap(data, point => 
+    SENSOR_IDS.map(id => point[`${id}_humidity`] as number || 0)
+  )) || 100) * 1.1);
+
+  const maxTemperature = Math.ceil((_.max(_.flatMap(data, point => 
+    SENSOR_IDS.map(id => point[`${id}_temperature`] as number || 0)
+  )) || 50) * 1.1);
+
+  console.log('Max values:', { maxHumidity, maxTemperature });
 
   const downloadCSV = (sensorId: string) => {
     const filtered = historicalData.filter((d) => d.sensor_id === sensorId);
@@ -265,7 +280,9 @@ export default function SensorGraphDHT21() {
             className="form-select"
             value={selectedPeriod.label}
             onChange={(e) => {
-              const period = PERIOD_OPTIONS.find((p) => p.label === e.target.value) || PERIOD_OPTIONS[0];
+              const period =
+                PERIOD_OPTIONS.find((p) => p.label === e.target.value) ||
+                PERIOD_OPTIONS[0];
               setSelectedPeriod(period);
               console.log(`Period changed to ${period.label}`);
             }}
@@ -342,11 +359,8 @@ export default function SensorGraphDHT21() {
                   position: "insideLeft",
                   fill: "#44c0ff",
                 }}
-                domain={[0, 100]}
-                ticks={[
-                  0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75,
-                  80, 85, 90, 95, 100,
-                ]}
+                domain={[0, maxHumidity]}
+                width={60}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -427,11 +441,8 @@ export default function SensorGraphDHT21() {
                   position: "insideRight",
                   fill: "#ffa500",
                 }}
-                domain={[0, 100]}
-                ticks={[
-                  0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75,
-                  80, 85, 90, 95, 100,
-                ]}
+                domain={[0, maxTemperature]}
+                width={60}
               />
             </LineChart>
           </ResponsiveContainer>
