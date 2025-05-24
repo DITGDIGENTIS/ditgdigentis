@@ -5,12 +5,9 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faTint,
   faTemperatureLow,
-  faPlug,
-  faPlugCircleXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import _ from "lodash";
 
-// Обновляем типы для более строгой типизации
 interface RawHumidityItem {
   id: string;
   humidity: number | string;
@@ -297,23 +294,6 @@ export function HumidityMonitor() {
   return (
     <div className="container sensor-container">
       <h2 className="text-center mt-4 mb-1">Моніторинг датчика вологості:</h2>
-
-      <div className="row justify-content-center mb-4">
-        <div className="col-12 col-md-8 text-center">
-          <button
-            type="button"
-            onClick={isConnected ? disconnectFromSensor : connectToSensor}
-            className={`btn ${isConnected ? "btn-danger" : "btn-primary"} mb-3`}
-          >
-            <FontAwesomeIcon
-              icon={isConnected ? faPlugCircleXmark : faPlug}
-              className="me-2"
-            />
-            {isConnected ? "Відключити датчик" : "Підключити датчик"}
-          </button>
-        </div>
-      </div>
-
       <div className="row justify-content-center">
         {sensors.map((sensor) => (
           <div key={sensor.id} className="col-12 col-md-8">
