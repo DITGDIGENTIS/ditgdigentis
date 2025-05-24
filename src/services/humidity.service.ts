@@ -82,18 +82,6 @@ export function createHumidityService(): HumidityService {
         orderBy: { timestamp: "asc" }
       });
 
-      console.log('Found readings:', {
-        count: readings.length,
-        sample: readings.slice(0, 2).map(r => ({
-          timestamp: r.timestamp,
-          timestampType: typeof r.timestamp,
-          timestampValue: r.timestamp instanceof Date ? r.timestamp.getTime() : null,
-          sensor_id: r.sensor_id,
-          humidity: r.humidity,
-          temperature: r.temperature
-        }))
-      });
-
       if (_.isEmpty(readings)) return [];
 
       // Преобразуем данные в формат для графика

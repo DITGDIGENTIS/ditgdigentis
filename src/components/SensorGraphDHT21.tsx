@@ -71,17 +71,22 @@ const generateColors = (
 const COLORS = generateColors(SENSOR_IDS);
 
 const PERIOD_OPTIONS = [
-  { label: "1 година", minutes: 60, format: "HH:mm:ss" },
+  { label: "Всі дані", minutes: 0, format: "HH:mm:ss" },
+  { label: "5 хвилин", minutes: 5, format: "HH:mm:ss" },
+  { label: "10 хвилин", minutes: 10, format: "HH:mm:ss" },
+  { label: "30 хвилин", minutes: 30, format: "HH:mm" },
+  { label: "1 година", minutes: 60, format: "HH:mm" },
+  { label: "3 години", minutes: 180, format: "HH:mm" },
+  { label: "6 годин", minutes: 360, format: "HH:mm" },
   { label: "12 годин", minutes: 720, format: "HH:mm" },
   { label: "1 день", minutes: 1440, format: "HH:mm" },
-  { label: "1 тиждень", minutes: 10080, format: "dd HH:mm" },
-  { label: "1 місяць", minutes: 43200, format: "dd HH:mm" },
-  { label: "1 рік", minutes: 525600, format: "dd.MM HH:mm" },
-];
+] as const;
+
+type PeriodOption = (typeof PERIOD_OPTIONS)[number];
 
 export default function SensorGraphDHT21() {
   const [historicalData, setHistoricalData] = useState<SensorPoint[]>([]);
-  const [selectedPeriod, setSelectedPeriod] = useState(PERIOD_OPTIONS[0]);
+  const [selectedPeriod, setSelectedPeriod] = useState<PeriodOption>(PERIOD_OPTIONS[0]);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [selectedSensors, setSelectedSensors] = useState<string[]>([
     ...SENSOR_IDS,
@@ -92,14 +97,13 @@ export default function SensorGraphDHT21() {
   const [endDate, setEndDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
-  const chartRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const url = new URL('/api/humidity-readings', window.location.origin);
-        url.searchParams.set('startDate', selectedDate);
-        url.searchParams.set('endDate', endDate);
+        const url = new URL("/api/humidity-readings", window.location.origin);
+        url.searchParams.set("startDate", selectedDate);
+        url.searchParams.set("endDate", endDate);
 
         const response = await fetch(url.toString(), { cache: "no-store" });
 
@@ -108,7 +112,7 @@ export default function SensorGraphDHT21() {
         }
 
         const readings = await response.json();
-        console.log('Readings: ============', readings);
+        console.log("Readings: ============", readings);
         setHistoricalData(readings);
         setLastUpdate(new Date());
       } catch (e) {
@@ -133,11 +137,34 @@ export default function SensorGraphDHT21() {
     });
   };
 
+  const aggregateData = (data: SensorPoint[]): ChartDataPoint[] => {
+    if (selectedPeriod.minutes === 0) {
+      return _.map(data, (point) => ({
+        ...point,
+        time: formatTime(point.timestamp),
+      }));
+    }
+
+    const intervalMs = selectedPeriod.minutes * 60 * 1000;
+    
+    // Сортируем данные по времени
+    const sortedData = _.sortBy(data, 'timestamp');
+    
+    // Берем первую точку и затем каждую N-ю точку
+    return _.chain(sortedData)
+      .filter((point, index) => index === 0 || index % selectedPeriod.minutes === 0)
+      .map(point => ({
+        ...point,
+        time: formatTime(point.timestamp),
+      }))
+      .value();
+  };
+
   const formatData = (): ChartDataPoint[] => {
-    return _.map(historicalData, (point) => ({
-      ...point,
-      time: formatTime(point.timestamp),
-    }));
+    console.log('Starting data formatting with period:', selectedPeriod);
+    const result = aggregateData(historicalData);
+    console.log('Formatted data result:', result);
+    return result;
   };
 
   const data = formatData();
@@ -238,9 +265,7 @@ export default function SensorGraphDHT21() {
             className="form-select"
             value={selectedPeriod.label}
             onChange={(e) => {
-              const period =
-                PERIOD_OPTIONS.find((p) => p.label === e.target.value) ||
-                PERIOD_OPTIONS[0];
+              const period = PERIOD_OPTIONS.find((p) => p.label === e.target.value) || PERIOD_OPTIONS[0];
               setSelectedPeriod(period);
               console.log(`Period changed to ${period.label}`);
             }}
@@ -265,7 +290,8 @@ export default function SensorGraphDHT21() {
 
       <div className="text-warning mb-3">
         Оновлено: {lastUpdate.toLocaleTimeString()} | Вибраний період:{" "}
-        {new Date(selectedDate).toLocaleDateString("uk-UA")} - {new Date(endDate).toLocaleDateString("uk-UA")}
+        {new Date(selectedDate).toLocaleDateString("uk-UA")} -{" "}
+        {new Date(endDate).toLocaleDateString("uk-UA")}
       </div>
 
       <div className="d-flex flex-wrap gap-3 mb-3">
