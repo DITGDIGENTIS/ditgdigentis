@@ -301,6 +301,7 @@ export function HumidityMonitor() {
       <div className="row justify-content-center mb-4">
         <div className="col-12 col-md-8 text-center">
           <button
+            type="button"
             onClick={isConnected ? disconnectFromSensor : connectToSensor}
             className={`btn ${isConnected ? "btn-danger" : "btn-primary"} mb-3`}
           >
