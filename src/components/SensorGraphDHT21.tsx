@@ -29,13 +29,11 @@ const SENSOR_IDS = ["HUM1-1", "HUM1-2"] as const;
 type SensorId = (typeof SENSOR_IDS)[number];
 type ColorKey = `${SensorId}_humidity` | `${SensorId}_temperature`;
 
-// Функция для генерации цветов
 const generateColors = (
   sensorIds: readonly string[]
 ): Record<ColorKey, string> => {
   const colors: Record<string, string> = {};
 
-  // Базовые цвета для влажности (оттенки синего)
   const humidityColors = [
     "#4dabf7", // Синий
     "#339af0", // Голубой
@@ -47,7 +45,6 @@ const generateColors = (
     "#0c4b8e", // Глубокий синий
   ];
 
-  // Базовые цвета для температуры (оттенки оранжевого/красного)
   const temperatureColors = [
     "#ffa500", // Оранжевый
     "#ff6b6b", // Красный
@@ -84,7 +81,6 @@ const PERIOD_OPTIONS = [
 
 export default function SensorGraphDHT21() {
   const [historicalData, setHistoricalData] = useState<SensorPoint[]>([]);
-  const [liveData, setLiveData] = useState<Record<string, SensorPoint>>({});
   const [selectedPeriod, setSelectedPeriod] = useState(PERIOD_OPTIONS[0]);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [selectedSensors, setSelectedSensors] = useState<string[]>([
@@ -98,65 +94,28 @@ export default function SensorGraphDHT21() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        console.log("Fetching data...");
-        
-        // Вычисляем временной диапазон на основе выбранного периода
-        const endDate = new Date();
-        const startDate = new Date(endDate.getTime() - selectedPeriod.minutes * 60 * 1000);
+        const response = await fetch(
+          `/api/humidity-readings?startDate=${selectedDate}`,
+          { cache: "no-store" }
+        );
 
-        const [historicalRes, liveRes] = await Promise.all([
-          fetch(`/api/humidity-readings?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}&sensorIds=${selectedSensors.join(',')}`, { 
-            cache: "no-store" 
-          }),
-          fetch("/api/humidity", { cache: "no-store" }),
-        ]);
-
-        if (!historicalRes.ok || !liveRes.ok) {
-          throw new Error(
-            `Failed to fetch data: Historical ${historicalRes.status}, Live ${liveRes.status}`
-          );
+        if (!response.ok) {
+          throw new Error(`Failed to fetch data: ${response.status}`);
         }
 
-        const readings = await historicalRes.json();
-        const live = await liveRes.json();
-
-        console.log("Raw historical data:", readings);
-        console.log("Raw live data:", live);
-
-        // Форматируем исторические данные
-        const formattedHistorical = _.map(readings, (r) => ({
-          sensor_id: r.sensor_id,
-          timestamp: new Date(r.timestamp).getTime(),
-          humidity: Number(r.humidity),
-          temperature: Number(r.temperature),
-        }));
-
-        // Форматируем живые данные
-        const formattedLive = _.mapValues(live.sensors, (s) => ({
-          sensor_id: s.id,
-          timestamp: Number(s.timestamp),
-          humidity: parseFloat(String(s.humidity)),
-          temperature: parseFloat(String(s.temperature)),
-        }));
-
-        setHistoricalData(formattedHistorical);
-        setLiveData(formattedLive);
+        const readings = await response.json();
+        console.log('Readings: ============', readings);
+        setHistoricalData(readings);
         setLastUpdate(new Date());
       } catch (e) {
-        const errorMessage =
-          e instanceof Error ? e.message : "Unknown error occurred";
         console.error("Failed to fetch sensor data:", e);
-        console.error("Error details:", {
-          message: errorMessage,
-          stack: e instanceof Error ? e.stack : undefined,
-        });
       }
     };
 
     fetchData();
     const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
-  }, [selectedPeriod, selectedSensors]);
+  }, [selectedDate]);
 
   const formatTime = (ts: number) => {
     const date = new Date(ts);
@@ -171,72 +130,10 @@ export default function SensorGraphDHT21() {
   };
 
   const formatData = (): ChartDataPoint[] => {
-    const selectedDateStart = new Date(selectedDate);
-    selectedDateStart.setHours(0, 0, 0, 0);
-
-    const selectedDateEnd = new Date(selectedDate);
-    selectedDateEnd.setHours(23, 59, 59, 999);
-
-    const filtered = historicalData.filter(
-      (d) =>
-        d.timestamp >= selectedDateStart.getTime() &&
-        d.timestamp <= selectedDateEnd.getTime() &&
-        selectedSensors.includes(d.sensor_id)
-    );
-
-    const groupedByTime = _.groupBy(filtered, (point) => {
-      const date = new Date(point.timestamp);
-      if (selectedPeriod.minutes <= 60) {
-        // 1 час
-        return date.toISOString();
-      } else if (selectedPeriod.minutes <= 720) {
-        // 12 часов
-        return `${date.getHours()}:${Math.floor(date.getMinutes() / 5) * 5}`;
-      } else if (selectedPeriod.minutes <= 1440) {
-        // 1 день
-        return `${date.getHours()}:${Math.floor(date.getMinutes() / 15) * 15}`;
-      } else if (selectedPeriod.minutes <= 10080) {
-        // 1 неделя
-        return `${date.getDate()} ${date.getHours()}:00`;
-      } else if (selectedPeriod.minutes <= 43200) {
-        // 1 месяц
-        return `${date.getDate()} ${date.getHours()}:00`;
-      } else {
-        // 1 год
-        return `${date.getDate()}.${date.getMonth() + 1} ${date.getHours()}:00`;
-      }
-    });
-
-    // Преобразуем в формат для графика
-    const chartData = _.map(groupedByTime, (points, timeKey) => {
-      const dataPoint: ChartDataPoint = {
-        timestamp: points[0].timestamp,
-        time: formatTime(points[0].timestamp),
-      };
-
-      // Вычисляем средние значения для каждой группы
-      points.forEach((point) => {
-        const humidityKey = `${point.sensor_id}_humidity`;
-        const tempKey = `${point.sensor_id}_temperature`;
-
-        if (!dataPoint[humidityKey]) {
-          dataPoint[humidityKey] = 0;
-        }
-        if (!dataPoint[tempKey]) {
-          dataPoint[tempKey] = 0;
-        }
-
-        dataPoint[humidityKey] =
-          (Number(dataPoint[humidityKey]) + point.humidity) / 2;
-        dataPoint[tempKey] =
-          (Number(dataPoint[tempKey]) + point.temperature) / 2;
-      });
-
-      return dataPoint;
-    });
-
-    console.log("Chart data:", chartData);
-    return _.orderBy(chartData, ["timestamp"], ["asc"]);
+    return _.map(historicalData, (point) => ({
+      ...point,
+      time: formatTime(point.timestamp),
+    }));
   };
 
   const data = formatData();

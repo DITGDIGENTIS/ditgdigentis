@@ -1,86 +1,29 @@
 import { PrismaClient } from "../../generated/prisma";
 import _ from "lodash";
-
-export interface HumidityDataPoint {
-  sensor_id: string;
-  humidity: number;
-  temperature: number;
-  timestamp: number | Date;
-}
-
-export interface ReadingFilters {
-  startDate?: Date;
-  endDate?: Date;
-  sensorIds?: string[];
-  limit?: number;
-  offset?: number;
-}
-
-export interface HumidityService {
-  createRecords(data: HumidityDataPoint[]): Promise<void>;
-  getAllReadings(filters?: ReadingFilters): Promise<HumidityDataPoint[]>;
-  deleteSensorRecords(sensorId: string): Promise<number>;
-}
+import { HumidityService, HumidityDataPoint, AggregatedDataPoint, ReadingFilters } from "@/types/humidity";
 
 export function createHumidityService(): HumidityService {
-  console.log("[DEBUG] Database URL:", process.env.DATABASE_URL);
   const prisma = new PrismaClient();
 
   const createRecords = async (data: HumidityDataPoint[]): Promise<void> => {
-    if (!_.isArray(data) || _.isEmpty(data)) {
-      console.warn("[DB] Пустой массив данных для сохранения");
-      return;
-    }
+    if (!_.isArray(data) || _.isEmpty(data)) return;
 
     try {
-      console.log("[DB] Подключение к базе данных...");
       await prisma.$connect();
-      console.log("[DB] Подключение успешно установлено");
-
-      console.log("[DB] Начало сохранения записей:", {
-        количество: data.length,
-        примеры: data.slice(0, 2),
-        timestamp: new Date().toISOString()
-      });
-
-      const result = await Promise.all(
+      await Promise.all(
         _.map(data, async (sensor) => {
           const sensorTimestamp = sensor.timestamp instanceof Date
             ? sensor.timestamp
             : new Date(sensor.timestamp!);
 
-          console.log("[DB] Проверка существующей записи:", {
-            sensor_id: sensor.sensor_id,
-            timestamp: sensorTimestamp.toISOString(),
-            humidity: sensor.humidity,
-            temperature: sensor.temperature
-          });
-
           const exists = await prisma.humidityReading.findFirst({
-            where: {
-              sensor_id: sensor.sensor_id,
-              timestamp: sensorTimestamp,
-            },
+            where: { sensor_id: sensor.sensor_id, timestamp: sensorTimestamp },
           });
 
-          if (exists) {
-            console.log("[DB] Найдена существующая запись:", {
-              id: exists.id,
-              sensor_id: exists.sensor_id,
-              timestamp: exists.timestamp.toISOString()
-            });
-            return null;
-          }
+          if (exists) return null;
 
           try {
-            console.log("[DB] Создание новой записи:", {
-              sensor_id: sensor.sensor_id,
-              timestamp: sensorTimestamp.toISOString(),
-              humidity: sensor.humidity,
-              temperature: sensor.temperature
-            });
-
-            const newRecord = await prisma.humidityReading.create({
+            return await prisma.humidityReading.create({
               data: {
                 sensor_id: sensor.sensor_id,
                 humidity: sensor.humidity,
@@ -88,102 +31,94 @@ export function createHumidityService(): HumidityService {
                 timestamp: sensorTimestamp,
               },
             });
-
-            console.log("[DB] Запись успешно создана:", {
-              id: newRecord.id,
-              sensor_id: newRecord.sensor_id,
-              timestamp: newRecord.timestamp.toISOString()
-            });
-
-            return newRecord;
-          } catch (err) {
-            console.error("[DB] Ошибка создания записи:", {
-              error: err,
-              data: sensor
-            });
+          } catch {
             return null;
           }
         })
       );
-
-      const successCount = _.filter(result, Boolean).length;
-      console.log("[DB] Итоги сохранения:", {
-        всего: data.length,
-        успешно: successCount,
-        пропущено: data.length - successCount,
-        timestamp: new Date().toISOString()
-      });
-    } catch (err) {
-      console.error("[DB] Критическая ошибка:", err);
-      throw err;
     } finally {
       await prisma.$disconnect();
     }
   };
 
-  const getAllReadings = async (filters?: ReadingFilters): Promise<HumidityDataPoint[]> => {
+  const getAggregatedReadings = async (filters: ReadingFilters): Promise<AggregatedDataPoint[]> => {
     try {
-      console.log("[getAllReadings] Подключение к базе данных...");
       await prisma.$connect();
-      console.log("[getAllReadings] Подключение успешно");
 
-      const where: any = {};
+      console.log('Getting daily readings from DB...', filters);
 
-      if (filters?.startDate) {
-        where.timestamp = {
-          ...where.timestamp,
-          gte: new Date(filters.startDate)
-        };
-      }
+      // Если дата не передана, используем текущую дату
+      const queryDate = filters.startDate ? new Date(filters.startDate) : new Date();
+      
+      // Получаем timestamp в миллисекундах для начала и конца дня
+      const startTimestamp = Date.UTC(
+        queryDate.getUTCFullYear(),
+        queryDate.getUTCMonth(),
+        queryDate.getUTCDate(),
+        0, 0, 0, 0
+      );
 
-      if (filters?.endDate) {
-        where.timestamp = {
-          ...where.timestamp,
-          lte: new Date(filters.endDate)
-        };
-      }
+      const endTimestamp = Date.UTC(
+        queryDate.getUTCFullYear(),
+        queryDate.getUTCMonth(),
+        queryDate.getUTCDate(),
+        23, 59, 59, 999
+      );
 
-      if (filters?.sensorIds && filters.sensorIds.length > 0) {
-        where.sensor_id = {
-          in: filters.sensorIds
-        };
-      }
-
-      console.log("[getAllReadings] Параметры запроса:", {
-        where,
-        filters
+      console.log('Timestamp range:', {
+        queryDate: queryDate.toISOString(),
+        startTimestamp,
+        endTimestamp,
+        startDate: new Date(startTimestamp).toISOString(),
+        endDate: new Date(endTimestamp).toISOString()
       });
 
+      // Сначала проверим формат данных в базе
+      const sampleReading = await prisma.humidityReading.findFirst();
+      console.log('Sample reading from DB:', {
+        timestamp: sampleReading?.timestamp,
+        timestampType: typeof sampleReading?.timestamp,
+        timestampValue: sampleReading?.timestamp instanceof Date ? sampleReading.timestamp.getTime() : null
+      });
+
+      // Запрос данных за день
       const readings = await prisma.humidityReading.findMany({
-        where,
-        orderBy: { timestamp: "asc" },
-        select: {
-          sensor_id: true,
-          humidity: true,
-          temperature: true,
-          timestamp: true,
+        where: {
+          timestamp: {
+            gte: new Date(startTimestamp),
+            lte: new Date(endTimestamp)
+          }
         },
-        take: filters?.limit,
-        skip: filters?.offset,
+        orderBy: { timestamp: "asc" }
       });
 
-      console.log(`[getAllReadings] Найдено ${readings.length} записей:`, {
-        количество: readings.length,
-        примеры: readings.slice(0, 3),
-        параметры_запроса: where
+      console.log('Found readings:', {
+        count: readings.length,
+        sample: readings.slice(0, 2).map(r => ({
+          timestamp: r.timestamp,
+          timestampType: typeof r.timestamp,
+          timestampValue: r.timestamp instanceof Date ? r.timestamp.getTime() : null,
+          sensor_id: r.sensor_id,
+          humidity: r.humidity,
+          temperature: r.temperature
+        }))
       });
 
-      const formatted = _.map(readings, (r) => ({
-        sensor_id: r.sensor_id,
-        humidity: Number(r.humidity),
-        temperature: Number(r.temperature),
-        timestamp: r.timestamp.getTime()
+      if (_.isEmpty(readings)) return [];
+
+      // Преобразуем данные в формат для графика
+      return readings.map(reading => ({
+        timestamp: reading.timestamp instanceof Date ? reading.timestamp.getTime() : new Date(reading.timestamp).getTime(),
+        time: (reading.timestamp instanceof Date ? reading.timestamp : new Date(reading.timestamp)).toLocaleString("uk-UA", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false
+        }),
+        [`${reading.sensor_id}_humidity`]: reading.humidity,
+        [`${reading.sensor_id}_temperature`]: reading.temperature
       }));
 
-      return formatted;
-    } catch (err) {
-      console.error("[getAllReadings] Ошибка:", err);
-      throw err;
     } finally {
       await prisma.$disconnect();
     }
@@ -191,17 +126,12 @@ export function createHumidityService(): HumidityService {
 
   return {
     createRecords,
-    getAllReadings,
+    getAggregatedReadings,
     deleteSensorRecords: async (sensorId: string) => {
       try {
         await prisma.$connect();
-        const result = await prisma.humidityReading.deleteMany({
-          where: { sensor_id: sensorId },
-        });
+        const result = await prisma.humidityReading.deleteMany({ where: { sensor_id: sensorId } });
         return result.count;
-      } catch (err) {
-        console.error("[deleteSensorRecords] Ошибка:", err);
-        throw err;
       } finally {
         await prisma.$disconnect();
       }

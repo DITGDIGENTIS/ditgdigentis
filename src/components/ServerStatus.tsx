@@ -17,7 +17,6 @@ export const ServerStatus: FC<IProps> = ({
 
   const checkStatus = async () => {
     try {
-      console.log("Checking status for device:", deviceId);
       const res = await fetch("/api/status", {
         next: { revalidate: 0 },
         cache: "no-store"
@@ -26,13 +25,11 @@ export const ServerStatus: FC<IProps> = ({
       const data = await res.json();
       console.log("Response data:", data);
 
-      // Проверяем timestamp из ответа API
       const timestamp = new Date(data.timestamp).getTime();
       const online = Date.now() - timestamp < 20000; // 20 секунд окно
       console.log("Is online:", online);
 
       if (lastRef.current !== online) {
-        console.log("Status changed:", { from: lastRef.current, to: online });
         lastRef.current = online;
         setIsOnline(online);
       }

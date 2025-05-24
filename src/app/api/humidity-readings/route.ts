@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
-import {
-  createHumidityService,
-  ReadingFilters,
-} from "@/services/humidity.service";
-import _ from "lodash";
+import { createHumidityService } from "@/services/humidity.service";
+import { ReadingFilters } from "@/types/humidity";
 
 export async function GET(request: Request) {
   try {
@@ -36,7 +33,7 @@ export async function GET(request: Request) {
     }
 
     const service = createHumidityService();
-    const readings = await service.getAllReadings(filters);
+    const readings = await service.getAggregatedReadings(filters);
 
     return NextResponse.json(readings);
   } catch (error) {

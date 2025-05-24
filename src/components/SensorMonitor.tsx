@@ -35,15 +35,12 @@ export function SensorMonitor() {
 
   const saveToDatabase = async (sensorData: Record<string, RawSensorItem>) => {
     try {
-      console.log("Raw sensor data:", sensorData);
 
       // Фильтруем только онлайн сенсоры
       const onlineSensors = _.pickBy(sensorData, (sensor) => {
         const age = Date.now() - sensor.timestamp;
         return age <= TIMEOUT_MS;
       });
-
-      console.log("Online sensors:", onlineSensors);
 
       if (_.isEmpty(onlineSensors)) {
         console.log("No online sensors to save");
@@ -71,8 +68,6 @@ export function SensorMonitor() {
         };
       });
 
-      console.log("Formatted sensors:", formattedSensors);
-
       // Проверяем каждый сенсор перед отправкой
       formattedSensors.forEach((sensor, index) => {
         if (!sensor.sensor_id || typeof sensor.sensor_id !== 'string') {
@@ -89,8 +84,6 @@ export function SensorMonitor() {
       const sensorBatch: SensorDataBatch = {
         sensors: formattedSensors
       };
-
-      console.log("Final sensor batch:", JSON.stringify(sensorBatch, null, 2));
 
       const response = await fetch("/api/sensor-records", {
         method: "POST",
@@ -129,7 +122,6 @@ export function SensorMonitor() {
         }
 
         const { sensors: data, serverTime }: RawSensorResponse = await res.json();
-        console.log("Received sensor data:", data);
 
         // Сохраняем данные в базу
         await saveToDatabase(data);
