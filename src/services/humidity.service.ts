@@ -45,43 +45,33 @@ export function createHumidityService(): HumidityService {
     try {
       await prisma.$connect();
 
-      console.log('Getting daily readings from DB...', filters);
+      console.log('Getting readings from DB...', filters);
 
-      // Если дата не передана, используем текущую дату
-      const queryDate = filters.startDate ? new Date(filters.startDate) : new Date();
+      // Если даты не переданы, используем текущую дату
+      const startDate = filters.startDate ? new Date(filters.startDate) : new Date();
+      const endDate = filters.endDate ? new Date(filters.endDate) : new Date();
       
-      // Получаем timestamp в миллисекундах для начала и конца дня
+      // Получаем timestamp в миллисекундах для начала и конца периода
       const startTimestamp = Date.UTC(
-        queryDate.getUTCFullYear(),
-        queryDate.getUTCMonth(),
-        queryDate.getUTCDate(),
+        startDate.getUTCFullYear(),
+        startDate.getUTCMonth(),
+        startDate.getUTCDate(),
         0, 0, 0, 0
       );
 
       const endTimestamp = Date.UTC(
-        queryDate.getUTCFullYear(),
-        queryDate.getUTCMonth(),
-        queryDate.getUTCDate(),
+        endDate.getUTCFullYear(),
+        endDate.getUTCMonth(),
+        endDate.getUTCDate(),
         23, 59, 59, 999
       );
 
       console.log('Timestamp range:', {
-        queryDate: queryDate.toISOString(),
-        startTimestamp,
-        endTimestamp,
         startDate: new Date(startTimestamp).toISOString(),
         endDate: new Date(endTimestamp).toISOString()
       });
 
-      // Сначала проверим формат данных в базе
-      const sampleReading = await prisma.humidityReading.findFirst();
-      console.log('Sample reading from DB:', {
-        timestamp: sampleReading?.timestamp,
-        timestampType: typeof sampleReading?.timestamp,
-        timestampValue: sampleReading?.timestamp instanceof Date ? sampleReading.timestamp.getTime() : null
-      });
-
-      // Запрос данных за день
+      // Запрос данных за период
       const readings = await prisma.humidityReading.findMany({
         where: {
           timestamp: {

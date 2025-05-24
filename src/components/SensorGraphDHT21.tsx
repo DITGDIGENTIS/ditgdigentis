@@ -89,15 +89,19 @@ export default function SensorGraphDHT21() {
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
+  const [endDate, setEndDate] = useState<string>(
+    new Date().toISOString().split("T")[0]
+  );
   const chartRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch(
-          `/api/humidity-readings?startDate=${selectedDate}`,
-          { cache: "no-store" }
-        );
+        const url = new URL('/api/humidity-readings', window.location.origin);
+        url.searchParams.set('startDate', selectedDate);
+        url.searchParams.set('endDate', endDate);
+
+        const response = await fetch(url.toString(), { cache: "no-store" });
 
         if (!response.ok) {
           throw new Error(`Failed to fetch data: ${response.status}`);
@@ -113,9 +117,9 @@ export default function SensorGraphDHT21() {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 5000);
+    const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
-  }, [selectedDate]);
+  }, [selectedDate, endDate]);
 
   const formatTime = (ts: number) => {
     const date = new Date(ts);
@@ -215,8 +219,19 @@ export default function SensorGraphDHT21() {
             value={selectedDate}
             onChange={(e) => {
               setSelectedDate(e.target.value);
-              console.log(`Date changed to ${e.target.value}`);
+              console.log(`Start date changed to ${e.target.value}`);
             }}
+            max={endDate}
+          />
+          <input
+            type="date"
+            className="form-control"
+            value={endDate}
+            onChange={(e) => {
+              setEndDate(e.target.value);
+              console.log(`End date changed to ${e.target.value}`);
+            }}
+            min={selectedDate}
             max={new Date().toISOString().split("T")[0]}
           />
           <select
@@ -249,8 +264,8 @@ export default function SensorGraphDHT21() {
       </div>
 
       <div className="text-warning mb-3">
-        Оновлено: {lastUpdate.toLocaleTimeString()} | Вибрана дата:{" "}
-        {new Date(selectedDate).toLocaleDateString("uk-UA")}
+        Оновлено: {lastUpdate.toLocaleTimeString()} | Вибраний період:{" "}
+        {new Date(selectedDate).toLocaleDateString("uk-UA")} - {new Date(endDate).toLocaleDateString("uk-UA")}
       </div>
 
       <div className="d-flex flex-wrap gap-3 mb-3">
