@@ -345,7 +345,7 @@ export default function SensorGraphDHT21() {
                       dataKey={`${sensorId}_humidity`}
                       name={`${sensorId} Вологість`}
                       stroke={COLORS[`${sensorId}_humidity` as ColorKey]}
-                      dot={false}
+                      dot={true}
                       unit="%"
                     />
                     <Line
@@ -354,7 +354,7 @@ export default function SensorGraphDHT21() {
                       dataKey={`${sensorId}_temperature`}
                       name={`${sensorId} Температура`}
                       stroke={COLORS[`${sensorId}_temperature` as ColorKey]}
-                      dot={false}
+                      dot={true}
                       unit="°C"
                     />
                   </React.Fragment>
