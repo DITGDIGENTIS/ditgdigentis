@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import _ from "lodash";
+import * as _ from "lodash";
 import { SensorDataPoint } from "../services/sensor-data.service";
 
 interface DataPoint {

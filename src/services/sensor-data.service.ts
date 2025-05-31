@@ -1,4 +1,4 @@
-import _ from "lodash";
+import * as _ from "lodash";
 
 export type SensorDataPoint = {
   sensor_id: string;
@@ -14,7 +14,6 @@ export type SensorAverages = {
   avgTemperature: number;
 };
 
-// ✅ Валидация данных
 export const validateSensorData = (data: Partial<SensorDataPoint>): boolean => {
   if (!data || typeof data !== "object") return false;
 
@@ -38,7 +37,6 @@ export const validateBatch = (batch: SensorDataBatch): boolean =>
   batch.sensors.length > 0 &&
   batch.sensors.every(validateSensorData);
 
-// ✅ Надійне створення сенсорних даних
 export const createSensorData = (data: SensorDataBatch): SensorDataPoint[] => {
   if (!validateBatch(data)) {
     throw new Error("Invalid sensor data format");
@@ -58,34 +56,31 @@ export const createSensorData = (data: SensorDataBatch): SensorDataPoint[] => {
   });
 };
 
-// 📊 Группировка
 export const groupBySensorId = (
   data: SensorDataPoint[]
-): Record<string, SensorDataPoint[]> =>
-  _.groupBy(data, "sensor_id");
+): Record<string, SensorDataPoint[]> => _.groupBy(data, "sensor_id");
 
-// 📈 Получение последних
 export const getLatestReadings = (
   data: SensorDataPoint[]
 ): Record<string, SensorDataPoint> =>
-  _.mapValues(groupBySensorId(data), (group) =>
-    _.maxBy(group, "timestamp")!
-  );
+  _.mapValues(groupBySensorId(data), (group) => _.maxBy(group, "timestamp")!);
 
-// ⏳ Фильтрация по времени
 export const filterByTimeRange = _.curry(
-  (startTime: Date, endTime: Date, data: SensorDataPoint[]): SensorDataPoint[] =>
+  (
+    startTime: Date,
+    endTime: Date,
+    data: SensorDataPoint[]
+  ): SensorDataPoint[] =>
     data.filter(
-      (reading) => reading.timestamp >= startTime && reading.timestamp <= endTime
+      (reading) =>
+        reading.timestamp >= startTime && reading.timestamp <= endTime
     )
 );
 
-// 📐 Средние значения
 export const calculateAverages = (data: SensorDataPoint[]): SensorAverages => ({
   avgTemperature: _.round(_.meanBy(data, "temperature"), 2),
 });
 
-// 📊 Статистика
 export const getSensorStatistics = _.flow([
   createSensorData,
   (data) => ({
@@ -95,7 +90,6 @@ export const getSensorStatistics = _.flow([
   }),
 ]);
 
-// 🔁 Утилити
 export const formatSensorData = _.curry(
   (precision: number, data: SensorDataPoint): SensorDataPoint => ({
     ...data,

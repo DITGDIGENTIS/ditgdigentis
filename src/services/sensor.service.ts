@@ -1,5 +1,5 @@
 import { PrismaClient } from "../../generated/prisma";
-import _ from "lodash";
+import * as _ from "lodash";
 import { SensorDataPoint, sortByTimestamp } from "./sensor-data.service";
 
 export interface SensorService {
@@ -101,7 +101,6 @@ export function createSensorService(): SensorService {
     try {
       await prisma.$connect();
 
-      // Формируем диапазон дат
       const startDate = filters.startDate ? new Date(filters.startDate) : new Date();
       const endDate = filters.endDate ? new Date(filters.endDate) : new Date();
 

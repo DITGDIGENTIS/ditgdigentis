@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import * as _ from "lodash";
+import moment from "moment";
 import {
   LineChart,
   Line,
@@ -11,49 +12,37 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { useIsMobile } from "@/hook/useIsMobile";
 
 interface SensorPoint {
-  sensor_id: string;
-  timestamp: number;
-  humidity: number;
-  temperature: number;
-}
-
-interface ChartDataPoint {
   timestamp: number;
   time: string;
   [key: string]: number | string;
 }
 
-const SENSOR_IDS = ["HUM1-1", "HUM1-2"] as const;
-type SensorId = (typeof SENSOR_IDS)[number];
-type ColorKey = `${SensorId}_humidity` | `${SensorId}_temperature`;
+interface ChartDataPoint {
+  timestamp: number;
+  time: string;
+  [key: string]: number | string | null;
+}
 
-const generateColors = (
-  sensorIds: readonly string[]
-): Record<ColorKey, string> => {
+type ColorKey = `${string}_humidity` | `${string}_temperature`;
+
+const generateColors = (sensorIds: string[]): Record<ColorKey, string> => {
   const colors: Record<string, string> = {};
-
   const humidityColors = [
-    "#4dabf7", // Синий
-    "#339af0", // Голубой
-    "#228be6", // Темно-синий
-    "#1c7ed6", // Морской
-    "#1971c2", // Индиго
-    "#1864ab", // Нави
-    "#145591", // Океан
-    "#0c4b8e", // Глубокий синий
+    "#4dabf7",
+    "#339af0",
+    "#228be6",
+    "#1c7ed6",
+    "#1971c2",
   ];
-
   const temperatureColors = [
-    "#ffa500", // Оранжевый
-    "#ff6b6b", // Красный
-    "#fa5252", // Алый
-    "#f03e3e", // Киноварь
-    "#e03131", // Кармин
-    "#c92a2a", // Бордовый
-    "#a61e1e", // Темно-красный
-    "#862e2e", // Коричневый
+    "#ffa500",
+    "#ff6b6b",
+    "#fa5252",
+    "#f03e3e",
+    "#e03131",
   ];
 
   sensorIds.forEach((sensorId, index) => {
@@ -68,44 +57,38 @@ const generateColors = (
   return colors as Record<ColorKey, string>;
 };
 
-const COLORS = generateColors(SENSOR_IDS);
-
-const PERIOD_OPTIONS = [
-  { label: "Всі дані", minutes: 0, format: "HH:mm:ss" },
-  { label: "5 хвилин", minutes: 5, format: "HH:mm:ss" },
-  { label: "10 хвилин", minutes: 10, format: "HH:mm:ss" },
-  { label: "30 хвилин", minutes: 30, format: "HH:mm" },
-  { label: "1 година", minutes: 60, format: "HH:mm" },
-  { label: "3 години", minutes: 180, format: "HH:mm" },
-  { label: "6 годин", minutes: 360, format: "HH:mm" },
-  { label: "12 годин", minutes: 720, format: "HH:mm" },
-  { label: "1 день", minutes: 1440, format: "HH:mm" },
-] as const;
-
-type PeriodOption = (typeof PERIOD_OPTIONS)[number];
-
 export default function SensorGraphDHT21() {
   const [historicalData, setHistoricalData] = useState<SensorPoint[]>([]);
-  const [selectedPeriod, setSelectedPeriod] = useState<PeriodOption>(
-    PERIOD_OPTIONS[0]
-  );
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
-  const [selectedSensors, setSelectedSensors] = useState<string[]>([
-    ...SENSOR_IDS,
-  ]);
+  const [sensorIds, setSensorIds] = useState<string[]>([]);
+  const [selectedSensors, setSelectedSensors] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>(
-    new Date().toISOString().split("T")[0]
+    moment().format("YYYY-MM-DD")
   );
-  const [endDate, setEndDate] = useState<string>(
-    new Date().toISOString().split("T")[0]
-  );
+  const isMobile = useIsMobile();
+
+  useEffect(() => {
+    const newSensorIds = _.uniq(
+      historicalData.flatMap((point) =>
+        Object.keys(point)
+          .filter((key) => key.endsWith("_humidity"))
+          .map((key) => key.replace("_humidity", ""))
+      )
+    );
+
+    if (!_.isEqual(newSensorIds, sensorIds)) {
+      setSensorIds(newSensorIds);
+      setSelectedSensors(newSensorIds);
+    }
+  }, [historicalData]);
+
+  const COLORS = React.useMemo(() => generateColors(sensorIds), [sensorIds]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const url = new URL("/api/humidity-readings", window.location.origin);
         url.searchParams.set("startDate", selectedDate);
-        url.searchParams.set("endDate", endDate);
 
         const response = await fetch(url.toString(), { cache: "no-store" });
 
@@ -114,7 +97,6 @@ export default function SensorGraphDHT21() {
         }
 
         const readings = await response.json();
-        console.log("Readings: ============", readings);
         setHistoricalData(readings);
         setLastUpdate(new Date());
       } catch (e) {
@@ -123,90 +105,81 @@ export default function SensorGraphDHT21() {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 10000);
+    const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
-  }, [selectedDate, endDate]);
+  }, [selectedDate]);
 
-  const formatTime = (ts: number) => {
-    const date = new Date(ts);
-    return date.toLocaleString("uk-UA", {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-      day: selectedPeriod.format.includes("dd") ? "2-digit" : undefined,
-      month: selectedPeriod.format.includes("MM") ? "2-digit" : undefined,
+  const formatTime = (ts: number | Date) => {
+    return moment(ts).format("HH:mm:ss");
+  };
+
+  const data = historicalData.map((reading) => {
+    const formattedPoint: ChartDataPoint = {
+      timestamp:
+        typeof reading.timestamp === "number"
+          ? reading.timestamp
+          : moment(reading.timestamp).valueOf(),
+      time: formatTime(reading.timestamp),
+    };
+
+    sensorIds.forEach((sensorId) => {
+      const humidityKey = `${sensorId}_humidity`;
+      const temperatureKey = `${sensorId}_temperature`;
+
+      formattedPoint[humidityKey] = (reading[humidityKey] as number) || null;
+      formattedPoint[temperatureKey] =
+        (reading[temperatureKey] as number) || null;
     });
-  };
 
-  const aggregateData = (data: SensorPoint[]): ChartDataPoint[] => {
-    if (selectedPeriod.minutes === 0) {
-      return _.map(data, (point) => ({
-        ...point,
-        time: formatTime(point.timestamp),
-      }));
-    }
+    return formattedPoint;
+  });
 
-    const intervalMs = selectedPeriod.minutes * 60 * 1000;
-
-    // Сортируем данные по времени
-    const sortedData = _.sortBy(data, "timestamp");
-
-    // Берем первую точку и затем каждую N-ю точку
-    return _.chain(sortedData)
-      .filter(
-        (point, index) => index === 0 || index % selectedPeriod.minutes === 0
+  const maxHumidity = Math.ceil(
+    (_.max(
+      _.flatMap(data, (point) =>
+        sensorIds.map((id) => (point[`${id}_humidity`] as number) || 0)
       )
-      .map((point) => ({
-        ...point,
-        time: formatTime(point.timestamp),
-      }))
-      .value();
-  };
+    ) || 100) * 1.1
+  );
 
-  const formatData = (): ChartDataPoint[] => {
-    console.log("Starting data formatting with period:", selectedPeriod);
-    const result = aggregateData(historicalData);
-    console.log("Formatted data result:", result);
-    return result;
-  };
-
-  const data = formatData();
-
-  // Находим максимальные значения с небольшим запасом
-  const maxHumidity = Math.ceil((_.max(_.flatMap(data, point => 
-    SENSOR_IDS.map(id => point[`${id}_humidity`] as number || 0)
-  )) || 100) * 1.1);
-
-  const maxTemperature = Math.ceil((_.max(_.flatMap(data, point => 
-    SENSOR_IDS.map(id => point[`${id}_temperature`] as number || 0)
-  )) || 50) * 1.1);
-
-  console.log('Max values:', { maxHumidity, maxTemperature });
+  const maxTemperature = Math.ceil(
+    (_.max(
+      _.flatMap(data, (point) =>
+        sensorIds.map((id) => (point[`${id}_temperature`] as number) || 0)
+      )
+    ) || 50) * 1.1
+  );
 
   const downloadCSV = (sensorId: string) => {
-    const filtered = historicalData.filter((d) => d.sensor_id === sensorId);
+    const filtered = historicalData.filter((d) => {
+      const humidityKey = `${sensorId}_humidity`;
+      return d[humidityKey] !== undefined;
+    });
+
     if (!filtered.length) {
-      console.warn(`No data available for ${sensorId}`);
       return alert(`Немає даних для ${sensorId}`);
     }
 
     const header = "Час,Температура,Вологість";
-    const rows = filtered.map(
-      (d) =>
-        `${formatTime(d.timestamp)},${d.temperature.toFixed(
-          1
-        )},${d.humidity.toFixed(1)}`
-    );
+    const rows = filtered.map((d) => {
+      const humidityKey = `${sensorId}_humidity`;
+      const temperatureKey = `${sensorId}_temperature`;
+      const humidity = d[humidityKey] as number;
+      const temperature = d[temperatureKey] as number;
+
+      return `${formatTime(d.timestamp)},${temperature.toFixed(
+        1
+      )},${humidity.toFixed(1)}`;
+    });
+
     const csv = [header, ...rows].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${sensorId}_${new Date().toISOString().split("T")[0]}.csv`;
+    a.download = `${sensorId}_${selectedDate}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    console.log(`Exported CSV for ${sensorId} with ${filtered.length} records`);
   };
 
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -236,7 +209,7 @@ export default function SensorGraphDHT21() {
           Графік DHT21 (Температура/Вологість)
         </h5>
         <div className="d-flex gap-2 flex-wrap">
-          {SENSOR_IDS.map((id) => (
+          {sensorIds.map((id) => (
             <label key={id} className="form-check-label text-light">
               <input
                 type="checkbox"
@@ -247,9 +220,6 @@ export default function SensorGraphDHT21() {
                     ? [...selectedSensors, id]
                     : selectedSensors.filter((s) => s !== id);
                   setSelectedSensors(updated);
-                  console.log(
-                    `${id} ${e.target.checked ? "enabled" : "disabled"}`
-                  );
                 }}
               />
               {id}
@@ -259,41 +229,10 @@ export default function SensorGraphDHT21() {
             type="date"
             className="form-control"
             value={selectedDate}
-            onChange={(e) => {
-              setSelectedDate(e.target.value);
-              console.log(`Start date changed to ${e.target.value}`);
-            }}
-            max={endDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            max={moment().format("YYYY-MM-DD")}
           />
-          <input
-            type="date"
-            className="form-control"
-            value={endDate}
-            onChange={(e) => {
-              setEndDate(e.target.value);
-              console.log(`End date changed to ${e.target.value}`);
-            }}
-            min={selectedDate}
-            max={new Date().toISOString().split("T")[0]}
-          />
-          <select
-            className="form-select"
-            value={selectedPeriod.label}
-            onChange={(e) => {
-              const period =
-                PERIOD_OPTIONS.find((p) => p.label === e.target.value) ||
-                PERIOD_OPTIONS[0];
-              setSelectedPeriod(period);
-              console.log(`Period changed to ${period.label}`);
-            }}
-          >
-            {PERIOD_OPTIONS.map((p) => (
-              <option key={p.label} value={p.label}>
-                {p.label}
-              </option>
-            ))}
-          </select>
-          {SENSOR_IDS.map((id) => (
+          {sensorIds.map((id) => (
             <button
               key={id}
               className="btn btn-outline-light btn-sm"
@@ -306,9 +245,8 @@ export default function SensorGraphDHT21() {
       </div>
 
       <div className="text-warning mb-3">
-        Оновлено: {lastUpdate.toLocaleTimeString()} | Вибраний період:{" "}
-        {new Date(selectedDate).toLocaleDateString("uk-UA")} -{" "}
-        {new Date(endDate).toLocaleDateString("uk-UA")}
+        Оновлено: {moment(lastUpdate).format("HH:mm:ss")} | Вибрана дата:{" "}
+        {moment(selectedDate).format("DD.MM.YYYY")}
       </div>
 
       <div className="d-flex flex-wrap gap-3 mb-3">
@@ -358,6 +296,7 @@ export default function SensorGraphDHT21() {
                   angle: -90,
                   position: "insideLeft",
                   fill: "#44c0ff",
+                  style: { display: isMobile ? "none" : "block" },
                 }}
                 domain={[0, maxHumidity]}
                 width={60}
@@ -371,9 +310,15 @@ export default function SensorGraphDHT21() {
             flex: 1,
             overflowX: "auto",
             overflowY: "hidden",
+            position: "relative",
           }}
         >
-          <div style={{ minWidth: "max-content" }}>
+          <div
+            style={{
+              minWidth: Math.max(data.length * 50, 1000),
+              padding: "0 10px",
+            }}
+          >
             <ResponsiveContainer width="100%" height={400}>
               <LineChart
                 data={data}
@@ -381,12 +326,15 @@ export default function SensorGraphDHT21() {
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#444" />
                 <XAxis
-                  dataKey="time"
+                  dataKey="timestamp"
                   stroke="#999"
                   tick={{ fill: "#999" }}
                   angle={-45}
                   textAnchor="end"
                   height={60}
+                  tickFormatter={(timestamp) =>
+                    moment(timestamp).format("HH:mm")
+                  }
                 />
                 <Tooltip content={<CustomTooltip />} />
                 {selectedSensors.map((sensorId) => (
@@ -440,6 +388,7 @@ export default function SensorGraphDHT21() {
                   angle: 90,
                   position: "insideRight",
                   fill: "#ffa500",
+                  style: { display: isMobile ? "none" : "block" },
                 }}
                 domain={[0, maxTemperature]}
                 width={60}

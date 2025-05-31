@@ -1,5 +1,6 @@
 import { PrismaClient } from "../../generated/prisma";
 import _ from "lodash";
+import moment from "moment";
 import { HumidityService, HumidityDataPoint, AggregatedDataPoint, ReadingFilters } from "@/types/humidity";
 
 export function createHumidityService(): HumidityService {
@@ -45,38 +46,15 @@ export function createHumidityService(): HumidityService {
     try {
       await prisma.$connect();
 
-      console.log('Getting readings from DB...', filters);
+      const startDate = filters.startDate ? moment(filters.startDate) : moment();
+      const startOfDay = startDate.startOf('day').toDate();
+      const endOfDay = startDate.endOf('day').toDate();
 
-      // Если даты не переданы, используем текущую дату
-      const startDate = filters.startDate ? new Date(filters.startDate) : new Date();
-      const endDate = filters.endDate ? new Date(filters.endDate) : new Date();
-      
-      // Получаем timestamp в миллисекундах для начала и конца периода
-      const startTimestamp = Date.UTC(
-        startDate.getUTCFullYear(),
-        startDate.getUTCMonth(),
-        startDate.getUTCDate(),
-        0, 0, 0, 0
-      );
-
-      const endTimestamp = Date.UTC(
-        endDate.getUTCFullYear(),
-        endDate.getUTCMonth(),
-        endDate.getUTCDate(),
-        23, 59, 59, 999
-      );
-
-      console.log('Timestamp range:', {
-        startDate: new Date(startTimestamp).toISOString(),
-        endDate: new Date(endTimestamp).toISOString()
-      });
-
-      // Запрос данных за период
       const readings = await prisma.humidityReading.findMany({
         where: {
           timestamp: {
-            gte: new Date(startTimestamp),
-            lte: new Date(endTimestamp)
+            gte: startOfDay,
+            lte: endOfDay
           }
         },
         orderBy: { timestamp: "asc" }
@@ -84,7 +62,6 @@ export function createHumidityService(): HumidityService {
 
       if (_.isEmpty(readings)) return [];
 
-      // Преобразуем данные в формат для графика
       return readings.map(reading => ({
         timestamp: reading.timestamp instanceof Date ? reading.timestamp.getTime() : new Date(reading.timestamp).getTime(),
         time: (reading.timestamp instanceof Date ? reading.timestamp : new Date(reading.timestamp)).toLocaleString("uk-UA", {

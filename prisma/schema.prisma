@@ -31,4 +31,6 @@ model SensorReading {
   sensor_id   String
   timestamp   DateTime @default(now())
   temperature Float
+  @@index([sensor_id])
+  @@index([timestamp])
 }
