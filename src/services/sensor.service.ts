@@ -1,11 +1,12 @@
 import { PrismaClient } from "../../generated/prisma";
 import * as _ from "lodash";
-import { SensorDataPoint, sortByTimestamp } from "./sensor-data.service";
+import { SensorDataPoint } from "./sensor-data.service";
 
 export interface SensorService {
   createRecords(data: SensorDataPoint[]): Promise<void>;
-  getAllReadings(): Promise<SensorDataPoint[]>;
-  getAggregatedReadings(filters: SensorReadingFilters): Promise<SensorDataPoint[]>;
+  getAggregatedReadings(
+    filters: SensorReadingFilters
+  ): Promise<SensorDataPoint[]>;
   deleteSensorRecords(sensorId: string): Promise<number>;
 }
 
@@ -29,9 +30,10 @@ export function createSensorService(): SensorService {
 
       const result = await Promise.all(
         data.map(async (sensor) => {
-          const sensorTimestamp = sensor.timestamp instanceof Date
-            ? sensor.timestamp
-            : new Date(sensor.timestamp!);
+          const sensorTimestamp =
+            sensor.timestamp instanceof Date
+              ? sensor.timestamp
+              : new Date(sensor.timestamp!);
 
           const exists = await prisma.sensorReading.findFirst({
             where: {
@@ -41,7 +43,11 @@ export function createSensorService(): SensorService {
           });
 
           if (exists) {
-            console.log(`[createRecords] Skipped existing: ${sensor.sensor_id} @ ${sensorTimestamp.toISOString()}`);
+            console.log(
+              `[createRecords] Skipped existing: ${
+                sensor.sensor_id
+              } @ ${sensorTimestamp.toISOString()}`
+            );
             return null;
           }
 
@@ -54,13 +60,19 @@ export function createSensorService(): SensorService {
               },
             });
           } catch (err) {
-            console.error("[createRecords] Failed to save", sensor.sensor_id, err);
+            console.error(
+              "[createRecords] Failed to save",
+              sensor.sensor_id,
+              err
+            );
             return null;
           }
         })
       );
 
-      console.log(`[createRecords] Inserted ${result.filter(Boolean).length} new records`);
+      console.log(
+        `[createRecords] Inserted ${result.filter(Boolean).length} new records`
+      );
     } catch (err) {
       console.error("[createRecords] Unexpected error:", err);
       throw err;
@@ -69,52 +81,34 @@ export function createSensorService(): SensorService {
     }
   };
 
-  const getAllReadings = async (): Promise<SensorDataPoint[]> => {
+  const getAggregatedReadings = async (
+    filters: SensorReadingFilters
+  ): Promise<SensorDataPoint[]> => {
     try {
       await prisma.$connect();
 
-      const readings = await prisma.sensorReading.findMany({
-        orderBy: { timestamp: "desc" },
-        select: {
-          sensor_id: true,
-          temperature: true,
-          timestamp: true,
-        },
-      });
-
-      const formatted = readings.map((r) => ({
-        sensor_id: r.sensor_id,
-        temperature: Number(r.temperature),
-        timestamp: new Date(r.timestamp),
-      }));
-
-      return sortByTimestamp("desc")(formatted);
-    } catch (err) {
-      console.error("[getAllReadings] Error:", err);
-      throw err;
-    } finally {
-      await prisma.$disconnect();
-    }
-  };
-
-  const getAggregatedReadings = async (filters: SensorReadingFilters): Promise<SensorDataPoint[]> => {
-    try {
-      await prisma.$connect();
-
-      const startDate = filters.startDate ? new Date(filters.startDate) : new Date();
+      const startDate = filters.startDate
+        ? new Date(filters.startDate)
+        : new Date();
       const endDate = filters.endDate ? new Date(filters.endDate) : new Date();
 
       const startTimestamp = Date.UTC(
         startDate.getUTCFullYear(),
         startDate.getUTCMonth(),
         startDate.getUTCDate(),
-        0, 0, 0, 0
+        0,
+        0,
+        0,
+        0
       );
       const endTimestamp = Date.UTC(
         endDate.getUTCFullYear(),
         endDate.getUTCMonth(),
         endDate.getUTCDate(),
-        23, 59, 59, 999
+        23,
+        59,
+        59,
+        999
       );
 
       // Формируем where для запроса
@@ -161,7 +155,6 @@ export function createSensorService(): SensorService {
 
   return {
     createRecords,
-    getAllReadings,
     getAggregatedReadings,
     deleteSensorRecords,
   };

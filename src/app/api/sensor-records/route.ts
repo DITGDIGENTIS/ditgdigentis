@@ -1,4 +1,3 @@
-// ✅ FILE: src/app/api/sensor-records/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createSensorService } from "@/services/sensor.service";
 import {
@@ -53,7 +52,10 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   try {
     const sensorService = createSensorService();
-    const readings = await sensorService.getAllReadings();
+    const readings = await sensorService.getAggregatedReadings({
+      startDate: new Date(Date.now() - 5 * 60 * 1000),
+      endDate: new Date(),
+    });
 
     const now = Date.now();
     const fiveMinAgo = now - 5 * 60 * 1000;

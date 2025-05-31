@@ -186,7 +186,7 @@ export default function SensorGraphDHT21() {
     if (active && payload && payload.length) {
       return (
         <div className="bg-dark p-2 border border-secondary rounded">
-          <p className="mb-1">{label}</p>
+          <p className="mb-1">{moment(label).format("HH:mm:ss")}</p>
           {payload.map((entry: any, index: number) => (
             <p key={index} style={{ color: entry.color }} className="mb-0">
               {entry.name}: {entry.value.toFixed(1)}
@@ -281,7 +281,7 @@ export default function SensorGraphDHT21() {
             paddingRight: "10px",
           }}
         >
-          <ResponsiveContainer width={60} height={400}>
+          <ResponsiveContainer width={isMobile ? 30 : 60} height={400}>
             <LineChart
               data={data}
               margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
@@ -299,7 +299,7 @@ export default function SensorGraphDHT21() {
                   style: { display: isMobile ? "none" : "block" },
                 }}
                 domain={[0, maxHumidity]}
-                width={60}
+                width={isMobile ? 20 : 50}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -373,7 +373,7 @@ export default function SensorGraphDHT21() {
             paddingLeft: "10px",
           }}
         >
-          <ResponsiveContainer width={60} height={400}>
+          <ResponsiveContainer width={isMobile ? 30 : 60} height={400}>
             <LineChart
               data={data}
               margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
@@ -391,7 +391,7 @@ export default function SensorGraphDHT21() {
                   style: { display: isMobile ? "none" : "block" },
                 }}
                 domain={[0, maxTemperature]}
-                width={60}
+                width={isMobile ? 20 : 50}
               />
             </LineChart>
           </ResponsiveContainer>
