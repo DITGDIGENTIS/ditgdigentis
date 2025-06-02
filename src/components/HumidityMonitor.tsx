@@ -96,9 +96,8 @@ export function HumidityMonitor() {
               const sensorData = {
                 sensors: {
                   "HUM1-1": {
-                    id: "HUM1-1",
-                    humidity: humidity,
-                    temperature: temperature,
+                    humidity,
+                    temperature,
                     timestamp: Date.now(),
                   },
                 },
