@@ -10,7 +10,6 @@ import {
 interface IncomingSensorData {
   id: string;
   temperature: number;
-  humidity: number;
   timestamp: number;
 }
 
@@ -49,7 +48,6 @@ export async function POST(req: NextRequest) {
       sensors: Object.values(body.sensors).map((s) => ({
         sensor_id: s.id,
         temperature: s.temperature,
-        humidity: s.humidity,
         timestamp: roundToNearest5Min(s.timestamp),
       })),
     };
@@ -62,7 +60,12 @@ export async function POST(req: NextRequest) {
     const service = createSensorService();
     await service.createRecords(parsed);
 
-    return NextResponse.json({ success: true, saved: parsed.length });
+    return NextResponse.json({ success: true, saved: parsed.length }, {
+      status: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+      },
+    });
   } catch (err) {
     console.error("POST /api/sensors error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
@@ -75,5 +78,9 @@ export async function GET() {
   const filtered = Object.fromEntries(
     Object.entries(sensorCache.sensors).filter(([key]) => key.startsWith("SENSOR1-"))
   );
-  return NextResponse.json({ sensors: expired ? {} : filtered, serverTime: now });
+  return NextResponse.json({ sensors: expired ? {} : filtered, serverTime: now }, {
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+    },
+  });
 }
