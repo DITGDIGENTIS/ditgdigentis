@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faThermometerHalf } from "@fortawesome/free-solid-svg-icons";
-import _ from "lodash";
 
 type RawSensorItem = {
   id: string;
@@ -13,19 +12,22 @@ type RawSensorItem = {
 
 type RawSensorResponse = {
   sensors: Record<string, RawSensorItem>;
-  serverTime: number;
+  serverTime?: number;
 };
+
+type Status = "ONLINE" | "TIMED OUT" | "OFFLINE";
 
 type SensorData = {
   id: string;
   temp: string;
-  online: boolean;
+  status: Status;
   timestamp: number;
   age: number;
 };
 
 const SENSOR_KEYS = ["SENSOR1-1", "SENSOR1-2", "SENSOR1-3", "SENSOR1-4"];
 const TIMEOUT_MS = 5 * 60 * 1000;
+const OFFLINE_MS = 10 * 60 * 1000;
 
 export function SensorMonitor() {
   const [sensors, setSensors] = useState<SensorData[]>([]);
@@ -36,23 +38,26 @@ export function SensorMonitor() {
     const fetchStatus = async () => {
       try {
         const res = await fetch("/api/last-sensor-readings", { cache: "no-store" });
-        if (!res.ok) {
-          throw new Error(`Failed to fetch sensors: ${res.status} ${res.statusText}`);
-        }
+        if (!res.ok) throw new Error(`Failed to fetch sensors: ${res.status}`);
 
         const { sensors: data, serverTime }: RawSensorResponse = await res.json();
+        const now = serverTime ?? Date.now();
 
         SENSOR_KEYS.forEach((key) => {
           const raw = data[key];
           if (!raw) return;
-          const age = serverTime - raw.timestamp;
+
+          const age = now - raw.timestamp;
+          let status: Status = "OFFLINE";
+          if (age <= TIMEOUT_MS) status = "ONLINE";
+          else if (age <= OFFLINE_MS) status = "TIMED OUT";
 
           cache.current[key] = {
             id: key,
             temp: Number(raw.temperature).toFixed(1),
             timestamp: raw.timestamp,
             age,
-            online: age <= TIMEOUT_MS,
+            status,
           };
         });
 
@@ -62,31 +67,27 @@ export function SensorMonitor() {
             temp: "--",
             timestamp: 0,
             age: Infinity,
-            online: false,
+            status: "OFFLINE",
           };
-
-          const isOffline = !s.timestamp || s.age > TIMEOUT_MS;
 
           return {
             ...s,
-            temp: isOffline ? "--" : s.temp,
-            online: !isOffline,
-            age: serverTime - s.timestamp,
+            temp: s.status === "OFFLINE" ? "--" : s.temp,
           };
         });
 
         setSensors(updated);
         setError(null);
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : "Unknown error occurred";
-        console.error("Error fetching sensor status:", err);
-        setError(errorMessage);
+        const msg = err instanceof Error ? err.message : "Unknown error";
+        console.error("Sensor fetch error:", err);
+        setError(msg);
       }
     };
 
     fetchStatus();
-    const int = setInterval(fetchStatus, 5000);
-    return () => clearInterval(int);
+    const interval = setInterval(fetchStatus, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -102,18 +103,21 @@ export function SensorMonitor() {
       <div className="row">
         {sensors.map((sensor) => (
           <div key={sensor.id} className="col-6 col-md-3">
-            {!sensor.online && (
-              <div className="alert alert-danger text-center p-2 mb-2">
-                ⚠ {sensor.id} не в мережі
+            {sensor.status !== "ONLINE" && (
+              <div
+                className={`alert text-center p-2 mb-2 ${
+                  sensor.status === "OFFLINE" ? "alert-danger" : "alert-warning"
+                }`}
+              >
+                ⚠ {sensor.id}{" "}
+                {sensor.status === "OFFLINE" ? "не в мережі" : "зник зв'язок"}
               </div>
             )}
             <div className="average-temp-block rounded shadow-sm">
               <div className="description-temp-block d-flex justify-content-between mb-2">
                 <strong>{sensor.id}</strong>
-                <button
-                  className={`status-button ${sensor.online ? "online" : "offline"}`}
-                >
-                  ● {sensor.online ? "ONLINE" : "OFFLINE"}
+                <button className={`status-button ${sensor.status.toLowerCase().replace(" ", "-")}`}>
+                  ● {sensor.status}
                 </button>
               </div>
               <div className="average-temp-label text-white">

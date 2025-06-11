@@ -3,19 +3,16 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-// ✅ Чтение переменных окружения
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  console.error("❌ Supabase credentials are missing in .env or project settings");
+  console.error("❌ Supabase credentials are missing");
   throw new Error("❌ Supabase credentials missing.");
 }
 
-// ✅ Создание клиента Supabase
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-// ✅ Типизация строки из таблицы
 interface SensorReading {
   sensor_id: string;
   temperature: number | string;
@@ -23,10 +20,10 @@ interface SensorReading {
 }
 
 export async function GET() {
-  try {
-    const now = Date.now();
+  const now = Date.now();
 
-    // ✅ Получение данных
+  try {
+    // ⬇️ Отримуємо лише останні записи (по одному на кожен sensor_id)
     const { data, error } = await supabase
       .from("SensorReading")
       .select("sensor_id, temperature, timestamp")
@@ -44,37 +41,29 @@ export async function GET() {
 
     const latest: Record<
       string,
-      {
-        id: string;
-        temperature: number;
-        timestamp: number;
-      }
+      { id: string; temperature: number; timestamp: number }
     > = {};
 
     for (const row of data as SensorReading[]) {
       const { sensor_id, temperature, timestamp } = row;
 
-      if (!sensor_id || !timestamp) {
-        console.warn(`⛔ Пропущен: ${sensor_id} из-за отсутствия timestamp`);
-        continue;
-      }
+      // ⛔ Валидация
+      if (!sensor_id || !timestamp) continue;
 
-      const ts = new Date(timestamp).getTime();
-      if (isNaN(ts)) {
-        console.warn(`⛔ Пропущен: ${sensor_id} из-за некорректного timestamp = ${timestamp}`);
-        continue;
-      }
+      const ts = Date.parse(timestamp);
+      if (isNaN(ts)) continue;
 
+      // ✅ Только первая запись (самая свежая)
       if (!latest[sensor_id]) {
         latest[sensor_id] = {
           id: sensor_id,
-          temperature: parseFloat(String(temperature)),
+          temperature: typeof temperature === "number" ? temperature : parseFloat(temperature),
           timestamp: ts,
         };
       }
     }
 
-    console.log("✅ Отправлены последние данные:", latest);
+    console.log("✅ Отправлены последние показания датчиков:", latest);
 
     return NextResponse.json({
       sensors: latest,
