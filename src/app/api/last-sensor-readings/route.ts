@@ -1,15 +1,23 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-// ✅ Проверка окружения
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+// ✅ Гарантированное чтение переменных среды
+const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-  throw new Error("❌ Supabase credentials are missing in .env.local");
+  throw new Error("❌ Supabase credentials are missing in environment variables.");
 }
 
+// ✅ Инициализация клиента Supabase
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+// ✅ Типизация возвращаемых данных
+type SensorRecord = {
+  sensor_id: string;
+  temperature: number | string;
+  timestamp: string;
+};
 
 export async function GET() {
   try {
@@ -25,19 +33,17 @@ export async function GET() {
       return NextResponse.json({ error: "Failed to fetch sensor data" }, { status: 500 });
     }
 
-    // ⏱ Группировка: сохраняем только последнее показание для каждого sensor_id
-    const latest: Record<string, {
-      id: string;
-      temperature: number;
-      timestamp: number;
-    }> = {};
+    const latest: Record<
+      string,
+      { id: string; temperature: number; timestamp: number }
+    > = {};
 
-    for (const row of data) {
+    for (const row of data as SensorRecord[]) {
       const id = row.sensor_id;
       if (!latest[id]) {
         latest[id] = {
           id,
-          temperature: parseFloat(row.temperature),
+          temperature: parseFloat(String(row.temperature)),
           timestamp: new Date(row.timestamp).getTime(),
         };
       }
