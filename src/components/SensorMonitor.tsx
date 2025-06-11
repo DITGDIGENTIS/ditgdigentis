@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faThermometerHalf } from "@fortawesome/free-solid-svg-icons";
 import _ from "lodash";
-import { SensorDataBatch, SensorDataPoint } from "../services/sensor-data.service";
 
 type RawSensorItem = {
   id: string;
@@ -33,98 +32,15 @@ export function SensorMonitor() {
   const [error, setError] = useState<string | null>(null);
   const cache = useRef<Record<string, SensorData>>({});
 
-  const saveToDatabase = async (sensorData: Record<string, RawSensorItem>) => {
-    try {
-
-      // Фильтруем только онлайн сенсоры
-      const onlineSensors = _.pickBy(sensorData, (sensor) => {
-        const age = Date.now() - sensor.timestamp;
-        return age <= TIMEOUT_MS;
-      });
-
-      if (_.isEmpty(onlineSensors)) {
-        console.log("No online sensors to save");
-        return;
-      }
-
-      // Преобразуем данные в нужный формат
-      const formattedSensors: SensorDataPoint[] = _.map(onlineSensors, (sensor, id) => {
-        const temperature = typeof sensor.temperature === 'string' 
-          ? parseFloat(sensor.temperature) 
-          : sensor.temperature;
-
-        if (isNaN(temperature)) {
-          throw new Error(`Invalid temperature value for sensor ${id}: ${sensor.temperature}`);
-        }
-
-        // Преобразуем timestamp из миллисекунд в Date
-        const timestamp = new Date(Number(sensor.timestamp));
-        
-        return {
-          sensor_id: id,
-          temperature: _.round(temperature, 2),
-          humidity: 0,
-          timestamp
-        };
-      });
-
-      // Проверяем каждый сенсор перед отправкой
-      formattedSensors.forEach((sensor, index) => {
-        if (!sensor.sensor_id || typeof sensor.sensor_id !== 'string') {
-          throw new Error(`Invalid sensor_id at index ${index}`);
-        }
-        if (typeof sensor.temperature !== 'number' || isNaN(sensor.temperature)) {
-          throw new Error(`Invalid temperature at index ${index}`);
-        }
-        if (!(sensor.timestamp instanceof Date) || isNaN(sensor.timestamp.getTime())) {
-          throw new Error(`Invalid timestamp at index ${index}`);
-        }
-      });
-
-      const sensorBatch: SensorDataBatch = {
-        sensors: formattedSensors
-      };
-
-      const response = await fetch("/api/sensor-records", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(sensorBatch),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error("Server error response:", errorData);
-        throw new Error(
-          `Failed to save sensor data: ${response.status} ${response.statusText}${
-            errorData.details ? ` - ${errorData.details}` : ""
-          }`
-        );
-      }
-
-      const result = await response.json();
-      console.log("Successfully saved sensor data:", result);
-      setError(null);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-      console.error("Error saving sensor data:", error);
-      setError(errorMessage);
-    }
-  };
-
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const res = await fetch("/api/sensors", { cache: "no-store" });
+        const res = await fetch("/api/last-sensor-readings", { cache: "no-store" });
         if (!res.ok) {
           throw new Error(`Failed to fetch sensors: ${res.status} ${res.statusText}`);
         }
 
         const { sensors: data, serverTime }: RawSensorResponse = await res.json();
-
-        // Сохраняем данные в базу
-        await saveToDatabase(data);
 
         SENSOR_KEYS.forEach((key) => {
           const raw = data[key];
@@ -176,10 +92,10 @@ export function SensorMonitor() {
   return (
     <div className="container sensor-container p-2">
       <h2 className="text-center mt-4 mb-1">Моніторинг датчиків температури:</h2>
-      
+
       {error && (
         <div className="alert alert-danger text-center mb-3" role="alert">
-          ⚠ Ошибка: {error}
+          ⚠ Помилка: {error}
         </div>
       )}
 
