@@ -80,12 +80,14 @@ export default function SensorGraphDS18B20() {
         (a, b) => a - b
       );
 
-      const processedData: ChartDataPoint[] = allTimestamps.map(
-        (timestamp) => ({
-          timestamp,
-          time: moment(timestamp).format("HH:mm:ss"),
-        })
-      );
+      const processedData: ChartDataPoint[] = allTimestamps.map((ts) => {
+        const tsMs = ts * 1000; // 📍 превращаем в миллисекунды
+        return {
+          timestamp: tsMs,
+          time: moment(tsMs).format("HH:mm:ss"),
+        };
+      });
+
 
       _.forEach(groupedData, (sensorReadings, sensorId) => {
         const sortedReadings = _.sortBy(sensorReadings, "timestamp");
