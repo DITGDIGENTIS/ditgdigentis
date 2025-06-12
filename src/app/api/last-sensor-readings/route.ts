@@ -23,11 +23,12 @@ export async function GET() {
   const now = Date.now();
 
   try {
-    // ⬇️ Отримуємо лише останні записи (по одному на кожен sensor_id)
+    // ⬇️ Отримуємо останні 1000 записів — оптимальний буфер
     const { data, error } = await supabase
       .from("SensorReading")
       .select("sensor_id, temperature, timestamp")
-      .order("timestamp", { ascending: false });
+      .order("timestamp", { ascending: false })
+      .limit(1000);
 
     if (error) {
       console.error("❌ Supabase fetch error:", error.message, error.details || "");
@@ -39,31 +40,28 @@ export async function GET() {
       return NextResponse.json({ sensors: {}, serverTime: now });
     }
 
-    const latest: Record<
-      string,
-      { id: string; temperature: number; timestamp: number }
-    > = {};
+    // 🔄 Повертаємо лише останній запис на кожен sensor_id
+    const latest: Record<string, { id: string; temperature: number; timestamp: number }> = {};
+    const seen = new Set<string>();
 
     for (const row of data as SensorReading[]) {
       const { sensor_id, temperature, timestamp } = row;
 
-      // ⛔ Валидация
-      if (!sensor_id || !timestamp) continue;
+      if (!sensor_id || !timestamp || seen.has(sensor_id)) continue;
 
       const ts = Date.parse(timestamp);
       if (isNaN(ts)) continue;
 
-      // ✅ Только первая запись (самая свежая)
-      if (!latest[sensor_id]) {
-        latest[sensor_id] = {
-          id: sensor_id,
-          temperature: typeof temperature === "number" ? temperature : parseFloat(temperature),
-          timestamp: ts,
-        };
-      }
+      latest[sensor_id] = {
+        id: sensor_id,
+        temperature: typeof temperature === "number" ? temperature : parseFloat(temperature),
+        timestamp: ts,
+      };
+
+      seen.add(sensor_id);
     }
 
-    console.log("✅ Отправлены последние показания датчиков:", latest);
+    console.log("✅ Отправлены последние показания:", latest);
 
     return NextResponse.json({
       sensors: latest,
