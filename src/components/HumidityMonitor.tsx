@@ -224,7 +224,6 @@ export function HumidityMonitor() {
             Pragma: "no-cache",
           },
         });
-        console.log("res==================ы", res);
         if (!res.ok) {
           console.error("Error fetching humidity status:", res.statusText);
           return;

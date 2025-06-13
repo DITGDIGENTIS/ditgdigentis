@@ -3,16 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faThermometerHalf } from "@fortawesome/free-solid-svg-icons";
+import * as _ from "lodash";
 
-type RawSensorItem = {
-  id: string;
-  temperature: number | string;
-  timestamp: number;
-};
-
-type RawSensorResponse = {
-  sensors: Record<string, RawSensorItem>;
-  serverTime?: number;
+type SensorReading = {
+  sensor_id: string;
+  temperature: number;
+  timestamp: Date;
 };
 
 type Status = "ONLINE" | "TIMED OUT" | "OFFLINE";
@@ -25,7 +21,6 @@ type SensorData = {
   age: number;
 };
 
-const SENSOR_KEYS = ["SENSOR1-1", "SENSOR1-2", "SENSOR1-3", "SENSOR1-4"];
 const TIMEOUT_MS = 5 * 60 * 1000;
 const OFFLINE_MS = 10 * 60 * 1000;
 
@@ -37,39 +32,30 @@ export function SensorMonitor() {
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const res = await fetch("/api/last-sensor-readings", { cache: "no-store" });
+        const res = await fetch("/api/sensor-readings/last-four", { cache: "no-store" });
         if (!res.ok) throw new Error(`Failed to fetch sensors: ${res.status}`);
+       
+        const readings: SensorReading[] = await res.json();
+        const now = Date.now();
 
-        const { sensors: data, serverTime }: RawSensorResponse = await res.json();
-        const now = serverTime ?? Date.now();
-
-        SENSOR_KEYS.forEach((key) => {
-          const raw = data[key];
-          if (!raw) return;
-
-          const age = now - raw.timestamp;
+        readings.forEach((reading) => {
+          const timestamp = new Date(reading.timestamp).getTime();
+          const age = now - timestamp;
           let status: Status = "OFFLINE";
           if (age <= TIMEOUT_MS) status = "ONLINE";
           else if (age <= OFFLINE_MS) status = "TIMED OUT";
 
-          cache.current[key] = {
-            id: key,
-            temp: Number(raw.temperature).toFixed(1),
-            timestamp: raw.timestamp,
+          cache.current[reading.sensor_id] = {
+            id: reading.sensor_id,
+            temp: reading.temperature.toFixed(1),
+            timestamp,
             age,
             status,
           };
         });
 
-        const updated = SENSOR_KEYS.map((key) => {
-          const s = cache.current[key] || {
-            id: key,
-            temp: "--",
-            timestamp: 0,
-            age: Infinity,
-            status: "OFFLINE",
-          };
-
+        const updated = _.map(readings, (reading) => {
+          const s = cache.current[reading.sensor_id];
           return {
             ...s,
             temp: s.status === "OFFLINE" ? "--" : s.temp,
@@ -92,7 +78,9 @@ export function SensorMonitor() {
 
   return (
     <div className="container sensor-container p-2">
-      <h2 className="text-center mt-4 mb-1">Моніторинг датчиків температури:</h2>
+      <h2 className="text-center mt-4 mb-1">
+        Моніторинг датчиків температури:
+      </h2>
 
       {error && (
         <div className="alert alert-danger text-center mb-3" role="alert">
@@ -116,13 +104,22 @@ export function SensorMonitor() {
             <div className="average-temp-block rounded shadow-sm">
               <div className="description-temp-block d-flex justify-content-between mb-2">
                 <strong>{sensor.id}</strong>
-                <button className={`status-button ${sensor.status.toLowerCase().replace(" ", "-")}`}>
+                <button
+                  className={`status-button ${sensor.status
+                    .toLowerCase()
+                    .replace(" ", "-")}`}
+                >
                   ● {sensor.status}
                 </button>
               </div>
               <div className="average-temp-label text-white">
-                <FontAwesomeIcon icon={faThermometerHalf} style={{ color: "#FFD700" }} />{" "}
-                <span className="average-temp-data fw-bold">{sensor.temp} °C</span>
+                <FontAwesomeIcon
+                  icon={faThermometerHalf}
+                  style={{ color: "#FFD700" }}
+                />{" "}
+                <span className="average-temp-data fw-bold">
+                  {sensor.temp} °C
+                </span>
               </div>
             </div>
           </div>

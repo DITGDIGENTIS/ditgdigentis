@@ -3,11 +3,10 @@ import * as _ from "lodash";
 import { SensorDataPoint } from "./sensor-data.service";
 
 export interface SensorService {
-  createRecords(data: SensorDataPoint[]): Promise<void>;
   getAggregatedReadings(
     filters: SensorReadingFilters
   ): Promise<SensorDataPoint[]>;
-  deleteSensorRecords(sensorId: string): Promise<number>;
+  getLastFourReadings(sensorId?: string): Promise<SensorDataPoint[]>;
 }
 
 type SensorReadingFilters = {
@@ -18,68 +17,6 @@ type SensorReadingFilters = {
 
 export function createSensorService(): SensorService {
   const prisma = new PrismaClient();
-
-  const createRecords = async (data: SensorDataPoint[]): Promise<void> => {
-    if (!Array.isArray(data) || data.length === 0) {
-      console.warn("[createRecords] Empty input");
-      return;
-    }
-
-    try {
-      await prisma.$connect();
-
-      const result = await Promise.all(
-        data.map(async (sensor) => {
-          const sensorTimestamp =
-            sensor.timestamp instanceof Date
-              ? sensor.timestamp
-              : new Date(sensor.timestamp!);
-
-          const exists = await prisma.sensorReading.findFirst({
-            where: {
-              sensor_id: sensor.sensor_id,
-              timestamp: sensorTimestamp,
-            },
-          });
-
-          if (exists) {
-            console.log(
-              `[createRecords] Skipped existing: ${
-                sensor.sensor_id
-              } @ ${sensorTimestamp.toISOString()}`
-            );
-            return null;
-          }
-
-          try {
-            return await prisma.sensorReading.create({
-              data: {
-                sensor_id: sensor.sensor_id,
-                temperature: sensor.temperature,
-                timestamp: sensorTimestamp,
-              },
-            });
-          } catch (err) {
-            console.error(
-              "[createRecords] Failed to save",
-              sensor.sensor_id,
-              err
-            );
-            return null;
-          }
-        })
-      );
-
-      console.log(
-        `[createRecords] Inserted ${result.filter(Boolean).length} new records`
-      );
-    } catch (err) {
-      console.error("[createRecords] Unexpected error:", err);
-      throw err;
-    } finally {
-      await prisma.$disconnect();
-    }
-  };
 
   const getAggregatedReadings = async (
     filters: SensorReadingFilters
@@ -111,7 +48,6 @@ export function createSensorService(): SensorService {
         999
       );
 
-      // Формируем where для запроса
       const where: any = {
         timestamp: {
           gte: new Date(startTimestamp),
@@ -127,8 +63,7 @@ export function createSensorService(): SensorService {
         orderBy: { timestamp: "asc" },
       });
 
-      // Преобразуем к нужному формату
-      return readings.map((r) => ({
+      return _.map(readings, (r) => ({
         sensor_id: r.sensor_id,
         temperature: Number(r.temperature),
         timestamp: new Date(r.timestamp),
@@ -138,24 +73,56 @@ export function createSensorService(): SensorService {
     }
   };
 
-  const deleteSensorRecords = async (sensorId: string): Promise<number> => {
+  const getLastFourReadings = async (
+    sensorId?: string
+  ): Promise<SensorDataPoint[]> => {
     try {
       await prisma.$connect();
-      const result = await prisma.sensorReading.deleteMany({
-        where: { sensor_id: sensorId },
+
+      // Получаем последние timestamp'ы, где есть данные для всех сенсоров
+      const timestamps = await prisma.$queryRaw<{ timestamp: Date }[]>`
+        SELECT timestamp
+        FROM "SensorReading"
+        WHERE timestamp IN (
+          SELECT timestamp
+          FROM "SensorReading"
+          GROUP BY timestamp
+          HAVING COUNT(DISTINCT sensor_id) = 4
+        )
+        ORDER BY timestamp DESC
+        LIMIT 1
+      `;
+
+      if (!timestamps || !timestamps[0]) {
+        return [];
+      }
+
+      const lastTimestamp = timestamps[0].timestamp;
+
+      const readings = await prisma.sensorReading.findMany({
+        where: {
+          timestamp: lastTimestamp
+        },
+        orderBy: { sensor_id: "asc" }
       });
-      return result.count;
-    } catch (err) {
-      console.error("[deleteSensorRecords] Error:", err);
-      throw err;
+
+      return _.chain(readings)
+        .map((r) => ({
+          sensor_id: r.sensor_id,
+          temperature: Number(Number(r.temperature).toFixed(2)),
+          timestamp: new Date(r.timestamp),
+        }))
+        .value();
+    } catch (error) {
+      console.error("Error fetching last four readings:", error);
+      throw new Error("Failed to fetch last four readings");
     } finally {
       await prisma.$disconnect();
     }
   };
 
   return {
-    createRecords,
     getAggregatedReadings,
-    deleteSensorRecords,
+    getLastFourReadings,
   };
 }

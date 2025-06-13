@@ -120,7 +120,6 @@ export default function SensorGraphDS18B20() {
         }
 
         const readings = await response.json();
-        console.log("readings==================ы", readings);
         setHistoricalData(readings);
         setLastUpdate(new Date());
       } catch (e) {

@@ -23,11 +23,9 @@ export const ServerStatus: FC<IProps> = ({
       });
       
       const data = await res.json();
-      console.log("Response data:", data);
 
       const timestamp = new Date(data.timestamp).getTime();
-      const online = Date.now() - timestamp < 20000; // 20 секунд окно
-      console.log("Is online:", online);
+      const online = Date.now() - timestamp < 20000;
 
       if (lastRef.current !== online) {
         lastRef.current = online;
