@@ -2,12 +2,11 @@
 
 import { FC, useState, useEffect } from "react";
 import { LogoutButton } from "../LogoutButton";
-import { SensorDataBatch, SensorDataPoint } from "../../services/sensor-data.service";
 import _ from "lodash";
 
 export const Test: FC = () => {
   const [loading, setLoading] = useState(false);
-  const [readings, setReadings] = useState<SensorDataPoint[]>([]);
+  const [readings, setReadings] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const fetchReadings = async () => {
@@ -39,7 +38,7 @@ export const Test: FC = () => {
       setLoading(true);
       setError(null);
 
-      const sensorData: SensorDataBatch = {
+      const sensorData: any = {
         sensors: [
           {
             sensor_id: "sensor_1",

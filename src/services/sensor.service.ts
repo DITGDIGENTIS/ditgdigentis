@@ -1,19 +1,14 @@
 import { PrismaClient } from "../../generated/prisma";
 import * as _ from "lodash";
-import { SensorDataPoint } from "./sensor-data.service";
+import { DateTime } from "luxon";
+import { SensorDataPoint, SensorReadingFilters } from "@/types/sensor";
 
 export interface SensorService {
   getAggregatedReadings(
     filters: SensorReadingFilters
   ): Promise<SensorDataPoint[]>;
-  getLastFourReadings(sensorId?: string): Promise<SensorDataPoint[]>;
+  getLastFourReadings(company_name?: string): Promise<SensorDataPoint[]>;
 }
-
-type SensorReadingFilters = {
-  startDate?: Date;
-  endDate?: Date;
-  sensorIds?: string[];
-};
 
 export function createSensorService(): SensorService {
   const prisma = new PrismaClient();
@@ -25,37 +20,32 @@ export function createSensorService(): SensorService {
       await prisma.$connect();
 
       const startDate = filters.startDate
-        ? new Date(filters.startDate)
-        : new Date();
-      const endDate = filters.endDate ? new Date(filters.endDate) : new Date();
+        ? DateTime.fromJSDate(filters.startDate)
+            .setZone("UTC")
+            .startOf("day")
+            .toJSDate()
+        : DateTime.now().setZone("UTC").startOf("day").toJSDate();
 
-      const startTimestamp = Date.UTC(
-        startDate.getUTCFullYear(),
-        startDate.getUTCMonth(),
-        startDate.getUTCDate(),
-        0,
-        0,
-        0,
-        0
-      );
-      const endTimestamp = Date.UTC(
-        endDate.getUTCFullYear(),
-        endDate.getUTCMonth(),
-        endDate.getUTCDate(),
-        23,
-        59,
-        59,
-        999
-      );
+      const endDate = filters.endDate
+        ? DateTime.fromJSDate(filters.endDate)
+            .setZone("UTC")
+            .endOf("day")
+            .toJSDate()
+        : DateTime.now().setZone("UTC").endOf("day").toJSDate();
 
       const where: any = {
         timestamp: {
-          gte: new Date(startTimestamp),
-          lte: new Date(endTimestamp),
+          gte: startDate,
+          lte: endDate,
         },
       };
+
       if (filters.sensorIds && filters.sensorIds.length > 0) {
         where.sensor_id = { in: filters.sensorIds };
+      }
+
+      if (filters.company_name) {
+        where.company_name = filters.company_name;
       }
 
       const readings = await prisma.sensorReading.findMany({
@@ -74,36 +64,37 @@ export function createSensorService(): SensorService {
   };
 
   const getLastFourReadings = async (
-    sensorId?: string
+    company_name?: string
   ): Promise<SensorDataPoint[]> => {
     try {
       await prisma.$connect();
+      const lastTimestamp = await prisma.sensorReading.groupBy({
+        by: ["timestamp"],
+        where: company_name ? { company_name } : undefined,
+        having: {
+          sensor_id: {
+            _count: {
+              equals: 4,
+            },
+          },
+        },
+        orderBy: {
+          timestamp: "desc",
+        },
+        take: 1,
+      });
 
-      // Получаем последние timestamp'ы, где есть данные для всех сенсоров
-      const timestamps = await prisma.$queryRaw<{ timestamp: Date }[]>`
-        SELECT timestamp
-        FROM "SensorReading"
-        WHERE timestamp IN (
-          SELECT timestamp
-          FROM "SensorReading"
-          GROUP BY timestamp
-          HAVING COUNT(DISTINCT sensor_id) = 4
-        )
-        ORDER BY timestamp DESC
-        LIMIT 1
-      `;
-
-      if (!timestamps || !timestamps[0]) {
+      if (!lastTimestamp || lastTimestamp.length === 0) {
+        console.log("No timestamps found");
         return [];
       }
 
-      const lastTimestamp = timestamps[0].timestamp;
-
       const readings = await prisma.sensorReading.findMany({
         where: {
-          timestamp: lastTimestamp
+          timestamp: lastTimestamp[0].timestamp,
+          ...(company_name ? { company_name } : {}),
         },
-        orderBy: { sensor_id: "asc" }
+        orderBy: { sensor_id: "asc" },
       });
 
       return _.chain(readings)

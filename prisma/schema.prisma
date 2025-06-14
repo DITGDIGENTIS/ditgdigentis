@@ -21,9 +21,10 @@ model HumidityReading {
   timestamp   DateTime @default(now())
   humidity    Float
   temperature Float
+  company_name String
 
-  @@index([sensor_id])
-  @@index([timestamp])
+  @@index([sensor_id, timestamp])
+  @@index([company_name, timestamp])
 }
 
 model SensorReading {
@@ -31,6 +32,7 @@ model SensorReading {
   sensor_id   String
   timestamp   DateTime @default(now())
   temperature Float
-  @@index([sensor_id])
-  @@index([timestamp])
+  company_name String
+  @@index([sensor_id, timestamp])
+  @@index([company_name,timestamp])
 }

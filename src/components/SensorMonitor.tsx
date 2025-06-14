@@ -32,9 +32,15 @@ export function SensorMonitor() {
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const res = await fetch("/api/sensor-readings/last-four", { cache: "no-store" });
+        const companyName = window.location.pathname.split("/")[1];
+        const res = await fetch(
+          `/api/sensor-readings/last-four/${companyName}`,
+          {
+            cache: "no-store",
+          }
+        );
         if (!res.ok) throw new Error(`Failed to fetch sensors: ${res.status}`);
-       
+
         const readings: SensorReading[] = await res.json();
         const now = Date.now();
 

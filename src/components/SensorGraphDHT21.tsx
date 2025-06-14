@@ -13,6 +13,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useIsMobile } from "@/hook/useIsMobile";
+import { DateTime } from "luxon";
 
 interface SensorPoint {
   timestamp: number;
@@ -84,14 +85,20 @@ export default function SensorGraphDHT21() {
 
   const COLORS = React.useMemo(() => generateColors(sensorIds), [sensorIds]);
 
+  const company_name = window.location.pathname.split("/")[1];
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const url = new URL("/api/humidity-readings", window.location.origin);
-        url.searchParams.set("startDate", selectedDate);
+        const dateStr = DateTime.fromISO(selectedDate).toFormat("yyyy-MM-dd");
+        const url = new URL(
+          `/api/humidity-readings/${company_name}`,
+          window.location.origin
+        );
+        url.searchParams.set("startDate", dateStr);
+        url.searchParams.set("endDate", dateStr);
+        url.searchParams.set("company_name", company_name);
 
         const response = await fetch(url.toString(), { cache: "no-store" });
-
         if (!response.ok) {
           throw new Error(`Failed to fetch data: ${response.status}`);
         }
@@ -281,28 +288,28 @@ export default function SensorGraphDHT21() {
             paddingRight: "10px",
           }}
         >
-          <ResponsiveContainer width={isMobile ? 30 : 60} height={400}>
-            <LineChart
-              data={data}
-              margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
-            >
-              <YAxis
-                yAxisId="left"
-                orientation="left"
-                stroke="#44c0ff"
-                tick={{ fill: "#44c0ff" }}
-                label={{
-                  value: "Вологість (%)",
-                  angle: -90,
-                  position: "insideLeft",
-                  fill: "#44c0ff",
-                  style: { display: isMobile ? "none" : "block" },
-                }}
-                domain={[0, maxHumidity]}
-                width={isMobile ? 20 : 50}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          <LineChart
+            width={isMobile ? 30 : 60}
+            height={400}
+            data={data}
+            margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+          >
+            <YAxis
+              yAxisId="left"
+              orientation="left"
+              stroke="#44c0ff"
+              tick={{ fill: "#44c0ff" }}
+              label={{
+                value: "Вологість (%)",
+                angle: -90,
+                position: "insideLeft",
+                fill: "#44c0ff",
+                style: { display: isMobile ? "none" : "block" },
+              }}
+              domain={[0, maxHumidity]}
+              width={isMobile ? 20 : 50}
+            />
+          </LineChart>
         </div>
 
         <div
@@ -373,28 +380,28 @@ export default function SensorGraphDHT21() {
             paddingLeft: "10px",
           }}
         >
-          <ResponsiveContainer width={isMobile ? 30 : 60} height={400}>
-            <LineChart
-              data={data}
-              margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
-            >
-              <YAxis
-                yAxisId="right"
-                orientation="right"
-                stroke="#ffa500"
-                tick={{ fill: "#ffa500" }}
-                label={{
-                  value: "Температура (°C)",
-                  angle: 90,
-                  position: "insideRight",
-                  fill: "#ffa500",
-                  style: { display: isMobile ? "none" : "block" },
-                }}
-                domain={[0, maxTemperature]}
-                width={isMobile ? 20 : 50}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          <LineChart
+            width={isMobile ? 30 : 60}
+            height={400}
+            data={data}
+            margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+          >
+            <YAxis
+              yAxisId="right"
+              orientation="right"
+              stroke="#ffa500"
+              tick={{ fill: "#ffa500" }}
+              label={{
+                value: "Температура (°C)",
+                angle: 90,
+                position: "insideRight",
+                fill: "#ffa500",
+                style: { display: isMobile ? "none" : "block" },
+              }}
+              domain={[0, maxTemperature]}
+              width={isMobile ? 20 : 50}
+            />
+          </LineChart>
         </div>
       </div>
     </div>

@@ -5,10 +5,14 @@ import { DateTime } from "luxon";
 
 const REQUIRED_SENSORS = ["SENSOR1-1", "SENSOR1-2", "SENSOR1-3", "SENSOR1-4"];
 
-export async function GET(request: Request) {
+export async function GET(
+  request: Request,
+  { params }: { params: { company_name: string } }
+) {
   try {
+    const companyName = params.company_name;
     const service = createSensorService();
-    const readings = await service.getLastFourReadings();
+    const readings = await service.getLastFourReadings(companyName);
 
     const groupedReadings = _.chain(readings)
       .groupBy("sensor_id")
@@ -27,7 +31,7 @@ export async function GET(request: Request) {
       .map((sensorId) => {
         const reading = groupedReadings[sensorId];
         if (!reading) return null;
-        
+
         return {
           sensor_id: sensorId,
           temperature: reading.temperature,

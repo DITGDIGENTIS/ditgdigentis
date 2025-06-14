@@ -16,19 +16,24 @@ datasource db {
 }
 
 model HumidityReading {
-  id          Int      @id @default(autoincrement())
-  sensor_id   String
-  timestamp   DateTime @default(now())
-  humidity    Float
-  temperature Float
+  id           Int      @id @default(autoincrement())
+  sensor_id    String
+  timestamp    DateTime @default(now())
+  humidity     Float
+  temperature  Float
+  company_name String
 
-  @@index([sensor_id])
-  @@index([timestamp])
+  @@index([sensor_id, timestamp])
+  @@index([company_name, timestamp])
 }
 
 model SensorReading {
-  id          Int      @id @default(autoincrement())
-  sensor_id   String
-  timestamp   DateTime @default(now())
-  temperature Float
+  id           Int      @id @default(autoincrement())
+  sensor_id    String
+  timestamp    DateTime @default(now())
+  temperature  Float
+  company_name String
+
+  @@index([sensor_id, timestamp])
+  @@index([company_name, timestamp])
 }

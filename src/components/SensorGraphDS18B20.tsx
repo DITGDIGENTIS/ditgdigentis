@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import * as _ from "lodash";
-import moment from "moment";
+import { DateTime } from "luxon";
 import {
   LineChart,
   Line,
@@ -51,11 +51,11 @@ const generateColors = (sensorIds: string[]): Record<ColorKey, string> => {
 
 export default function SensorGraphDS18B20() {
   const [historicalData, setHistoricalData] = useState<SensorPoint[]>([]);
-  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [lastUpdate, setLastUpdate] = useState<DateTime>(DateTime.now());
   const [sensorIds, setSensorIds] = useState<string[]>([]);
   const [selectedSensors, setSelectedSensors] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>(
-    moment().format("YYYY-MM-DD")
+    DateTime.now().toFormat("yyyy-MM-dd")
   );
   const isMobile = useIsMobile();
 
@@ -75,7 +75,11 @@ export default function SensorGraphDS18B20() {
     (data: SensorPoint[]): ChartDataPoint[] => {
       if (_.isEmpty(data)) return [];
 
-      const groupedData = _.groupBy(data, "sensor_id");
+      const groupedData = _.chain(data)
+        .groupBy("sensor_id")
+        .mapValues((sensorReadings) => _.sortBy(sensorReadings, "timestamp"))
+        .value();
+
       const allTimestamps = _.uniq(_.map(data, "timestamp")).sort(
         (a, b) => a - b
       );
@@ -83,17 +87,16 @@ export default function SensorGraphDS18B20() {
       const processedData: ChartDataPoint[] = allTimestamps.map(
         (timestamp) => ({
           timestamp,
-          time: moment(timestamp).format("HH:mm:ss"),
+          time: DateTime.fromISO(timestamp.toString()).toFormat("HH:mm:ss"),
         })
       );
 
-      _.forEach(groupedData, (sensorReadings, sensorId) => {
-        const sortedReadings = _.sortBy(sensorReadings, "timestamp");
+      const sortedSensorIds = _.chain(groupedData).keys().sort().value();
+
+      sortedSensorIds.forEach((sensorId) => {
+        const readings = groupedData[sensorId];
         const readingsMap = new Map(
-          sortedReadings.map((reading) => [
-            reading.timestamp,
-            reading.temperature,
-          ])
+          readings.map((reading) => [reading.timestamp, reading.temperature])
         );
 
         processedData.forEach((point) => {
@@ -107,33 +110,46 @@ export default function SensorGraphDS18B20() {
     []
   );
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const url = new URL("/api/sensor-readings", window.location.origin);
-        url.searchParams.set("startDate", selectedDate);
+  const company_name = window.location.pathname.split("/")[1];
+  const fetchData = async () => {
+    if (!selectedDate) return;
 
-        const response = await fetch(url.toString(), { cache: "no-store" });
+    try {
+      const dateStr = DateTime.fromISO(selectedDate).toFormat("yyyy-MM-dd");
+      const url = new URL(
+        `/api/sensor-readings/${company_name}`,
+        window.location.origin
+      );
+      url.searchParams.set("startDate", dateStr);
+      url.searchParams.set("endDate", dateStr);
+      url.searchParams.set("company_name", company_name);
 
-        if (!response.ok) {
-          throw new Error(`Failed to fetch data: ${response.status}`);
-        }
-
-        const readings = await response.json();
-        setHistoricalData(readings);
-        setLastUpdate(new Date());
-      } catch (e) {
-        console.error("Failed to fetch sensor data:", e);
+      const response = await fetch(url.toString(), { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error("Failed to fetch data");
       }
-    };
+      const data = await response.json();
+      setHistoricalData(data);
 
+      setLastUpdate(DateTime.now());
+    } catch (error) {
+      console.error("Error fetching sensor data:", error);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
-  }, [selectedDate]);
+  }, [selectedDate, company_name]);
 
-  const formatTime = (ts: number | Date) => {
-    return moment(ts).format("HH:mm:ss");
+  const formatTime = (ts: number | Date | string) => {
+    if (typeof ts === "string") {
+      return DateTime.fromISO(ts).toFormat("HH:mm:ss");
+    }
+    return DateTime.fromMillis(ts instanceof Date ? ts.getTime() : ts).toFormat(
+      "HH:mm:ss"
+    );
   };
 
   const data = React.useMemo(() => {
@@ -180,7 +196,9 @@ export default function SensorGraphDS18B20() {
     if (active && payload && payload.length) {
       return (
         <div className="bg-dark p-2 border border-secondary rounded">
-          <p className="mb-1">{moment(label).format("HH:mm:ss")}</p>
+          <p className="mb-1">
+            {DateTime.fromISO(label.toString()).toFormat("HH:mm:ss")}
+          </p>
           {payload.map((entry: any, index: number) => (
             <p key={index} style={{ color: entry.color }} className="mb-0">
               {entry.name}: {entry.value.toFixed(1)}
@@ -222,7 +240,7 @@ export default function SensorGraphDS18B20() {
             className="form-control"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            max={moment().format("YYYY-MM-DD")}
+            max={DateTime.now().toFormat("yyyy-MM-dd")}
           />
           {sensorIds.map((id) => (
             <button
@@ -237,8 +255,8 @@ export default function SensorGraphDS18B20() {
       </div>
 
       <div className="text-warning mb-3">
-        Оновлено: {moment(lastUpdate).format("HH:mm:ss")} | Вибрана дата:{" "}
-        {moment(selectedDate).format("DD.MM.YYYY")}
+        Оновлено: {lastUpdate.toFormat("HH:mm:ss")} | Вибрана дата:{" "}
+        {DateTime.fromFormat(selectedDate, "yyyy-MM-dd").toFormat("dd.MM.yyyy")}
       </div>
 
       <div className="d-flex flex-wrap gap-3 mb-3">
@@ -269,28 +287,28 @@ export default function SensorGraphDS18B20() {
             paddingRight: "10px",
           }}
         >
-          <ResponsiveContainer width={isMobile ? 30 : 60} height={400}>
-            <LineChart
-              data={data}
-              margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
-            >
-              <YAxis
-                yAxisId="right"
-                orientation="left"
-                stroke="#ffa500"
-                tick={{ fill: "#ffa500" }}
-                label={{
-                  value: "Температура (°C)",
-                  angle: -90,
-                  position: "insideLeft",
-                  fill: "#ffa500",
-                  style: { display: isMobile ? "none" : "block" },
-                }}
-                domain={[0, maxTemperature]}
-                width={isMobile ? 25 : 50}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          <LineChart
+            width={isMobile ? 30 : 60}
+            height={400}
+            data={data}
+            margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+          >
+            <YAxis
+              yAxisId="right"
+              orientation="left"
+              stroke="#ffa500"
+              tick={{ fill: "#ffa500" }}
+              label={{
+                value: "Температура (°C)",
+                angle: -90,
+                position: "insideLeft",
+                fill: "#ffa500",
+                style: { display: isMobile ? "none" : "block" },
+              }}
+              domain={[0, maxTemperature]}
+              width={isMobile ? 25 : 50}
+            />
+          </LineChart>
         </div>
 
         <div
@@ -321,7 +339,7 @@ export default function SensorGraphDS18B20() {
                   textAnchor="end"
                   height={60}
                   tickFormatter={(timestamp) =>
-                    moment(timestamp).format("HH:mm")
+                    DateTime.fromISO(timestamp.toString()).toFormat("HH:mm")
                   }
                 />
                 <Tooltip content={<CustomTooltip />} />
