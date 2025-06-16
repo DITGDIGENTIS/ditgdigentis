@@ -20,9 +20,11 @@ type SensorData = {
   age: number;
 };
 
-const SENSOR_KEYS = ["SENSOR1-1", "SENSOR1-2", "SENSOR1-3", "SENSOR1-4"];
 const TIMEOUT_MS = 5 * 60 * 1000;
 const OFFLINE_MS = 10 * 60 * 1000;
+
+// ключи, которые должны быть ВСЕГДА (GPIO соответствия)
+const SENSOR_KEYS = ["SENSOR1-1", "SENSOR1-2", "SENSOR1-3", "SENSOR1-4"];
 
 export function SensorMonitor() {
   const [sensors, setSensors] = useState<SensorData[]>([]);
@@ -33,16 +35,17 @@ export function SensorMonitor() {
     const fetchStatus = async () => {
       try {
         const companyName = window.location.pathname.split("/")[1];
-        const res = await fetch(`/api/sensor-readings/last-four/${companyName}`, {
-          cache: "no-store",
-        });
-        if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`);
+        const res = await fetch(
+          `/api/sensor-readings/last-four/${companyName}`,
+          { cache: "no-store" }
+        );
+        if (!res.ok) throw new Error(`Failed to fetch sensors: ${res.status}`);
 
         const readings: SensorReading[] = await res.json();
         const now = Date.now();
 
-        // оновлюємо тільки наявні
-        for (const reading of readings) {
+        // Обновляем только те, что пришли
+        readings.forEach((reading) => {
           const timestamp = new Date(reading.timestamp).getTime();
           const age = now - timestamp;
           let status: Status = "OFFLINE";
@@ -56,37 +59,28 @@ export function SensorMonitor() {
             age,
             status,
           };
-        }
+        });
 
-        // будуємо масив на основі ключів (навіть якщо API не повернув)
-        const updated: SensorData[] = SENSOR_KEYS.map((id) => {
-          const existing = cache.current[id];
-          if (!existing) {
+        // Проходим по всем нужным слотам (даже если не пришли)
+        const result: SensorData[] = SENSOR_KEYS.map((key) => {
+          const cached = cache.current[key];
+          if (cached) {
             return {
-              id,
+              ...cached,
+              temp: cached.status === "OFFLINE" ? "--" : cached.temp,
+            };
+          } else {
+            return {
+              id: key,
               temp: "--",
               status: "OFFLINE",
               timestamp: 0,
-              age: OFFLINE_MS + 1,
+              age: Infinity,
             };
           }
-
-          // перевірка віку
-          const now = Date.now();
-          const age = now - existing.timestamp;
-          let status: Status = "OFFLINE";
-          if (age <= TIMEOUT_MS) status = "ONLINE";
-          else if (age <= OFFLINE_MS) status = "TIMED OUT";
-
-          return {
-            ...existing,
-            status,
-            age,
-            temp: status === "OFFLINE" ? "--" : existing.temp,
-          };
         });
 
-        setSensors(updated);
+        setSensors(result);
         setError(null);
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Unknown error";
@@ -115,14 +109,12 @@ export function SensorMonitor() {
           <div key={sensor.id} className="col-6 col-md-3 mb-3">
             {sensor.status !== "ONLINE" && (
               <div
-                className={`alert text-center p-2 ${
+                className={`alert text-center p-2 mb-2 ${
                   sensor.status === "OFFLINE" ? "alert-danger" : "alert-warning"
                 }`}
               >
                 ⚠ {sensor.id}{" "}
-                {sensor.status === "OFFLINE"
-                  ? "не в мережі"
-                  : "зник зв'язок"}
+                {sensor.status === "OFFLINE" ? "не в мережі" : "зник зв'язок"}
               </div>
             )}
             <div className="average-temp-block rounded shadow-sm">
@@ -138,7 +130,7 @@ export function SensorMonitor() {
               </div>
 
               {sensor.status === "OFFLINE" ? (
-                <div className="text-center text-danger fw-bold mb-3">
+                <div className="text-center text-danger fw-bold mb-2">
                   Датчик не в мережі
                 </div>
               ) : (
