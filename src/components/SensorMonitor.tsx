@@ -41,8 +41,8 @@ export function SensorMonitor() {
         const readings: SensorReading[] = await res.json();
         const now = Date.now();
 
-        // оновити або додати нові значення
-        readings.forEach((reading) => {
+        // оновлюємо тільки наявні
+        for (const reading of readings) {
           const timestamp = new Date(reading.timestamp).getTime();
           const age = now - timestamp;
           let status: Status = "OFFLINE";
@@ -56,23 +56,33 @@ export function SensorMonitor() {
             age,
             status,
           };
-        });
+        }
 
-        // пройтись по всім очікуваним сенсорам
+        // будуємо масив на основі ключів (навіть якщо API не повернув)
         const updated: SensorData[] = SENSOR_KEYS.map((id) => {
-          const item = cache.current[id];
-          if (!item) {
+          const existing = cache.current[id];
+          if (!existing) {
             return {
               id,
               temp: "--",
+              status: "OFFLINE",
               timestamp: 0,
               age: OFFLINE_MS + 1,
-              status: "OFFLINE",
             };
           }
+
+          // перевірка віку
+          const now = Date.now();
+          const age = now - existing.timestamp;
+          let status: Status = "OFFLINE";
+          if (age <= TIMEOUT_MS) status = "ONLINE";
+          else if (age <= OFFLINE_MS) status = "TIMED OUT";
+
           return {
-            ...item,
-            temp: item.status === "OFFLINE" ? "--" : item.temp,
+            ...existing,
+            status,
+            age,
+            temp: status === "OFFLINE" ? "--" : existing.temp,
           };
         });
 
