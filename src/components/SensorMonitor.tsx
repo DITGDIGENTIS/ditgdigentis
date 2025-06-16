@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faThermometerHalf } from "@fortawesome/free-solid-svg-icons";
-import * as _ from "lodash";
 
 type SensorReading = {
   sensor_id: string;
@@ -21,6 +20,7 @@ type SensorData = {
   age: number;
 };
 
+const SENSOR_KEYS = ["SENSOR1-1", "SENSOR1-2", "SENSOR1-3", "SENSOR1-4"];
 const TIMEOUT_MS = 5 * 60 * 1000;
 const OFFLINE_MS = 10 * 60 * 1000;
 
@@ -36,11 +36,12 @@ export function SensorMonitor() {
         const res = await fetch(`/api/sensor-readings/last-four/${companyName}`, {
           cache: "no-store",
         });
-        if (!res.ok) throw new Error(`Failed to fetch sensors: ${res.status}`);
+        if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`);
 
         const readings: SensorReading[] = await res.json();
         const now = Date.now();
 
+        // оновити або додати нові значення
         readings.forEach((reading) => {
           const timestamp = new Date(reading.timestamp).getTime();
           const age = now - timestamp;
@@ -57,11 +58,21 @@ export function SensorMonitor() {
           };
         });
 
-        const updated = _.map(readings, (reading) => {
-          const s = cache.current[reading.sensor_id];
+        // пройтись по всім очікуваним сенсорам
+        const updated: SensorData[] = SENSOR_KEYS.map((id) => {
+          const item = cache.current[id];
+          if (!item) {
+            return {
+              id,
+              temp: "--",
+              timestamp: 0,
+              age: OFFLINE_MS + 1,
+              status: "OFFLINE",
+            };
+          }
           return {
-            ...s,
-            temp: s.status === "OFFLINE" ? "--" : s.temp,
+            ...item,
+            temp: item.status === "OFFLINE" ? "--" : item.temp,
           };
         });
 
@@ -99,7 +110,9 @@ export function SensorMonitor() {
                 }`}
               >
                 ⚠ {sensor.id}{" "}
-                {sensor.status === "OFFLINE" ? "не в мережі" : "зник зв'язок"}
+                {sensor.status === "OFFLINE"
+                  ? "не в мережі"
+                  : "зник зв'язок"}
               </div>
             )}
             <div className="average-temp-block rounded shadow-sm">
