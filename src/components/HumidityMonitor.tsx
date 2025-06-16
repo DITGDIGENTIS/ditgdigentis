@@ -13,14 +13,12 @@ interface HumidityReading {
 export function HumidityMonitor() {
   const [lastReading, setLastReading] = useState<HumidityReading | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [status, setStatus] = useState<"ONLINE" | "OFFLINE">("OFFLINE");
 
   useEffect(() => {
     fetchStatus();
     const intervalId = setInterval(fetchStatus, 5000);
-
-    return () => {
-      clearInterval(intervalId);
-    };
+    return () => clearInterval(intervalId);
   }, []);
 
   const fetchStatus = async () => {
@@ -30,20 +28,27 @@ export function HumidityMonitor() {
       const response = await fetch(
         `/api/humidity-readings/last-one/${company_name}`
       );
-      if (!response.ok) {
-        throw new Error("Failed to fetch humidity status");
-      }
+      if (!response.ok) throw new Error("Failed to fetch humidity status");
 
       const data = await response.json();
       console.log("Received humidity data:", data);
 
       if (data && data.length > 0) {
         const reading = data[0];
+        const updatedAt = new Date(reading.timestamp);
+        const now = new Date();
+        const ageSec = Math.floor((now.getTime() - updatedAt.getTime()) / 1000);
+
         setLastReading(reading);
-        setLastUpdate(new Date(reading.timestamp));
+        setLastUpdate(updatedAt);
+        setStatus(ageSec <= 300 ? "ONLINE" : "OFFLINE");
+      } else {
+        setLastReading(null);
+        setStatus("OFFLINE");
       }
     } catch (error) {
       console.error("Error fetching humidity status:", error);
+      setStatus("OFFLINE");
     }
   };
 
@@ -57,10 +62,10 @@ export function HumidityMonitor() {
               <strong>HUM1-1</strong>
               <button
                 className={`status-button ${
-                  lastReading ? "online" : "offline"
+                  status === "ONLINE" ? "online" : "offline"
                 }`}
               >
-                ● {lastReading ? "ONLINE" : "OFFLINE"}
+                ● {status}
               </button>
             </div>
             <div className="average-temp-label d-flex justify-content-between gap-3 text-yellow">
