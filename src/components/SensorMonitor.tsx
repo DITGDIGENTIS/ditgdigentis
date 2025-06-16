@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faThermometerHalf } from "@fortawesome/free-solid-svg-icons";
 
+const SENSOR_KEYS = ["SENSOR1-1", "SENSOR1-2", "SENSOR1-3", "SENSOR1-4"];
+
 type SensorReading = {
   sensor_id: string;
   temperature: number;
@@ -23,64 +25,53 @@ type SensorData = {
 const TIMEOUT_MS = 5 * 60 * 1000;
 const OFFLINE_MS = 10 * 60 * 1000;
 
-// ключи, которые должны быть ВСЕГДА (GPIO соответствия)
-const SENSOR_KEYS = ["SENSOR1-1", "SENSOR1-2", "SENSOR1-3", "SENSOR1-4"];
-
 export function SensorMonitor() {
   const [sensors, setSensors] = useState<SensorData[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const cache = useRef<Record<string, SensorData>>({});
 
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const companyName = window.location.pathname.split("/")[1];
-        const res = await fetch(
-          `/api/sensor-readings/last-four/${companyName}`,
-          { cache: "no-store" }
-        );
+        const res = await fetch("/api/sensor-readings/last-four", {
+          cache: "no-store",
+        });
         if (!res.ok) throw new Error(`Failed to fetch sensors: ${res.status}`);
 
         const readings: SensorReading[] = await res.json();
         const now = Date.now();
 
-        // Обновляем только те, что пришли
+        const result: Record<string, SensorData> = {};
+
+        // Обрабатываем активные сенсоры
         readings.forEach((reading) => {
-          const timestamp = new Date(reading.timestamp).getTime();
-          const age = now - timestamp;
+          const ts = new Date(reading.timestamp).getTime();
+          const age = now - ts;
+
           let status: Status = "OFFLINE";
           if (age <= TIMEOUT_MS) status = "ONLINE";
           else if (age <= OFFLINE_MS) status = "TIMED OUT";
 
-          cache.current[reading.sensor_id] = {
+          result[reading.sensor_id] = {
             id: reading.sensor_id,
-            temp: reading.temperature.toFixed(1),
-            timestamp,
-            age,
+            temp: status === "OFFLINE" ? "--" : reading.temperature.toFixed(1),
             status,
+            timestamp: ts,
+            age,
           };
         });
 
-        // Проходим по всем нужным слотам (даже если не пришли)
-        const result: SensorData[] = SENSOR_KEYS.map((key) => {
-          const cached = cache.current[key];
-          if (cached) {
-            return {
-              ...cached,
-              temp: cached.status === "OFFLINE" ? "--" : cached.temp,
-            };
-          } else {
-            return {
-              id: key,
-              temp: "--",
-              status: "OFFLINE",
-              timestamp: 0,
-              age: Infinity,
-            };
+        // Автозаполнение всех ожидаемых слотов SENSOR1-1..4
+        const filledSensors = SENSOR_KEYS.map((key) =>
+          result[key] || {
+            id: key,
+            temp: "--",
+            status: "OFFLINE" as Status,
+            timestamp: 0,
+            age: 0,
           }
-        });
+        );
 
-        setSensors(result);
+        setSensors(filledSensors);
         setError(null);
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Unknown error";
@@ -96,7 +87,7 @@ export function SensorMonitor() {
 
   return (
     <div className="container sensor-container p-2">
-      <h2 className="text-center mt-4 mb-1">Моніторинг SENSOR</h2>
+      <h2 className="text-center mt-4 mb-1">Моніторинг датчиків температури:</h2>
 
       {error && (
         <div className="alert alert-danger text-center mb-3" role="alert">
@@ -106,7 +97,7 @@ export function SensorMonitor() {
 
       <div className="row">
         {sensors.map((sensor) => (
-          <div key={sensor.id} className="col-6 col-md-3 mb-3">
+          <div key={sensor.id} className="col-6 col-md-3">
             {sensor.status !== "ONLINE" && (
               <div
                 className={`alert text-center p-2 mb-2 ${
@@ -128,22 +119,15 @@ export function SensorMonitor() {
                   ● {sensor.status}
                 </button>
               </div>
-
-              {sensor.status === "OFFLINE" ? (
-                <div className="text-center text-danger fw-bold mb-2">
-                  Датчик не в мережі
-                </div>
-              ) : (
-                <div className="average-temp-label text-white text-center">
-                  <FontAwesomeIcon
-                    icon={faThermometerHalf}
-                    style={{ color: "#FFD700" }}
-                  />{" "}
-                  <span className="average-temp-data fw-bold">
-                    {sensor.temp} °C
-                  </span>
-                </div>
-              )}
+              <div className="average-temp-label text-white">
+                <FontAwesomeIcon
+                  icon={faThermometerHalf}
+                  style={{ color: "#FFD700" }}
+                />{" "}
+                <span className="average-temp-data fw-bold">
+                  {sensor.temp === "--" ? "—" : `${sensor.temp} °C`}
+                </span>
+              </div>
             </div>
           </div>
         ))}
