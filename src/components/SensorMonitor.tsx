@@ -27,47 +27,43 @@ const OFFLINE_MS = 10 * 60 * 1000;
 export function SensorMonitor() {
   const [sensors, setSensors] = useState<SensorData[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const SENSOR_KEYS = ["SENSOR1-1", "SENSOR1-2", "SENSOR1-3", "SENSOR1-4"];
+  const cache = useRef<Record<string, SensorData>>({});
 
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const res = await fetch("/api/sensor-readings/last-four", { cache: "no-store" });
+        const companyName = window.location.pathname.split("/")[1];
+        const res = await fetch(
+          `/api/sensor-readings/last-four/${companyName}`,
+          { cache: "no-store" }
+        );
         if (!res.ok) throw new Error(`Failed to fetch sensors: ${res.status}`);
-        
+
         const readings: SensorReading[] = await res.json();
         const now = Date.now();
 
-        const readingsMap: Record<string, SensorReading> = {};
-        readings.forEach((r) => readingsMap[r.sensor_id] = r);
+        readings.forEach((reading) => {
+          const timestamp = new Date(reading.timestamp).getTime();
+          const age = now - timestamp;
+          let status: Status = "OFFLINE";
+          if (age <= TIMEOUT_MS) status = "ONLINE";
+          else if (age <= OFFLINE_MS) status = "TIMED OUT";
 
-        const updated: SensorData[] = SENSOR_KEYS.map((key) => {
-          const reading = readingsMap[key];
+          cache.current[reading.sensor_id] = {
+            id: reading.sensor_id,
+            temp: reading.temperature.toFixed(1),
+            timestamp,
+            age,
+            status,
+          };
+        });
 
-          if (reading) {
-            const timestamp = new Date(reading.timestamp).getTime();
-            const age = now - timestamp;
-
-            let status: Status = "OFFLINE";
-            if (age <= TIMEOUT_MS) status = "ONLINE";
-            else if (age <= OFFLINE_MS) status = "TIMED OUT";
-
-            return {
-              id: key,
-              temp: status === "OFFLINE" ? "--" : reading.temperature.toFixed(1),
-              timestamp,
-              age,
-              status,
-            };
-          } else {
-            return {
-              id: key,
-              temp: "--",
-              timestamp: 0,
-              age: Infinity,
-              status: "OFFLINE",
-            };
-          }
+        const updated = _.map(readings, (reading) => {
+          const s = cache.current[reading.sensor_id];
+          return {
+            ...s,
+            temp: s.status === "OFFLINE" ? "--" : s.temp,
+          };
         });
 
         setSensors(updated);
@@ -86,9 +82,7 @@ export function SensorMonitor() {
 
   return (
     <div className="container sensor-container p-2">
-      <h2 className="text-center mt-4 mb-1">
-        Моніторинг датчиків температури:
-      </h2>
+      <h2 className="text-center mt-4 mb-1">Моніторинг SENSOR</h2>
 
       {error && (
         <div className="alert alert-danger text-center mb-3" role="alert">
@@ -98,18 +92,8 @@ export function SensorMonitor() {
 
       <div className="row">
         {sensors.map((sensor) => (
-          <div key={sensor.id} className="col-6 col-md-3">
-            {sensor.status !== "ONLINE" && (
-              <div
-                className={`alert text-center p-2 mb-2 ${
-                  sensor.status === "OFFLINE" ? "alert-danger" : "alert-warning"
-                }`}
-              >
-                ⚠ {sensor.id}{" "}
-                {sensor.status === "OFFLINE" ? "не в мережі" : "зник зв'язок"}
-              </div>
-            )}
-            <div className="average-temp-block rounded shadow-sm">
+          <div key={sensor.id} className="col-6 col-md-3 mb-3">
+            <div className="average-temp-block rounded shadow-sm p-3">
               <div className="description-temp-block d-flex justify-content-between mb-2">
                 <strong>{sensor.id}</strong>
                 <button
@@ -120,15 +104,22 @@ export function SensorMonitor() {
                   ● {sensor.status}
                 </button>
               </div>
-              <div className="average-temp-label text-white">
-                <FontAwesomeIcon
-                  icon={faThermometerHalf}
-                  style={{ color: "#FFD700" }}
-                />{" "}
-                <span className="average-temp-data fw-bold">
-                  {sensor.temp} °C
-                </span>
-              </div>
+
+              {sensor.status === "OFFLINE" ? (
+                <div className="text-center text-danger fw-bold" style={{ fontSize: "1.1rem" }}>
+                  ⚠ Датчик не в мережі
+                </div>
+              ) : (
+                <div className="average-temp-label text-white d-flex align-items-center gap-2">
+                  <FontAwesomeIcon
+                    icon={faThermometerHalf}
+                    style={{ color: "#FFD700" }}
+                  />
+                  <span className="average-temp-data fw-bold" style={{ fontSize: "1.6rem" }}>
+                    {sensor.temp} °C
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         ))}
