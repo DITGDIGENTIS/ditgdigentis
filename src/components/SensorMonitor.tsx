@@ -85,7 +85,7 @@ export function SensorMonitor() {
   return (
     <div className="container sensor-container p-2">
       <h2 className="text-center mt-4 mb-1">
-        Моніторинг датчиків температури:
+        Моніторинг SENSOR
       </h2>
 
       {error && (

@@ -49,7 +49,7 @@ export function HumidityMonitor() {
 
   return (
     <div className="container sensor-container">
-      <h2 className="text-center mt-4 mb-1">Мониторинг датчика влажности:</h2>
+      <h2 className="text-center mt-4 mb-1">Моніторинг HUM1-1</h2>
       <div className="row justify-content-center">
         <div className="col-12 col-md-8">
           <div className="average-temp-block p-3 rounded shadow-sm">
