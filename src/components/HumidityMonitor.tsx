@@ -3,16 +3,16 @@
 import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTint, faTemperatureLow } from "@fortawesome/free-solid-svg-icons";
+import * as _ from "lodash";
 
 interface HumidityReading {
-  humidity: number;
-  temperature: number;
+  humidity: number | null;
+  temperature: number | null;
   timestamp: string;
 }
 
 export function HumidityMonitor() {
   const [lastReading, setLastReading] = useState<HumidityReading | null>(null);
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [isOffline, setIsOffline] = useState<boolean>(true);
 
   useEffect(() => {
@@ -33,22 +33,17 @@ export function HumidityMonitor() {
       const data = await response.json();
       if (data && data.length > 0) {
         const reading = data[0];
-        const now = new Date();
         const ts = new Date(reading.timestamp);
-        const ageMs = now.getTime() - ts.getTime();
 
-        if (ageMs < 5 * 60 * 1000) {
+        if (reading.humidity !== null || reading.temperature !== null) {
           setLastReading(reading);
-          setLastUpdate(ts);
           setIsOffline(false);
         } else {
           setLastReading(null);
-          setLastUpdate(null);
           setIsOffline(true);
         }
       } else {
         setLastReading(null);
-        setLastUpdate(null);
         setIsOffline(true);
       }
     } catch (error) {
@@ -79,13 +74,13 @@ export function HumidityMonitor() {
                 <div>
                   <FontAwesomeIcon icon={faTint} />{" "}
                   <span className="average-temp-data fw-bold" style={{ fontSize: "1.6rem", color: "#fff" }}>
-                    {lastReading?.humidity}%
+                    {lastReading?.humidity !== null ? `${lastReading?.humidity}%` : "N/A"}
                   </span>
                 </div>
                 <div>
                   <FontAwesomeIcon icon={faTemperatureLow} />{" "}
                   <span className="average-temp-data fw-bold" style={{ fontSize: "1.6rem", color: "#fff" }}>
-                    {lastReading?.temperature}°C
+                    {lastReading?.temperature !== null ? `${lastReading?.temperature}°C` : "N/A"}
                   </span>
                 </div>
               </div>

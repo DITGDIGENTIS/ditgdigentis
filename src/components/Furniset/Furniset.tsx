@@ -6,7 +6,7 @@ import { ServerStatus } from "../ServerStatus";
 
 const SensorMonitor = dynamic(() => import("../SensorMonitor").then(mod => mod.SensorMonitor), { ssr: false });
 const HumidityMonitor = dynamic(() => import("../HumidityMonitor").then(mod => mod.HumidityMonitor), { ssr: false });
-const SensorGraphDHT21 = dynamic(() => import("../SensorGraphDHT21").then(mod => mod.default), { ssr: false });
+const SensorGraphSHT30 = dynamic(() => import("../SensorGraphSHT30").then(mod => mod.default), { ssr: false });
 
 const SensorGraph = dynamic(
   () => import("../SensorGraphDS18B20").then(mod => mod.default),
@@ -40,7 +40,7 @@ export const Furniset: FC = () => {
         <h4 className="text-center mb-3" style={{ fontSize: "1.4rem", color: "#fff", fontWeight: "bold" }}>
           Графік HUM1-1
         </h4>
-        <SensorGraphDHT21 />
+        <SensorGraphSHT30 />
       </div>
       <SensorMonitor />
       <div className="container mt-4">

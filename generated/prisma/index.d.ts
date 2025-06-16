@@ -1112,8 +1112,8 @@ export namespace Prisma {
     id: number
     sensor_id: string
     timestamp: Date
-    humidity: number
-    temperature: number
+    humidity: number | null
+    temperature: number | null
     company_name: string
     _count: HumidityReadingCountAggregateOutputType | null
     _avg: HumidityReadingAvgAggregateOutputType | null
@@ -1171,8 +1171,8 @@ export namespace Prisma {
       id: number
       sensor_id: string
       timestamp: Date
-      humidity: number
-      temperature: number
+      humidity: number | null
+      temperature: number | null
       company_name: string
     }, ExtArgs["result"]["humidityReading"]>
     composites: {}
@@ -2034,7 +2034,7 @@ export namespace Prisma {
     id: number
     sensor_id: string
     timestamp: Date
-    temperature: number
+    temperature: number | null
     company_name: string
     _count: SensorReadingCountAggregateOutputType | null
     _avg: SensorReadingAvgAggregateOutputType | null
@@ -2089,7 +2089,7 @@ export namespace Prisma {
       id: number
       sensor_id: string
       timestamp: Date
-      temperature: number
+      temperature: number | null
       company_name: string
     }, ExtArgs["result"]["sensorReading"]>
     composites: {}
@@ -2830,6 +2830,14 @@ export namespace Prisma {
   export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
 
 
+  export const NullsOrder: {
+    first: 'first',
+    last: 'last'
+  };
+
+  export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
   /**
    * Field references 
    */
@@ -2901,8 +2909,8 @@ export namespace Prisma {
     id?: IntFilter<"HumidityReading"> | number
     sensor_id?: StringFilter<"HumidityReading"> | string
     timestamp?: DateTimeFilter<"HumidityReading"> | Date | string
-    humidity?: FloatFilter<"HumidityReading"> | number
-    temperature?: FloatFilter<"HumidityReading"> | number
+    humidity?: FloatNullableFilter<"HumidityReading"> | number | null
+    temperature?: FloatNullableFilter<"HumidityReading"> | number | null
     company_name?: StringFilter<"HumidityReading"> | string
   }
 
@@ -2910,8 +2918,8 @@ export namespace Prisma {
     id?: SortOrder
     sensor_id?: SortOrder
     timestamp?: SortOrder
-    humidity?: SortOrder
-    temperature?: SortOrder
+    humidity?: SortOrderInput | SortOrder
+    temperature?: SortOrderInput | SortOrder
     company_name?: SortOrder
   }
 
@@ -2922,8 +2930,8 @@ export namespace Prisma {
     NOT?: HumidityReadingWhereInput | HumidityReadingWhereInput[]
     sensor_id?: StringFilter<"HumidityReading"> | string
     timestamp?: DateTimeFilter<"HumidityReading"> | Date | string
-    humidity?: FloatFilter<"HumidityReading"> | number
-    temperature?: FloatFilter<"HumidityReading"> | number
+    humidity?: FloatNullableFilter<"HumidityReading"> | number | null
+    temperature?: FloatNullableFilter<"HumidityReading"> | number | null
     company_name?: StringFilter<"HumidityReading"> | string
   }, "id">
 
@@ -2931,8 +2939,8 @@ export namespace Prisma {
     id?: SortOrder
     sensor_id?: SortOrder
     timestamp?: SortOrder
-    humidity?: SortOrder
-    temperature?: SortOrder
+    humidity?: SortOrderInput | SortOrder
+    temperature?: SortOrderInput | SortOrder
     company_name?: SortOrder
     _count?: HumidityReadingCountOrderByAggregateInput
     _avg?: HumidityReadingAvgOrderByAggregateInput
@@ -2948,8 +2956,8 @@ export namespace Prisma {
     id?: IntWithAggregatesFilter<"HumidityReading"> | number
     sensor_id?: StringWithAggregatesFilter<"HumidityReading"> | string
     timestamp?: DateTimeWithAggregatesFilter<"HumidityReading"> | Date | string
-    humidity?: FloatWithAggregatesFilter<"HumidityReading"> | number
-    temperature?: FloatWithAggregatesFilter<"HumidityReading"> | number
+    humidity?: FloatNullableWithAggregatesFilter<"HumidityReading"> | number | null
+    temperature?: FloatNullableWithAggregatesFilter<"HumidityReading"> | number | null
     company_name?: StringWithAggregatesFilter<"HumidityReading"> | string
   }
 
@@ -2960,7 +2968,7 @@ export namespace Prisma {
     id?: IntFilter<"SensorReading"> | number
     sensor_id?: StringFilter<"SensorReading"> | string
     timestamp?: DateTimeFilter<"SensorReading"> | Date | string
-    temperature?: FloatFilter<"SensorReading"> | number
+    temperature?: FloatNullableFilter<"SensorReading"> | number | null
     company_name?: StringFilter<"SensorReading"> | string
   }
 
@@ -2968,7 +2976,7 @@ export namespace Prisma {
     id?: SortOrder
     sensor_id?: SortOrder
     timestamp?: SortOrder
-    temperature?: SortOrder
+    temperature?: SortOrderInput | SortOrder
     company_name?: SortOrder
   }
 
@@ -2979,7 +2987,7 @@ export namespace Prisma {
     NOT?: SensorReadingWhereInput | SensorReadingWhereInput[]
     sensor_id?: StringFilter<"SensorReading"> | string
     timestamp?: DateTimeFilter<"SensorReading"> | Date | string
-    temperature?: FloatFilter<"SensorReading"> | number
+    temperature?: FloatNullableFilter<"SensorReading"> | number | null
     company_name?: StringFilter<"SensorReading"> | string
   }, "id">
 
@@ -2987,7 +2995,7 @@ export namespace Prisma {
     id?: SortOrder
     sensor_id?: SortOrder
     timestamp?: SortOrder
-    temperature?: SortOrder
+    temperature?: SortOrderInput | SortOrder
     company_name?: SortOrder
     _count?: SensorReadingCountOrderByAggregateInput
     _avg?: SensorReadingAvgOrderByAggregateInput
@@ -3003,15 +3011,15 @@ export namespace Prisma {
     id?: IntWithAggregatesFilter<"SensorReading"> | number
     sensor_id?: StringWithAggregatesFilter<"SensorReading"> | string
     timestamp?: DateTimeWithAggregatesFilter<"SensorReading"> | Date | string
-    temperature?: FloatWithAggregatesFilter<"SensorReading"> | number
+    temperature?: FloatNullableWithAggregatesFilter<"SensorReading"> | number | null
     company_name?: StringWithAggregatesFilter<"SensorReading"> | string
   }
 
   export type HumidityReadingCreateInput = {
     sensor_id: string
     timestamp?: Date | string
-    humidity: number
-    temperature: number
+    humidity?: number | null
+    temperature?: number | null
     company_name: string
   }
 
@@ -3019,16 +3027,16 @@ export namespace Prisma {
     id?: number
     sensor_id: string
     timestamp?: Date | string
-    humidity: number
-    temperature: number
+    humidity?: number | null
+    temperature?: number | null
     company_name: string
   }
 
   export type HumidityReadingUpdateInput = {
     sensor_id?: StringFieldUpdateOperationsInput | string
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
-    humidity?: FloatFieldUpdateOperationsInput | number
-    temperature?: FloatFieldUpdateOperationsInput | number
+    humidity?: NullableFloatFieldUpdateOperationsInput | number | null
+    temperature?: NullableFloatFieldUpdateOperationsInput | number | null
     company_name?: StringFieldUpdateOperationsInput | string
   }
 
@@ -3036,8 +3044,8 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     sensor_id?: StringFieldUpdateOperationsInput | string
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
-    humidity?: FloatFieldUpdateOperationsInput | number
-    temperature?: FloatFieldUpdateOperationsInput | number
+    humidity?: NullableFloatFieldUpdateOperationsInput | number | null
+    temperature?: NullableFloatFieldUpdateOperationsInput | number | null
     company_name?: StringFieldUpdateOperationsInput | string
   }
 
@@ -3045,16 +3053,16 @@ export namespace Prisma {
     id?: number
     sensor_id: string
     timestamp?: Date | string
-    humidity: number
-    temperature: number
+    humidity?: number | null
+    temperature?: number | null
     company_name: string
   }
 
   export type HumidityReadingUpdateManyMutationInput = {
     sensor_id?: StringFieldUpdateOperationsInput | string
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
-    humidity?: FloatFieldUpdateOperationsInput | number
-    temperature?: FloatFieldUpdateOperationsInput | number
+    humidity?: NullableFloatFieldUpdateOperationsInput | number | null
+    temperature?: NullableFloatFieldUpdateOperationsInput | number | null
     company_name?: StringFieldUpdateOperationsInput | string
   }
 
@@ -3062,15 +3070,15 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     sensor_id?: StringFieldUpdateOperationsInput | string
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
-    humidity?: FloatFieldUpdateOperationsInput | number
-    temperature?: FloatFieldUpdateOperationsInput | number
+    humidity?: NullableFloatFieldUpdateOperationsInput | number | null
+    temperature?: NullableFloatFieldUpdateOperationsInput | number | null
     company_name?: StringFieldUpdateOperationsInput | string
   }
 
   export type SensorReadingCreateInput = {
     sensor_id: string
     timestamp?: Date | string
-    temperature: number
+    temperature?: number | null
     company_name: string
   }
 
@@ -3078,14 +3086,14 @@ export namespace Prisma {
     id?: number
     sensor_id: string
     timestamp?: Date | string
-    temperature: number
+    temperature?: number | null
     company_name: string
   }
 
   export type SensorReadingUpdateInput = {
     sensor_id?: StringFieldUpdateOperationsInput | string
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
-    temperature?: FloatFieldUpdateOperationsInput | number
+    temperature?: NullableFloatFieldUpdateOperationsInput | number | null
     company_name?: StringFieldUpdateOperationsInput | string
   }
 
@@ -3093,7 +3101,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     sensor_id?: StringFieldUpdateOperationsInput | string
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
-    temperature?: FloatFieldUpdateOperationsInput | number
+    temperature?: NullableFloatFieldUpdateOperationsInput | number | null
     company_name?: StringFieldUpdateOperationsInput | string
   }
 
@@ -3101,14 +3109,14 @@ export namespace Prisma {
     id?: number
     sensor_id: string
     timestamp?: Date | string
-    temperature: number
+    temperature?: number | null
     company_name: string
   }
 
   export type SensorReadingUpdateManyMutationInput = {
     sensor_id?: StringFieldUpdateOperationsInput | string
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
-    temperature?: FloatFieldUpdateOperationsInput | number
+    temperature?: NullableFloatFieldUpdateOperationsInput | number | null
     company_name?: StringFieldUpdateOperationsInput | string
   }
 
@@ -3116,7 +3124,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     sensor_id?: StringFieldUpdateOperationsInput | string
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
-    temperature?: FloatFieldUpdateOperationsInput | number
+    temperature?: NullableFloatFieldUpdateOperationsInput | number | null
     company_name?: StringFieldUpdateOperationsInput | string
   }
 
@@ -3157,15 +3165,20 @@ export namespace Prisma {
     not?: NestedDateTimeFilter<$PrismaModel> | Date | string
   }
 
-  export type FloatFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+  export type FloatNullableFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
     lt?: number | FloatFieldRefInput<$PrismaModel>
     lte?: number | FloatFieldRefInput<$PrismaModel>
     gt?: number | FloatFieldRefInput<$PrismaModel>
     gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatFilter<$PrismaModel> | number
+    not?: NestedFloatNullableFilter<$PrismaModel> | number | null
+  }
+
+  export type SortOrderInput = {
+    sort: SortOrder
+    nulls?: NullsOrder
   }
 
   export type HumidityReadingCountOrderByAggregateInput = {
@@ -3255,20 +3268,20 @@ export namespace Prisma {
     _max?: NestedDateTimeFilter<$PrismaModel>
   }
 
-  export type FloatWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+  export type FloatNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
     lt?: number | FloatFieldRefInput<$PrismaModel>
     lte?: number | FloatFieldRefInput<$PrismaModel>
     gt?: number | FloatFieldRefInput<$PrismaModel>
     gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedFloatFilter<$PrismaModel>
-    _min?: NestedFloatFilter<$PrismaModel>
-    _max?: NestedFloatFilter<$PrismaModel>
+    not?: NestedFloatNullableWithAggregatesFilter<$PrismaModel> | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedFloatNullableFilter<$PrismaModel>
+    _min?: NestedFloatNullableFilter<$PrismaModel>
+    _max?: NestedFloatNullableFilter<$PrismaModel>
   }
 
   export type SensorReadingCountOrderByAggregateInput = {
@@ -3313,8 +3326,8 @@ export namespace Prisma {
     set?: Date | string
   }
 
-  export type FloatFieldUpdateOperationsInput = {
-    set?: number
+  export type NullableFloatFieldUpdateOperationsInput = {
+    set?: number | null
     increment?: number
     decrement?: number
     multiply?: number
@@ -3365,15 +3378,15 @@ export namespace Prisma {
     not?: NestedDateTimeFilter<$PrismaModel> | Date | string
   }
 
-  export type NestedFloatFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+  export type NestedFloatNullableFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
     lt?: number | FloatFieldRefInput<$PrismaModel>
     lte?: number | FloatFieldRefInput<$PrismaModel>
     gt?: number | FloatFieldRefInput<$PrismaModel>
     gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatFilter<$PrismaModel> | number
+    not?: NestedFloatNullableFilter<$PrismaModel> | number | null
   }
 
   export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
@@ -3390,6 +3403,17 @@ export namespace Prisma {
     _sum?: NestedIntFilter<$PrismaModel>
     _min?: NestedIntFilter<$PrismaModel>
     _max?: NestedIntFilter<$PrismaModel>
+  }
+
+  export type NestedFloatFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatFilter<$PrismaModel> | number
   }
 
   export type NestedStringWithAggregatesFilter<$PrismaModel = never> = {
@@ -3423,20 +3447,31 @@ export namespace Prisma {
     _max?: NestedDateTimeFilter<$PrismaModel>
   }
 
-  export type NestedFloatWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+  export type NestedFloatNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
     lt?: number | FloatFieldRefInput<$PrismaModel>
     lte?: number | FloatFieldRefInput<$PrismaModel>
     gt?: number | FloatFieldRefInput<$PrismaModel>
     gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedFloatFilter<$PrismaModel>
-    _min?: NestedFloatFilter<$PrismaModel>
-    _max?: NestedFloatFilter<$PrismaModel>
+    not?: NestedFloatNullableWithAggregatesFilter<$PrismaModel> | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedFloatNullableFilter<$PrismaModel>
+    _min?: NestedFloatNullableFilter<$PrismaModel>
+    _max?: NestedFloatNullableFilter<$PrismaModel>
+  }
+
+  export type NestedIntNullableFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableFilter<$PrismaModel> | number | null
   }
 
 

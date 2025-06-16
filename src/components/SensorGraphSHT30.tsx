@@ -16,9 +16,11 @@ import { useIsMobile } from "@/hook/useIsMobile";
 import { DateTime } from "luxon";
 
 interface SensorPoint {
-  timestamp: number;
-  time: string;
-  [key: string]: number | string;
+  sensor_id: string;
+  temperature: number | null;
+  humidity: number | null;
+  timestamp: string;
+  company_name: string;
 }
 
 interface ChartDataPoint {
@@ -68,21 +70,6 @@ export default function SensorGraphSHT30() {
   );
   const isMobile = useIsMobile();
 
-  useEffect(() => {
-    const newSensorIds = _.uniq(
-      historicalData.flatMap((point) =>
-        Object.keys(point)
-          .filter((key) => key.endsWith("_humidity"))
-          .map((key) => key.replace("_humidity", ""))
-      )
-    );
-
-    if (!_.isEqual(newSensorIds, sensorIds)) {
-      setSensorIds(newSensorIds);
-      setSelectedSensors(newSensorIds);
-    }
-  }, [historicalData]);
-
   const COLORS = React.useMemo(() => generateColors(sensorIds), [sensorIds]);
 
   const company_name = window.location.pathname.split("/")[1];
@@ -104,6 +91,7 @@ export default function SensorGraphSHT30() {
         }
 
         const readings = await response.json();
+
         setHistoricalData(readings);
         setLastUpdate(new Date());
       } catch (e) {
@@ -116,30 +104,32 @@ export default function SensorGraphSHT30() {
     return () => clearInterval(interval);
   }, [selectedDate]);
 
-  const formatTime = (ts: number | Date) => {
-    return moment(ts).format("HH:mm:ss");
+  const formatTime = (ts: number | Date | string) => {
+    if (typeof ts === "string") {
+      return moment(ts).format("HH:mm:ss");
+    }
+    return moment(ts instanceof Date ? ts : new Date(ts)).format("HH:mm:ss");
   };
 
   const data = historicalData.map((reading) => {
     const formattedPoint: ChartDataPoint = {
-      timestamp:
-        typeof reading.timestamp === "number"
-          ? reading.timestamp
-          : moment(reading.timestamp).valueOf(),
+      timestamp: new Date(reading.timestamp).getTime(),
       time: formatTime(reading.timestamp),
+      [`${reading.sensor_id}_temperature`]: reading.temperature,
+      [`${reading.sensor_id}_humidity`]: reading.humidity,
     };
-
-    sensorIds.forEach((sensorId) => {
-      const humidityKey = `${sensorId}_humidity`;
-      const temperatureKey = `${sensorId}_temperature`;
-
-      formattedPoint[humidityKey] = (reading[humidityKey] as number) || null;
-      formattedPoint[temperatureKey] =
-        (reading[temperatureKey] as number) || null;
-    });
-
     return formattedPoint;
   });
+
+  useEffect(() => {
+    const newSensorIds = _.uniq(
+      historicalData.map((reading) => reading.sensor_id)
+    );
+    if (!_.isEqual(newSensorIds, sensorIds)) {
+      setSensorIds(newSensorIds);
+      setSelectedSensors(newSensorIds);
+    }
+  }, [historicalData]);
 
   const maxHumidity = Math.ceil(
     (_.max(
@@ -158,10 +148,7 @@ export default function SensorGraphSHT30() {
   );
 
   const downloadCSV = (sensorId: string) => {
-    const filtered = historicalData.filter((d) => {
-      const humidityKey = `${sensorId}_humidity`;
-      return d[humidityKey] !== undefined;
-    });
+    const filtered = historicalData.filter((d) => d.sensor_id === sensorId);
 
     if (!filtered.length) {
       return alert(`Немає даних для ${sensorId}`);
@@ -169,14 +156,9 @@ export default function SensorGraphSHT30() {
 
     const header = "Час,Температура,Вологість";
     const rows = filtered.map((d) => {
-      const humidityKey = `${sensorId}_humidity`;
-      const temperatureKey = `${sensorId}_temperature`;
-      const humidity = d[humidityKey] as number;
-      const temperature = d[temperatureKey] as number;
-
-      return `${formatTime(d.timestamp)},${temperature.toFixed(
-        1
-      )},${humidity.toFixed(1)}`;
+      return `${formatTime(d.timestamp)},${d.temperature?.toFixed(1) ?? "N/A"},${
+        d.humidity?.toFixed(1) ?? "N/A"
+      }`;
     });
 
     const csv = [header, ...rows].join("\n");

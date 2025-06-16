@@ -7,22 +7,16 @@ import * as _ from "lodash";
 
 type SensorReading = {
   sensor_id: string;
-  temperature: number;
+  temperature: number | null;
   timestamp: Date;
 };
-
-type Status = "ONLINE" | "TIMED OUT" | "OFFLINE";
 
 type SensorData = {
   id: string;
   temp: string;
-  status: Status;
+  status: "ONLINE" | "OFFLINE";
   timestamp: number;
-  age: number;
 };
-
-const TIMEOUT_MS = 5 * 60 * 1000;
-const OFFLINE_MS = 10 * 60 * 1000;
 
 export function SensorMonitor() {
   const [sensors, setSensors] = useState<SensorData[]>([]);
@@ -40,31 +34,16 @@ export function SensorMonitor() {
         if (!res.ok) throw new Error(`Failed to fetch sensors: ${res.status}`);
 
         const readings: SensorReading[] = await res.json();
-        const now = Date.now();
 
-        readings.forEach((reading) => {
-          const timestamp = new Date(reading.timestamp).getTime();
-          const age = now - timestamp;
-          let status: Status = "OFFLINE";
-          if (age <= TIMEOUT_MS) status = "ONLINE";
-          else if (age <= OFFLINE_MS) status = "TIMED OUT";
-
-          cache.current[reading.sensor_id] = {
-            id: reading.sensor_id,
-            temp: reading.temperature.toFixed(1),
-            timestamp,
-            age,
-            status,
-          };
-        });
-
-        const updated = _.map(readings, (reading) => {
-          const s = cache.current[reading.sensor_id];
-          return {
-            ...s,
-            temp: s.status === "OFFLINE" ? "--" : s.temp,
-          };
-        });
+        const updated: SensorData[] = _.map(readings, (reading) => ({
+          id: reading.sensor_id,
+          temp:
+            reading.temperature !== null
+              ? reading.temperature.toFixed(1)
+              : "--",
+          timestamp: new Date(reading.timestamp).getTime(),
+          status: reading.temperature !== null ? "ONLINE" : "OFFLINE",
+        }));
 
         setSensors(updated);
         setError(null);
@@ -97,16 +76,17 @@ export function SensorMonitor() {
               <div className="description-temp-block d-flex justify-content-between mb-2">
                 <strong>{sensor.id}</strong>
                 <button
-                  className={`status-button ${sensor.status
-                    .toLowerCase()
-                    .replace(" ", "-")}`}
+                  className={`status-button ${sensor.status.toLowerCase()}`}
                 >
                   ● {sensor.status}
                 </button>
               </div>
 
               {sensor.status === "OFFLINE" ? (
-                <div className="text-center text-danger fw-bold" style={{ fontSize: "1.1rem" }}>
+                <div
+                  className="text-center text-danger fw-bold"
+                  style={{ fontSize: "1.1rem" }}
+                >
                   ⚠ Датчик не в мережі
                 </div>
               ) : (
@@ -115,7 +95,10 @@ export function SensorMonitor() {
                     icon={faThermometerHalf}
                     style={{ color: "#FFD700" }}
                   />
-                  <span className="average-temp-data fw-bold" style={{ fontSize: "1.6rem" }}>
+                  <span
+                    className="average-temp-data fw-bold"
+                    style={{ fontSize: "1.6rem" }}
+                  >
                     {sensor.temp} °C
                   </span>
                 </div>

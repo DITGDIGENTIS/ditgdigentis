@@ -33,7 +33,14 @@ export function createHumidityService(): HumidityService {
             .toJSDate()
         : DateTime.now().setZone("UTC").endOf("day").toJSDate();
 
-      const where: any = {
+      const where: {
+        timestamp: {
+          gte: Date;
+          lte: Date;
+        };
+        sensor_id?: { in: string[] };
+        company_name?: string;
+      } = {
         timestamp: {
           gte: startDate,
           lte: endDate,
@@ -53,15 +60,30 @@ export function createHumidityService(): HumidityService {
         orderBy: { timestamp: "asc" },
       });
 
-      return _.map(readings, (r) => ({
-        sensor_id: r.sensor_id,
-        temperature: Number(r.temperature),
-        humidity: Number(r.humidity),
-        timestamp: new Date(r.timestamp),
-        company_name: r.company_name,
-      }));
+      return _.chain(readings)
+        .map((r) => ({
+          sensor_id: r.sensor_id,
+          temperature: r.temperature !== null ? Number(r.temperature) : null,
+          humidity: r.humidity !== null ? Number(r.humidity) : null,
+          timestamp: new Date(r.timestamp),
+          company_name: r.company_name,
+        }))
+        .value();
+    } catch (error) {
+      throw new Error(
+        `Failed to fetch humidity readings: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     } finally {
-      await prisma.$disconnect();
+      try {
+        await prisma.$disconnect();
+      } catch (disconnectError) {
+        console.error(
+          "[HumidityService] Error disconnecting from database:",
+          disconnectError
+        );
+      }
     }
   };
 
@@ -71,7 +93,7 @@ export function createHumidityService(): HumidityService {
     try {
       await prisma.$connect();
 
-      const where: any = {};
+      const where: { company_name?: string } = {};
       if (company_name) {
         where.company_name = company_name;
       }
@@ -82,23 +104,34 @@ export function createHumidityService(): HumidityService {
         take: 1,
       });
 
-      if (!readings || readings.length === 0) {
-        console.log("No humidity readings found");
+      if (_.isEmpty(readings)) {
         return [];
       }
 
-      return _.map(readings, (r) => ({
-        sensor_id: r.sensor_id,
-        temperature: Number(Number(r.temperature).toFixed(2)),
-        humidity: Number(Number(r.humidity).toFixed(2)),
-        timestamp: new Date(r.timestamp),
-        company_name: r.company_name,
-      }));
+      return _.chain(readings)
+        .map((r) => ({
+          sensor_id: r.sensor_id,
+          temperature: r.temperature !== null ? Number(Number(r.temperature).toFixed(2)) : null,
+          humidity: r.humidity !== null ? Number(Number(r.humidity).toFixed(2)) : null,
+          timestamp: new Date(r.timestamp),
+          company_name: r.company_name,
+        }))
+        .value();
     } catch (error) {
-      console.error("Error fetching last humidity reading:", error);
-      throw new Error("Failed to fetch last humidity reading");
+      throw new Error(
+        `Failed to fetch last humidity reading: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     } finally {
-      await prisma.$disconnect();
+      try {
+        await prisma.$disconnect();
+      } catch (disconnectError) {
+        console.error(
+          "[HumidityService] Error disconnecting from database:",
+          disconnectError
+        );
+      }
     }
   };
 

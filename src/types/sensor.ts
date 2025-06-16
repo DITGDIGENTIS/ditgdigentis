@@ -1,8 +1,8 @@
 export interface SensorDataPoint {
   sensor_id: string;
-  temperature: number;
+  temperature: number | null;
   timestamp: Date;
-  humidity?: number;
+  humidity?: number | null;
   company_name?: string;
 }
 
@@ -16,9 +16,9 @@ export interface SensorReadingFilters {
 export interface SensorReading {
   id: number;
   sensor_id: string;
-  temperature: number;
+  temperature: number | null;
   humidity?: number;
-  timestamp: Date;
+  timestamp?: Date | null;
   company_name?: string;
   created_at: Date;
   updated_at: Date;

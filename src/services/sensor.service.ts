@@ -53,13 +53,31 @@ export function createSensorService(): SensorService {
         orderBy: { timestamp: "asc" },
       });
 
-      return _.map(readings, (r) => ({
-        sensor_id: r.sensor_id,
-        temperature: Number(r.temperature),
-        timestamp: new Date(r.timestamp),
-      }));
+      const result = _.chain(readings)
+        .map((r) => ({
+          sensor_id: r.sensor_id,
+          temperature: r.temperature !== null ? Number(r.temperature) : null,
+          timestamp: new Date(r.timestamp),
+        }))
+        .value();
+
+      return result;
+    } catch (error) {
+      throw new Error(
+        `Failed to fetch sensor readings: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     } finally {
-      await prisma.$disconnect();
+      try {
+        await prisma.$disconnect();
+        console.log("[SensorService] Database connection closed");
+      } catch (disconnectError) {
+        console.error(
+          "[SensorService] Error disconnecting from database:",
+          disconnectError
+        );
+      }
     }
   };
 
@@ -68,6 +86,7 @@ export function createSensorService(): SensorService {
   ): Promise<SensorDataPoint[]> => {
     try {
       await prisma.$connect();
+
       const lastTimestamp = await prisma.sensorReading.groupBy({
         by: ["timestamp"],
         where: company_name ? { company_name } : undefined,
@@ -85,7 +104,7 @@ export function createSensorService(): SensorService {
       });
 
       if (!lastTimestamp || lastTimestamp.length === 0) {
-        console.log("No timestamps found");
+        console.log("[SensorService] No timestamps found");
         return [];
       }
 
@@ -97,18 +116,31 @@ export function createSensorService(): SensorService {
         orderBy: { sensor_id: "asc" },
       });
 
-      return _.chain(readings)
+      const result = _.chain(readings)
         .map((r) => ({
           sensor_id: r.sensor_id,
-          temperature: Number(Number(r.temperature).toFixed(2)),
+          temperature: r.temperature !== null ? Number(r.temperature) : null,
           timestamp: new Date(r.timestamp),
         }))
         .value();
+
+      return result;
     } catch (error) {
-      console.error("Error fetching last four readings:", error);
-      throw new Error("Failed to fetch last four readings");
+      throw new Error(
+        `Failed to fetch last four readings: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     } finally {
-      await prisma.$disconnect();
+      try {
+        await prisma.$disconnect();
+        console.log("[SensorService] Database connection closed");
+      } catch (disconnectError) {
+        console.error(
+          "[SensorService] Error disconnecting from database:",
+          disconnectError
+        );
+      }
     }
   };
 
