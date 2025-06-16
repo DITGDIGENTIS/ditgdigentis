@@ -13,7 +13,7 @@ interface HumidityReading {
 export function HumidityMonitor() {
   const [lastReading, setLastReading] = useState<HumidityReading | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
-  const [status, setStatus] = useState<"ONLINE" | "OFFLINE">("OFFLINE");
+  const [isOffline, setIsOffline] = useState<boolean>(true);
 
   useEffect(() => {
     fetchStatus();
@@ -28,27 +28,33 @@ export function HumidityMonitor() {
       const response = await fetch(
         `/api/humidity-readings/last-one/${company_name}`
       );
-      if (!response.ok) throw new Error("Failed to fetch humidity status");
+      if (!response.ok) throw new Error("Failed to fetch");
 
       const data = await response.json();
-      console.log("Received humidity data:", data);
-
       if (data && data.length > 0) {
         const reading = data[0];
-        const updatedAt = new Date(reading.timestamp);
         const now = new Date();
-        const ageSec = Math.floor((now.getTime() - updatedAt.getTime()) / 1000);
+        const ts = new Date(reading.timestamp);
+        const ageMs = now.getTime() - ts.getTime();
 
-        setLastReading(reading);
-        setLastUpdate(updatedAt);
-        setStatus(ageSec <= 300 ? "ONLINE" : "OFFLINE");
+        if (ageMs < 5 * 60 * 1000) {
+          setLastReading(reading);
+          setLastUpdate(ts);
+          setIsOffline(false);
+        } else {
+          setLastReading(null);
+          setLastUpdate(null);
+          setIsOffline(true);
+        }
       } else {
         setLastReading(null);
-        setStatus("OFFLINE");
+        setLastUpdate(null);
+        setIsOffline(true);
       }
     } catch (error) {
-      console.error("Error fetching humidity status:", error);
-      setStatus("OFFLINE");
+      console.error("Error fetching status:", error);
+      setIsOffline(true);
+      setLastReading(null);
     }
   };
 
@@ -60,42 +66,30 @@ export function HumidityMonitor() {
           <div className="average-temp-block p-3 rounded shadow-sm">
             <div className="description-temp-block d-flex justify-content-between mb-2">
               <strong>HUM1-1</strong>
-              <button
-                className={`status-button ${
-                  status === "ONLINE" ? "online" : "offline"
-                }`}
-              >
-                ● {status}
+              <button className={`status-button ${isOffline ? "offline" : "online"}`}>
+                ● {isOffline ? "OFFLINE" : "ONLINE"}
               </button>
             </div>
-            <div className="average-temp-label d-flex justify-content-between gap-3 text-yellow">
-              <div>
-                <FontAwesomeIcon icon={faTint} />{" "}
-                <span
-                  className="average-temp-data fw-bold"
-                  style={{
-                    fontSize: "1.6rem",
-                    color: "#fff",
-                    fontWeight: "bold",
-                  }}
-                >
-                  {lastReading ? `${lastReading.humidity}%` : "--"}
-                </span>
+            {isOffline ? (
+              <div className="text-center text-danger fw-bold" style={{ fontSize: "1.2rem" }}>
+                Датчик не в мережі
               </div>
-              <div>
-                <FontAwesomeIcon icon={faTemperatureLow} />{" "}
-                <span
-                  className="average-temp-data fw-bold"
-                  style={{
-                    fontSize: "1.6rem",
-                    color: "#fff",
-                    fontWeight: "bold",
-                  }}
-                >
-                  {lastReading ? `${lastReading.temperature}°C` : "--"}
-                </span>
+            ) : (
+              <div className="average-temp-label d-flex justify-content-between gap-3 text-yellow">
+                <div>
+                  <FontAwesomeIcon icon={faTint} />{" "}
+                  <span className="average-temp-data fw-bold" style={{ fontSize: "1.6rem", color: "#fff" }}>
+                    {lastReading?.humidity}%
+                  </span>
+                </div>
+                <div>
+                  <FontAwesomeIcon icon={faTemperatureLow} />{" "}
+                  <span className="average-temp-data fw-bold" style={{ fontSize: "1.6rem", color: "#fff" }}>
+                    {lastReading?.temperature}°C
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
