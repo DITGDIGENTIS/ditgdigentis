@@ -33,12 +33,9 @@ export function SensorMonitor() {
     const fetchStatus = async () => {
       try {
         const companyName = window.location.pathname.split("/")[1];
-        const res = await fetch(
-          `/api/sensor-readings/last-four/${companyName}`,
-          {
-            cache: "no-store",
-          }
-        );
+        const res = await fetch(`/api/sensor-readings/last-four/${companyName}`, {
+          cache: "no-store",
+        });
         if (!res.ok) throw new Error(`Failed to fetch sensors: ${res.status}`);
 
         const readings: SensorReading[] = await res.json();
@@ -84,9 +81,7 @@ export function SensorMonitor() {
 
   return (
     <div className="container sensor-container p-2">
-      <h2 className="text-center mt-4 mb-1">
-        Моніторинг SENSOR
-      </h2>
+      <h2 className="text-center mt-4 mb-1">Моніторинг SENSOR</h2>
 
       {error && (
         <div className="alert alert-danger text-center mb-3" role="alert">
@@ -96,10 +91,10 @@ export function SensorMonitor() {
 
       <div className="row">
         {sensors.map((sensor) => (
-          <div key={sensor.id} className="col-6 col-md-3">
+          <div key={sensor.id} className="col-6 col-md-3 mb-3">
             {sensor.status !== "ONLINE" && (
               <div
-                className={`alert text-center p-2 mb-2 ${
+                className={`alert text-center p-2 ${
                   sensor.status === "OFFLINE" ? "alert-danger" : "alert-warning"
                 }`}
               >
@@ -118,15 +113,22 @@ export function SensorMonitor() {
                   ● {sensor.status}
                 </button>
               </div>
-              <div className="average-temp-label text-white">
-                <FontAwesomeIcon
-                  icon={faThermometerHalf}
-                  style={{ color: "#FFD700" }}
-                />{" "}
-                <span className="average-temp-data fw-bold">
-                  {sensor.temp} °C
-                </span>
-              </div>
+
+              {sensor.status === "OFFLINE" ? (
+                <div className="text-center text-danger fw-bold mb-3">
+                  Датчик не в мережі
+                </div>
+              ) : (
+                <div className="average-temp-label text-white text-center">
+                  <FontAwesomeIcon
+                    icon={faThermometerHalf}
+                    style={{ color: "#FFD700" }}
+                  />{" "}
+                  <span className="average-temp-data fw-bold">
+                    {sensor.temp} °C
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         ))}
