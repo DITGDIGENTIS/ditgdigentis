@@ -32,7 +32,7 @@ export function findProtectedRouteByPageType(pageType: string | null) {
   });
 }
 
-// Если добавили новый маршрут защищенный паролем, то нужно добавить его в PROTECTED_ROUTES
+// Если добавили новый маршрут защищенный паролем, то нужно добавить его в PROTECTED_ROUTES.
 export const PROTECTED_ROUTES: RouteConfig[] = [
   {
     path: ROUTES.FURNISET,
