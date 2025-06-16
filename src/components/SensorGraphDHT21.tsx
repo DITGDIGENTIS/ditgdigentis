@@ -213,7 +213,7 @@ export default function SensorGraphDHT21() {
     >
       <div className="d-flex flex-wrap gap-3 mb-3 align-items-center justify-content-between">
         <h5 className="text-warning mb-0">
-          Графік DHT21 (Температура/Вологість)
+          Графік HUM1-1 (Температура/Вологість)
         </h5>
         <div className="d-flex gap-2 flex-wrap">
           {sensorIds.map((id) => (

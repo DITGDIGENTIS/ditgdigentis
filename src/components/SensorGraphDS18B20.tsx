@@ -217,7 +217,7 @@ export default function SensorGraphDS18B20() {
       style={{ backgroundColor: "#2b2b2b", color: "#fff", borderRadius: 5 }}
     >
       <div className="d-flex flex-wrap gap-3 mb-3 align-items-center justify-content-between">
-        <h5 className="text-warning mb-0">Графік DS18B20 (Температура)</h5>
+        <h5 className="text-warning mb-0">Графік SENSOR (Температура)</h5>
         <div className="d-flex gap-2 flex-wrap">
           {sensorIds.map((id) => (
             <label key={id} className="form-check-label text-light">
