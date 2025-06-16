@@ -39,8 +39,8 @@ export const PROTECTED_ROUTES: RouteConfig[] = [
     requireAuth: true,
     redirectTo: ROUTES.LOGIN,
     authConfig: {
-      password: "123",
-      secret: "furniset_secret_key",
+      password: "Furniset-D2025",
+      secret: "furniset_secret_ditg8888",
       cookieName: "furniset_auth",
       loginType: "furniset",
       cookieOptions: {
