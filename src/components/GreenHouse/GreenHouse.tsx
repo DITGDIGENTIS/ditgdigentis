@@ -2,34 +2,16 @@
 
 import { FC, useState, useEffect } from "react";
 import dynamic from "next/dynamic";
+import { ServerStatus } from "../ServerStatus";
 
-const HumidityMonitor = dynamic(
-  () => import("../HumidityMonitor").then((mod) => mod.HumidityMonitor),
+const SensorMonitor = dynamic(() => import("../SensorMonitor").then(mod => mod.SensorMonitor), { ssr: false });
+const HumidityMonitor = dynamic(() => import("../HumidityMonitor").then(mod => mod.HumidityMonitor), { ssr: false });
+const SensorGraphSHT30 = dynamic(() => import("../SensorGraphSHT30").then(mod => mod.default), { ssr: false });
+
+const SensorGraph = dynamic(
+  () => import("../SensorGraphDS18B20").then(mod => mod.default),
   { ssr: false }
 );
-const LogoutButton = dynamic(
-  () => import("../LogoutButton").then((mod) => mod.LogoutButton),
-  { ssr: false }
-);
-const SensorMonitor = dynamic(
-  () => import("../SensorMonitor").then((mod) => mod.SensorMonitor),
-  { ssr: false }
-);
-const ServerStatus = dynamic(
-  () => import("../ServerStatus").then((mod) => mod.ServerStatus),
-  { ssr: false }
-);
-const ZonaAverageBlock = dynamic(() => import("../ZonaAverageBlock"), {
-  ssr: false,
-});
-const ZonaRelay = dynamic(() => import("../ZonaRelay"), { ssr: false });
-const ZonaStatus = dynamic(
-  () => import("../ZonaStatus").then((mod) => mod.ZonaStatus),
-  { ssr: false }
-);
-const ZonaTemperature = dynamic(() => import("../ZonaTemperature"), {
-  ssr: false,
-});
 
 export const GreenHouse: FC = () => {
   const [time, setTime] = useState("");
@@ -52,31 +34,25 @@ export const GreenHouse: FC = () => {
   }, []);
 
   return (
-    <div>
-      <LogoutButton />
-      <ServerStatus companyName={"Green House"} />
-
-      {/* Time display */}
-      <div className="container">
-        <div className="row justify-content-center">
-          <div className="col-auto text-center">
-            <span
-              id="clock"
-              className="fw-semibold"
-              style={{ fontSize: "2.6rem" }}
-            >
-              {time}
-            </span>
-          </div>
+      <div style={{ padding: "0rem" }}>
+        <ServerStatus companyName="GREEN-HOUSE" deviceId="server" />
+        <div className="container py-3 text-center">
+          <span id="clock" className="fw-semibold" style={{ fontSize: "2.6rem" }}>{time}</span>
+        </div>
+        <HumidityMonitor />
+        <div className="container mt-4">
+          <h4 className="text-center mb-3" style={{ fontSize: "1.4rem", color: "#fff", fontWeight: "bold" }}>
+            Графік HUM1-1
+          </h4>
+          <SensorGraphSHT30 />
+        </div>
+        <SensorMonitor />
+        <div className="container mt-4">
+          <h4 className="text-center mb-3" style={{ fontSize: "1.4rem", color: "#fff", fontWeight: "bold" }}>
+            Графік SENSOR
+          </h4>
+          <SensorGraph />
         </div>
       </div>
-
-      <ZonaStatus />
-      <ZonaTemperature />
-      <ZonaAverageBlock />
-      <SensorMonitor />
-      <HumidityMonitor />
-      <ZonaRelay />
-    </div>
-  );
+    );
 };
