@@ -72,7 +72,7 @@ export function SensorMonitor() {
       <div className="row">
         {sensors.map((sensor) => (
           <div key={sensor.id} className="col-6 col-md-3 mb-3">
-            <div className="average-temp-block rounded shadow-sm p-3">
+            <div className="average-temp-block rounded shadow-sm ">
               <div className="description-temp-block d-flex justify-content-between mb-2">
                 <strong>{sensor.id}</strong>
                 <button
@@ -90,7 +90,7 @@ export function SensorMonitor() {
                   ⚠ Датчик не в мережі
                 </div>
               ) : (
-                <div className="average-temp-label text-white d-flex align-items-center gap-2">
+                <div className="average-temp-label text-white d-flex align-items-center gap-2 justify-content-center">
                   <FontAwesomeIcon
                     icon={faThermometerHalf}
                     style={{ color: "#FFD700" }}
